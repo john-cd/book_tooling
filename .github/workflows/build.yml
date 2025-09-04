@@ -1,0 +1,80 @@
+name: Build book_tooling
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  ## Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+## ---------------------------------------------------------------------
+
+jobs:
+  build_code:
+    name: Build code for book_tooling
+    runs-on: ubuntu-latest
+    steps:
+      # Checks out your repository under $GITHUB_WORKSPACE
+      - name: Code checkout (clones the Git repository)
+        uses: actions/checkout@v5
+
+      # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/caching-dependencies-to-speed-up-workflows
+      # Install paths for Rust / Cargo in https://github.com/actions/runner-images/blob/main/images/windows/scripts/build/Install-Rust.ps1
+      - name: Cache Cargo registry and dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/binstall/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            /usr/local/cargo/bin/
+            /usr/local/cargo/binstall/
+            /usr/local/cargo/registry/index/
+            /usr/local/cargo/registry/cache/
+            /usr/local/cargo/git/db/
+            target/
+            bk/crates/target/
+          key: rust_howto-book-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            rust_howto-book-${{ runner.os }}-cargo-
+
+      - name: Install `cargo binstall`
+        run:
+
+
+      - name: Install Nextest
+        run: cargo binstall --no-confirm --secure cargo-nextest
+
+      - name: Update Rust; Install nightly Rust
+        run: |
+          rustup update stable
+          rustup default stable
+          rustup toolchain install nightly
+          rustup component add rustfmt --toolchain nightly
+          rustup show
+
+      - name: Output Rust version (debug)
+        run: rustup --version
+
+      - name: Format
+        run: cargo +nightly fmt --all --check
+
+      - name: Fetch
+        run: cargo fetch
+
+      - name: Build
+        run: cargo build --workspace --all-targets --locked --profile ci
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked --profile ci -- --deny warnings
+
+      - name: Run tests
+        run: |
+          cargo nextest run --workspace --all-targets --locked --cargo-profile ci --hide-progress-bar
+          cargo test --workspace --doc --locked --profile ci -- --show-output

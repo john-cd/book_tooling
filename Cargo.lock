@@ -28,9 +28,9 @@ dependencies = [
 
 [[package]]
 name = "annotate-snippets"
-version = "0.12.1"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a851f39ec7e23bf1c30faf3844a496fee4db701f5f840f68d1f78f00e697892"
+checksum = "982b1e014494ccc9d4737fa74eee118cd67b1905d781b7b9d03b32d77858593f"
 dependencies = [
  "anstyle",
  "unicode-width",
@@ -868,9 +868,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.27"
+version = "0.4.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
+checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
 
 [[package]]
 name = "loom"
@@ -1253,6 +1253,14 @@ dependencies = [
  "libc",
  "untrusted",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "rust_rate"
+version = "0.1.2"
+dependencies = [
+ "anyhow",
+ "tracing",
 ]
 
 [[package]]
