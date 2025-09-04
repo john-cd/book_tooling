@@ -1,0 +1,16 @@
+{
+    "search.exclude": {
+        "**/target": true
+    },
+    "rust-analyzer.restartServerOnConfigChange": true,
+    "rust-analyzer.cargo.buildScripts.enable": false,
+    "rust-analyzer.statusBar.clickAction": "stopServer",
+    "rust-analyzer.statusBar.showStatusBar": "always",
+    "rust-analyzer.imports.granularity.group": "item",
+    "rust-analyzer.imports.granularity.enforce": true,
+    "rust-analyzer.imports.preferPrelude": true,
+    "bookmarks.keepBookmarksOnLineDelete": false,
+    "bookmarks.saveBookmarksInProject": true,
+    "rust-analyzer.initializeStopped": true,
+    "telemetry.telemetryLevel": "off"
+}
