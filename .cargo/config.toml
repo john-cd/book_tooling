@@ -1,6 +1,6 @@
 
 [build]
-target-dir = "../target/wip/"
+target-dir = "target/book_tooling/"
 
 ## "ci" is used by the Github Action CD/CI workflow -  no need to optimize heavily
 [profile.ci]
