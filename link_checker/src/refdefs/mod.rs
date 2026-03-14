@@ -1,121 +1,158 @@
-// use std::fs::File;
-// use std::io::BufWriter;
-// use std::io::Write;
-// use std::path::Path;
+use std::collections::HashSet;
+use std::fmt::Write;
 
-// use anyhow::Context;
-// use anyhow::Result;
-// use pulldown_cmark::BrokenLink;
-// use pulldown_cmark::Options;
-// use pulldown_cmark::Parser;
-// use tracing::debug;
-// use tracing::error;
-// use tracing::info;
-// use tracing::trace;
-// use tracing::warn;
-// mod fs;
+use parse_lib::visit::PrettyPrinter;
+use parse_lib::visit::Visitor;
+use parse_lib::*;
 
-// // TODO
-// /// Detect unused references.
-// pub fn detect_unused_reference_definitions(content: &str) {}
+/// Find labels that are defined but never used in links or images.
+pub fn find_unused_refdefs(doc: &Document) -> HashSet<String> {
+    let mut used_labels = HashSet::new();
+    let mut defined_labels = HashSet::new();
 
-// // FIXME
-// /// Delete unused reference definitions.
-// pub fn delete_unused_reference_definitions(
-//     content: &str,
-//     unused_refs: Vec<BrokenLink<'static>>,
-// ) -> String {
-//     content.to_string()
-// }
+    struct LabelCollector<'a> {
+        used: &'a mut HashSet<String>,
+        defined: &'a mut HashSet<String>,
+    }
 
-// fn detect_broken_links(content: &str) -> Vec<BrokenLink<'static>> {
-//     let mut broken_links = vec![];
-//     parse_markdown(content, &mut broken_links);
-//     if !broken_links.is_empty() {
-//         error!("Error: {} broken links:", broken_links.len());
-//     }
-//     for link in &broken_links {
-//         let start = link.span.start;
-//         let end = link.span.end;
-//         let reference = &link.reference;
-//         error!("[{start}-{end}]: {reference}");
-//     }
-//     broken_links
-// }
+    impl<'v> Visitor<'v> for LabelCollector<'_> {
+        fn visit_reference_style_link(
+            &mut self,
+            link: &'v ReferenceStyleLinkData,
+        ) -> std::fmt::Result {
+            self.used.insert(link.label.to_string());
+            Ok(())
+        }
+        fn visit_reference_style_image(
+            &mut self,
+            img: &'v ReferenceStyleImageData,
+        ) -> std::fmt::Result {
+            self.used.insert(img.label.to_string());
+            Ok(())
+        }
+        fn visit_reference_definition(
+            &mut self,
+            refdef: &'v ReferenceDefinitionData,
+        ) -> std::fmt::Result {
+            self.defined.insert(refdef.label.to_string());
+            Ok(())
+        }
+    }
 
-// fn parse_markdown(content: &str, broken_links: &mut Vec<BrokenLink<'static>>) {
-//     // Create a parser with our callback function for broken links.
-//     // - In case the parser encounters any potential links that have a broken
-//     // reference (e.g `[foo]` when there is no `[foo]: ` entry at the bottom)
-//     // the provided callback will be called with the reference name,
-//     // and the returned pair will be used as the link URL and title if it is
-//     // not `None`.
-//     // - Options:all() includes ENABLE_TABLES, ENABLE_FOOTNOTES,
-//     // ENABLE_STRIKETHROUGH, ENABLE_TASKLISTS, ENABLE_SMART_PUNCTUATION,
-//     // ENABLE_HEADING_ATTRIBUTES, etc
+    let mut collector = LabelCollector {
+        used: &mut used_labels,
+        defined: &mut defined_labels,
+    };
+    let _ = doc.accept(&mut collector);
 
-//     let parser = pulldown_cmark::Parser::new_with_broken_link_callback(
-//         content,
-//         Options::all(),
-//         Some(|link: BrokenLink<'_>| {
-//             broken_links.push(link.into_static());
-//             Some(("http://TODO".into(), ":BROKEN_LINK:".into()))
-//             // or None
-//         }),
-//     );
-//     let count = parser.count();
-//     info!("Parser: {count} events");
-// }
+    defined_labels.difference(&used_labels).cloned().collect()
+}
 
-// /// Write reference definitions parsed from a Markdown parser to a
-// /// file / writer.
-// ///
-// /// parser: Markdown parser.
-// ///
-// /// w: Writer e.g. File
-// pub(crate) fn write_refdefs_to<W>(parser: &mut Parser<'_>, w: &mut W) -> Result<()>
-// where
-//     W: Write,
-// {
-//     let sorted_linkdefs: std::collections::BTreeMap<_, _> =
-//         parser.reference_definitions().iter().collect();
+/// Delete unused reference definitions from the document and return the new content.
+pub fn delete_unused_refdefs(doc: &Document, unused_labels: &HashSet<String>) -> String {
+    let mut output = String::new();
 
-//     for (s, linkdef) in sorted_linkdefs {
-//         if let Some(t) = &linkdef.title {
-//             writeln!(w, "[{s}]: {} \"{t:?}\"", linkdef.dest)?;
-//         } else {
-//             writeln!(w, "[{s}]: {}", linkdef.dest)?;
-//         }
-//     }
-//     Ok(())
-// }
+    struct DeletingPrinter<'a, W: Write> {
+        pp: PrettyPrinter<W>,
+        unused: &'a HashSet<String>,
+    }
 
-// // / Helper function:
-// // /
-// // / Checks if the source directory exists,
-// // / create the destination directory if it doesn't exist,
-// // / create the destination file,
-// // / parse all the Markdown files in the source directory,
-// // / and invoke a closure that uses the parser to write to the file.
-// fn helper<P1, P2, F>(src_dir_path: P1, dest_file_path: P2, func: F) -> Result<()>
-// where
-//     P1: AsRef<Path>,
-//     P2: AsRef<Path>,
-//     F: for<'a, 'b> FnOnce(&'a mut Parser<'a>, &'b mut File) -> Result<()>,
-// {
-//     let src_dir_path = fs::check_is_dir(src_dir_path)?;
-//     fs::create_parent_dir_for(dest_file_path.as_ref())?;
+    impl<'v, W: Write> Visitor<'v> for DeletingPrinter<'_, W> {
+        fn visit_autolink(&mut self, data: &'v AutolinkData) -> std::fmt::Result {
+            self.pp.visit_autolink(data)
+        }
+        fn visit_inline_link(&mut self, data: &'v InlineLinkData) -> std::fmt::Result {
+            self.pp.visit_inline_link(data)
+        }
+        fn visit_reference_style_link(
+            &mut self,
+            data: &'v ReferenceStyleLinkData,
+        ) -> std::fmt::Result {
+            self.pp.visit_reference_style_link(data)
+        }
+        fn visit_inline_image(&mut self, data: &'v InlineImageData) -> std::fmt::Result {
+            self.pp.visit_inline_image(data)
+        }
+        fn visit_reference_style_image(
+            &mut self,
+            data: &'v ReferenceStyleImageData,
+        ) -> std::fmt::Result {
+            self.pp.visit_reference_style_image(data)
+        }
+        fn visit_wiki_link(&mut self, data: &'v WikiLinkData) -> std::fmt::Result {
+            self.pp.visit_wiki_link(data)
+        }
+        fn visit_code_span(&mut self, data: &'v CodeSpanData) -> std::fmt::Result {
+            self.pp.visit_code_span(data)
+        }
+        fn visit_fenced_code_block(&mut self, data: &'v FencedCodeBlockData) -> std::fmt::Result {
+            self.pp.visit_fenced_code_block(data)
+        }
+        fn visit_hidden_html_div(&mut self, data: &'v HiddenHtmlDivData) -> std::fmt::Result {
+            self.pp.visit_hidden_html_div(data)
+        }
+        fn visit_heading(&mut self, data: &'v HeadingData) -> std::fmt::Result {
+            self.pp.visit_heading(data)
+        }
+        fn visit_text(&mut self, data: &'v TextData) -> std::fmt::Result {
+            self.pp.visit_text(data)
+        }
+        fn visit_custom_directive(&mut self, data: &'v DirectiveData) -> std::fmt::Result {
+            self.pp.visit_custom_directive(data)
+        }
 
-//     let mut f = File::create(dest_file_path.as_ref()).with_context(|| {
-//         format!(
-//             "[helper] Could not create file {}",
-//             dest_file_path.as_ref().display()
-//         )
-//     })?;
+        fn visit_reference_definition(
+            &mut self,
+            refdef: &'v ReferenceDefinitionData,
+        ) -> std::fmt::Result {
+            if self.unused.contains(refdef.label) {
+                // To avoid leaving blank lines, we might need a more sophisticated printer,
+                // but for now this removes the definition.
+                Ok(())
+            } else {
+                self.pp.visit_reference_definition(refdef)
+            }
+        }
+    }
 
-//     let all_markdown = fs::read_to_string_all_markdown_files_in(src_dir_path)?;
-//     let mut parser = parser::get_parser(all_markdown.as_ref());
+    let mut printer = DeletingPrinter {
+        pp: PrettyPrinter::new(&mut output),
+        unused: unused_labels,
+    };
+    let _ = doc.accept(&mut printer);
+    output
+}
 
-//     func(&mut parser, &mut f)?;
-//     Ok(())
-// }
+#[cfg(test)]
+mod tests {
+    use parse_lib::parse_document;
+
+    use super::*;
+
+    #[test]
+    fn test_unused_refdefs() {
+        let content = "# Title\n\n[Used][used]\n\n[used]: https://example.com\n[unused]: https://unused.com\n";
+        let doc = parse_document("test.md", None, content).expect("parse failed");
+        let unused = find_unused_refdefs(&doc);
+        assert!(
+            unused.contains("unused"),
+            "Unused labels should contain 'unused', got: {:?}",
+            unused
+        );
+        assert_eq!(unused.len(), 1);
+    }
+
+    #[test]
+    fn test_delete_unused_refdefs() {
+        let content = "# Title\n\n[Used][used]\n\n[used]: https://example.com\n[unused]: https://unused.com\n";
+        let doc = parse_document("test.md", None, content).expect("parse failed");
+        let unused = find_unused_refdefs(&doc);
+        let cleaned = delete_unused_refdefs(&doc, &unused);
+        assert!(
+            cleaned.contains("[used]: <https://example.com>"),
+            "Cleaned content should contain [used] refdef, got:\n{}",
+            cleaned
+        );
+        assert!(!cleaned.contains("[unused]: <https://unused.com>"));
+    }
+}

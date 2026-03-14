@@ -1,3 +1,1 @@
-# rust_rate
-
-A tool for Rust-related metrics (Work in Progress).
+# `rust_rate``rust_rate` is a tool for crawling and analyzing Rust crate usage patterns across public repositories.

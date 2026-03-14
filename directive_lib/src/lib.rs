@@ -39,8 +39,13 @@ where
     let regexes_and_replacements = get_regexes_and_replacements(conf);
 
     // Extensions to process and excluded files.
-    // TODO: Make the scope configurable via the `Config` struct.
-    let scope = core_lib::Scope::default();
+    let mut scope = core_lib::Scope::default();
+    if let Some(ref extensions) = conf.included_extensions {
+        scope.included_extensions = extensions.iter().map(|s| s.into()).collect();
+    }
+    if let Some(ref exclusions) = conf.excluded_filenames {
+        scope.excluded_filenames = exclusions.iter().map(|s| s.into()).collect();
+    }
 
     for directory in directories.into_iter() {
         let dir = directory.as_path().canonicalize()?;

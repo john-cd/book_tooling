@@ -12,7 +12,6 @@ use winnow::ModalResult;
 use winnow::Parser;
 use winnow::ascii::line_ending;
 use winnow::ascii::space0;
-use winnow::ascii::space1;
 use winnow::combinator::alt;
 use winnow::combinator::eof;
 use winnow::combinator::opt;

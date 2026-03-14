@@ -114,7 +114,7 @@ pub enum DestinationKind {
 /// # Returns
 ///
 /// A `String` containing the replacement string.
-fn get_replacement_string(kind: DestinationKind, crate_name: &str) -> String {
+pub fn get_replacement_string(kind: DestinationKind, crate_name: &str) -> String {
     use DestinationKind::*;
     let (prefix, suffix) = match kind {
         Category => ("cat~", ""),

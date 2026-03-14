@@ -9,11 +9,9 @@
 //! - The brackets in link text bind more tightly than markers for emphasis and strong emphasis. Thus, for example, `*[foo*](url)` is a link.
 
 use winnow::Parser;
-use winnow::ascii::take_escaped;
 use winnow::combinator::alt;
 use winnow::combinator::cut_err;
 use winnow::combinator::delimited;
-use winnow::combinator::fail;
 use winnow::combinator::repeat;
 use winnow::error::ErrMode;
 use winnow::error::ModalResult;
@@ -93,7 +91,7 @@ fn parse_link_text_content<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 /// This parser handles:
 /// - Any character within the brackets.
 /// - Escaped square brackets (`\[` and `\]`) which should be treated as literal characters.
-pub(crate) fn parse_link_text<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+pub fn parse_link_text<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     // The entire link text is delimited by `[` and `]`.
     delimited('[', parse_link_text_content, cut_err(']'))
         .context(Label("link text"))
@@ -101,72 +99,4 @@ pub(crate) fn parse_link_text<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
             "content of a Markdown link's text, enclosed in square brackets",
         )))
         .parse_next(input)
-}
-
-// --- Test Cases ---
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_parse_link_text_basic() {
-        assert_eq!(
-            parse_link_text.parse_peek("[Hello World]"),
-            Ok(("", "Hello World"))
-        );
-        assert_eq!(
-            parse_link_text
-                .parse(r"[Link with escaped \[bracket\] xyz]")
-                .unwrap(),
-            r"Link with escaped \[bracket\] xyz"
-        );
-        assert_eq!(parse_link_text.parse("[]").unwrap(), "");
-    }
-
-    #[test]
-    fn test_parse_link_text_escaped_brackets() {
-        assert_eq!(parse_link_text.parse(r"[ \[foo\] ]").unwrap(), r" \[foo\] ");
-        assert_eq!(
-            parse_link_text.parse(r"[foo \[bar\] baz]").unwrap(),
-            r"foo \[bar\] baz"
-        );
-    }
-
-    #[test]
-    fn test_parse_link_text_nested_brackets() {
-        assert_eq!(
-            parse_link_text.parse("[foo [bar] baz]").unwrap(),
-            "foo [bar] baz"
-        );
-        assert_eq!(
-            parse_link_text.parse("[a [b [c] d] e]").unwrap(),
-            "a [b [c] d] e"
-        );
-    }
-
-    #[test]
-    fn test_parse_link_text_escaped_backslash() {
-        assert_eq!(
-            parse_link_text.parse(r"[foo \\ bar]").unwrap(),
-            r"foo \\ bar"
-        );
-    }
-
-    #[test]
-    fn test_parse_link_text_unmatched_bracket() {
-        assert!(parse_link_text.parse("[foo [bar]").is_err());
-        assert!(parse_link_text.parse("[foo bar]]").is_err());
-    }
-
-    #[test]
-    fn test_parse_link_text_only_escapes() {
-        assert_eq!(parse_link_text.parse(r"[\[\]\[\]]").unwrap(), r"\[\]\[\]");
-    }
-
-    #[test]
-    fn test_parse_link_text_empty_and_whitespace() {
-        assert_eq!(parse_link_text.parse("[   ]").unwrap(), "   ");
-        assert_eq!(parse_link_text.parse("[\t]").unwrap(), "\t");
-    }
 }

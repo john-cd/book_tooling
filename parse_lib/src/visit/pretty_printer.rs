@@ -79,9 +79,9 @@ impl<W: fmt::Write> Visitor<'_> for PrettyPrinter<W> {
 
     fn visit_reference_definition(&mut self, refdef: &ReferenceDefinitionData) -> Result {
         if let Some(title) = refdef.title {
-            write!(self.w, "[{}]: {} \"{title}\"", refdef.label, refdef.url)?;
+            write!(self.w, "[{}]: {} \"{title}\"\n", refdef.label, refdef.url)?;
         } else {
-            write!(self.w, "[{}]: {}", refdef.label, refdef.url)?;
+            write!(self.w, "[{}]: {}\n", refdef.label, refdef.url)?;
         }
         Ok(())
     }
