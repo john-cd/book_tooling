@@ -18,12 +18,12 @@ publish = false
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
-anyhow = "1.0.95"
+anyhow = "1.0.99"
 tracing = "0.1.41"
 regex = "1.11.1"
 serde = { version = "1.0.219", features = ["derive"] }
 clap = { version = "4.5.40", features = ["derive"] }
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
-url = "2.5.4"
+url = "2.5.7"
 walkdir = "2.5.0"
-tempfile = "3.20.0"
+tempfile = "3.21.0"

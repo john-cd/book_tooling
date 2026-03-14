@@ -1,6 +1,8 @@
 # TODO
 
 ## Fixes
+- [x] Fix `winnow` assertion failures in `parse_lib`.
+- [x] Fix logic in `parse_wikilinks.rs`.
 - [ ] Implement `process_all_directives` scope configuration in `directive_lib`.
 - [ ] Fix `convert_links` implementation in `inline_links` (currently a stub).
 - [ ] Ensure unique temporary file names in `core_lib::process_text_file` to support parallel processing.
