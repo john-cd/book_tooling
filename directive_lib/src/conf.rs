@@ -36,6 +36,12 @@ pub struct Config {
     /// `[[file | title1]]`
     /// and convert them to markdown links to internal pages.
     pub process_wikilinks: bool,
+
+    /// Extensions to process. If `None`, uses default ("md").
+    pub included_extensions: Option<Vec<String>>,
+
+    /// File names to exclude. If `None`, uses default ("refs.incl.md", "SUMMARY.md").
+    pub excluded_filenames: Option<Vec<String>>,
 }
 
 impl Default for Config {
@@ -45,6 +51,8 @@ impl Default for Config {
             process_example_directives: true,
             process_link_and_badge_directives: true,
             process_wikilinks: true,
+            included_extensions: None,
+            excluded_filenames: None,
         }
     }
 }

@@ -15,11 +15,11 @@
 //!
 //! <https://spec.commonmark.org/0.31.2/#link-destination>
 
-mod angle_brackets;
-mod nonempty_sequence;
+pub mod angle_brackets;
+pub mod nonempty_sequence;
 
-pub(crate) use angle_brackets::*;
-use nonempty_sequence::*;
+pub use angle_brackets::*;
+pub use nonempty_sequence::*;
 use winnow::combinator::alt;
 use winnow::combinator::fail;
 use winnow::error::StrContext::*;
@@ -29,7 +29,7 @@ use winnow::prelude::*;
 /// Parses a link destination.
 ///
 /// <https://spec.commonmark.org/0.31.2/#link-destination>
-pub(crate) fn parse_link_destination<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+pub fn parse_link_destination<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     alt((
         parse_angle_brackets,
         parse_non_empty_sequence,

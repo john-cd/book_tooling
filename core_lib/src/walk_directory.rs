@@ -2,6 +2,7 @@ use std::ffi::OsString;
 use std::path::Path;
 
 use anyhow::Result;
+use rayon::prelude::*;
 use walkdir::WalkDir;
 
 /// Defines what files should be processed based on their extension and filename.
@@ -35,9 +36,8 @@ impl Default for Scope {
 /// Returns an error if directory traversal fails or if the processing function `f` returns an error.
 pub fn walk_directory_and_process_files<F>(root: &Path, scope: &Scope, f: F) -> Result<()>
 where
-    F: Fn(&Path) -> Result<()>,
+    F: Fn(&Path) -> Result<()> + Sync + Send,
 {
-    // TODO: Consider using parallel iteration (e.g., with Rayon) for processing large directories.
     let files = WalkDir::new(root)
         .into_iter()
         .filter_map(|e| e.ok())
@@ -54,10 +54,11 @@ where
         .map(|e| e.path().to_path_buf())
         .collect::<Vec<_>>();
 
-    for file in files {
+    files.into_par_iter().try_for_each(|file| {
         tracing::info!("Processing {}.", file.display());
-        f(&file)?;
-    }
+        f(&file)
+    })?;
+
     Ok(())
 }
 

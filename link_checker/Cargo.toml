@@ -25,3 +25,4 @@ url.workspace = true
 tokio = { version = "1.47.0", features = ["rt-multi-thread", "macros"] }
 futures-util = "0.3.31"
 core_lib = { path = "../core_lib" }
+parse_lib = { path = "../parse_lib" }

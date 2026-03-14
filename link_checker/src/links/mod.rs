@@ -1,6 +1,5 @@
-mod asynchro;
-mod link;
+pub mod asynchro;
+pub mod link;
 
-// FIXME
-// pub use asynchro::*;
-// pub use link::*;
+pub use asynchro::*;
+pub use link::*;

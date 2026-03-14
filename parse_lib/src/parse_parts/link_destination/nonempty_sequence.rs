@@ -10,7 +10,6 @@
 //! but at least three levels of nesting should be supported.)
 
 use winnow::ModalResult;
-use winnow::Result;
 use winnow::combinator::alt;
 use winnow::combinator::cut_err;
 use winnow::combinator::delimited;
@@ -21,7 +20,6 @@ use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
 use winnow::prelude::*;
 use winnow::token::any;
-use winnow::token::one_of;
 use winnow::token::take_while;
 
 /// Returns true if a character that is not control, space, < ( or ).

@@ -6,7 +6,6 @@ use winnow::prelude::*;
 
 use super::super::parse_parts::parse_angle_brackets;
 use crate::ast::*;
-use crate::parse_urls::UrlKind;
 use crate::parse_urls::parse_naked_url;
 
 /// Parses an autolink (`<url>` or a naked URL).
