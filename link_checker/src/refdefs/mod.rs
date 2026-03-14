@@ -149,10 +149,10 @@ mod tests {
         let unused = find_unused_refdefs(&doc);
         let cleaned = delete_unused_refdefs(&doc, &unused);
         assert!(
-            cleaned.contains("[used]: <https://example.com>"),
+            cleaned.contains("[used]: https://example.com"),
             "Cleaned content should contain [used] refdef, got:\n{}",
             cleaned
         );
-        assert!(!cleaned.contains("[unused]: <https://unused.com>"));
+        assert!(!cleaned.contains("[unused]: https://unused.com"));
     }
 }

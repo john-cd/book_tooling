@@ -5,26 +5,6 @@ use fmt::Result;
 use super::Visitor;
 use crate::ast::*;
 
-// pub struct Conf {
-//     process_directives: bool,
-//     convert_autolinks: bool,
-//     convert_inline_links_and_images: bool,
-//     convert_wikilinks: bool,
-//     remove_hidden_sections: bool,
-// }
-
-// impl Default for Conf {
-//     fn default() -> Self {
-//         Self {
-//             process_directives: true,
-//             convert_autolinks: true,
-//             convert_inline_links_and_images: true,
-//             convert_wikilinks: true,
-//             remove_hidden_sections: false,
-//         }
-//     }
-// }
-
 pub struct PrettyPrinter<W>
 where
     W: fmt::Write,
@@ -116,7 +96,7 @@ impl<W: fmt::Write> Visitor<'_> for PrettyPrinter<W> {
         let content = heading
             .content
             .map(|c| format!(" {c}"))
-            .unwrap_or("".into());
+            .unwrap_or_else(|| "".into());
         if let Some(id) = heading.id {
             write!(self.w, "{hashes}{content} {{#{id}}}")?;
         } else {

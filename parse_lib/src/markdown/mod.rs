@@ -18,5 +18,3 @@ pub use images::*;
 pub use links::*;
 pub use refdefs::*;
 pub use text::*;
-
-// TODO: Implement support for GFM-style tables and task lists if needed.
