@@ -4,12 +4,12 @@ use std::path::Path;
 use anyhow::Result;
 use walkdir::WalkDir;
 
-/// Defines what files should be processed.
+/// Defines what files should be processed based on their extension and filename.
 #[derive(Debug)]
 pub struct Scope {
-    /// Extensions to process.
+    /// Extensions to process (e.g., "md", "txt").
     pub included_extensions: Vec<OsString>,
-    /// File names (i.e. final component of a `Path`) to exclude.
+    /// File names (i.e. final component of a `Path`) to exclude (e.g., "SUMMARY.md").
     pub excluded_filenames: Vec<OsString>,
 }
 
@@ -22,17 +22,22 @@ impl Default for Scope {
     }
 }
 
-/// Walks through a directory and processes all files.
+/// Walks through a directory and processes all files matching the specified scope.
 ///
 /// # Arguments
 ///
 /// * `root` - The directory to walk through.
-/// * `scope` - The scope.
-/// * `f` - A function that processes one file at the time.
+/// * `scope` - The criteria for including/excluding files.
+/// * `f` - A function that processes one file at a time.
+///
+/// # Errors
+///
+/// Returns an error if directory traversal fails or if the processing function `f` returns an error.
 pub fn walk_directory_and_process_files<F>(root: &Path, scope: &Scope, f: F) -> Result<()>
 where
     F: Fn(&Path) -> Result<()>,
 {
+    // TODO: Consider using parallel iteration (e.g., with Rayon) for processing large directories.
     let files = WalkDir::new(root)
         .into_iter()
         .filter_map(|e| e.ok())

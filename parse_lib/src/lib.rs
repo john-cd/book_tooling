@@ -3,6 +3,7 @@
 //! The parsers do not cover all corner cases of the CommonMark spec, just what we need.
 // [finish](https://github.com/john-cd/rust_howto/issues/1425)
 #![allow(unused)]
+// TODO: Review and remove #![allow(unused)] once the API is stable.
 
 mod ast;
 mod errors;
