@@ -2,9 +2,9 @@
 use std::path::Path;
 use std::path::PathBuf;
 
+use anyhow::bail;
 use anyhow::Context;
 use anyhow::Error;
-use anyhow::bail;
 use tracing::info;
 
 /// Check if a path is a directory.
@@ -27,11 +27,10 @@ pub(crate) fn create_parent_dir_for<P>(file_path: P) -> Result<(), Error>
 where
     P: AsRef<Path>,
 {
-    match AsRef::<Path>::as_ref(&file_path).parent() {
-        Some(dir) if dir != Path::new("") => {
+    if let Some(dir) = AsRef::<Path>::as_ref(&file_path).parent() {
+        if dir != Path::new("") {
             create_dir(dir)?;
         }
-        _ => {}
     }
     Ok(())
 }
@@ -62,10 +61,23 @@ where
 
 #[cfg(test)]
 mod test {
-    // TODO
-    // use super::*;
+    use super::*;
+    use tempfile::tempdir;
 
-    // #[test]
-    // fn test() {
-    // }
+    #[test]
+    fn test_check_is_dir() {
+        let dir = tempdir().unwrap();
+        assert!(check_is_dir(dir.path()).is_ok());
+        let file = dir.path().join("file.txt");
+        std::fs::write(&file, "test").unwrap();
+        assert!(check_is_dir(&file).is_err());
+    }
+
+    #[test]
+    fn test_create_parent_dir_for() {
+        let dir = tempdir().unwrap();
+        let sub = dir.path().join("sub/sub2/file.txt");
+        assert!(create_parent_dir_for(&sub).is_ok());
+        assert!(sub.parent().unwrap().exists());
+    }
 }

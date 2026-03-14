@@ -1,7 +1,6 @@
 //! Parsers for Markdown and related elements.
 //!
 //! The parsers do not cover all corner cases of the CommonMark spec, just what we need.
-// [finish](https://github.com/john-cd/rust_howto/issues/1425)
 
 pub mod ast;
 pub mod errors;
