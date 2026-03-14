@@ -18,8 +18,8 @@
 pub mod angle_brackets;
 pub mod nonempty_sequence;
 
-pub use angle_brackets::*;
-pub use nonempty_sequence::*;
+pub use angle_brackets::parse_angle_brackets;
+pub use nonempty_sequence::parse_non_empty_sequence;
 use winnow::combinator::alt;
 use winnow::combinator::fail;
 use winnow::error::StrContext::*;
