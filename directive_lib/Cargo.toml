@@ -14,8 +14,8 @@ publish.workspace = true
 license.workspace = true
 
 [dependencies]
-anyhow = "1.0.95"
+anyhow.workspace = true
 core_lib = { path = "../core_lib" }
-regex = "1.11.1"
-serde = { version = "1.0.219", features = ["derive"] }
-tracing = "0.1.41"
+regex.workspace = true
+serde.workspace = true
+tracing.workspace = true

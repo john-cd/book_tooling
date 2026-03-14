@@ -1,3 +1,8 @@
+//! Markdown-specific parsing modules.
+//!
+//! This module contains various parsers for standard Markdown elements like
+//! links, images, headings, and code blocks.
+
 mod autolink;
 mod code;
 mod headings;
@@ -13,3 +18,5 @@ pub use images::*;
 pub use links::*;
 pub use refdefs::*;
 pub use text::*;
+
+// TODO: Implement support for GFM-style tables and task lists if needed.
