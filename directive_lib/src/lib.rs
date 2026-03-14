@@ -6,8 +6,8 @@ pub use directive_model::*;
 mod crate_blocks;
 use crate_blocks::*;
 
-mod conf;
-use conf::*;
+pub mod conf;
+pub use conf::*;
 
 mod links_or_badges;
 use links_or_badges::*;

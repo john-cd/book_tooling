@@ -1,94 +1,132 @@
 use std::borrow::Cow;
-use std::fs::File;
-use std::io::Read;
-use std::io::Write;
+use std::fs;
 use std::path::Path;
 
+use anyhow::Context;
 use anyhow::Result;
+use tempfile::NamedTempFile;
+use memmap2::Mmap;
 
-/// Read a text file in memory, and, if its contents should be processed, update its contents on disk.
+/// Atomically process a text file.
 ///
-/// This function performs an in-place update by writing to a temporary file and then renaming it,
-/// ensuring atomicity and avoiding partial writes.
-///
-/// # Arguments
-///
-/// * `filepath` - The path to the text file to process.
-/// * `should_process` - A closure that returns true if the file should be processed, given its contents.
-///   This is used as a quick check before applying more expensive transformations.
-/// * `update_contents` - A closure that returns the updated contents of the file, given its contents.
-///   It returns a `Cow<str>` to avoid allocations when no changes are needed.
-///
-/// # Errors
-///
-/// Returns an error if the file cannot be read, written, or renamed.
-pub fn process_text_file<P, F>(filepath: &Path, should_process: P, update_contents: F) -> Result<()>
+/// It reads the file, applies a predicate, and if the predicate matches,
+/// it applies a transformation and writes the result back to the file atomically.
+pub fn process_text_file<P, Pred, Trans>(
+    filepath: P,
+    should_process: Pred,
+    transform: Trans,
+) -> Result<()>
 where
-    P: Fn(&str) -> bool,
-    F: Fn(&str) -> Cow<str>,
+    P: AsRef<Path>,
+    Pred: FnOnce(&str) -> bool,
+    Trans: FnOnce(&str) -> Cow<'_, str>,
 {
-    // Read the file into memory.
-    // TODO: Consider using memory mapping for very large files.
-    let mut file = File::open(filepath)?;
-    let size = file.metadata()?.len() as usize;
-    let mut original = String::with_capacity(size);
-    file.read_to_string(&mut original)?;
-    drop(file); // Close the file early.
+    let path = filepath.as_ref();
+    let file = fs::File::open(path)
+        .with_context(|| format!("Could not open file {}", path.display()))?;
+    let metadata = file.metadata()?;
 
-    if !original.is_empty() && should_process(&original) {
-        let updated: Cow<'_, str> = update_contents(&original);
-        if updated != original {
-            // Using a unique temporary file in the same directory to ensure atomic rename.
-            let dir = filepath.parent().unwrap_or_else(|| Path::new("."));
-            let mut temp_file = tempfile::NamedTempFile::new_in(dir)?;
-            temp_file.write_all(updated.as_bytes())?;
-            temp_file.persist(filepath).map_err(|e| e.error)?;
+    // For larger files, we can use memory mapping for efficient reading.
+    // However, for text processing that might result in string transformations,
+    // we need to be careful with lifetimes.
+    // Since we usually need to read the entire file into a String anyway for the parsers,
+    // let's stick to read_to_string for now but keep the mmap logic structure if needed for read-only tasks.
+
+    if metadata.len() > 10 * 1024 * 1024 {
+        // Just an example of how mmap could be used if we only needed to READ and check a predicate.
+        let mmap = unsafe { Mmap::map(&file)? };
+        let content = std::str::from_utf8(&mmap)
+            .with_context(|| format!("File {} is not valid UTF-8", path.display()))?;
+        if should_process(content) {
+             // If we need to transform, we still need to generate a new String.
+             let updated_content = transform(content);
+             if updated_content != content {
+                 write_atomically(path, &updated_content)?;
+             }
+        }
+        return Ok(());
+    }
+
+    let content = fs::read_to_string(path)
+        .with_context(|| format!("Could not read file {}", path.display()))?;
+
+    if should_process(&content) {
+        let updated_content = transform(&content);
+
+        if updated_content != content {
+            write_atomically(path, &updated_content)?;
         }
     }
+
+    Ok(())
+}
+
+fn write_atomically(path: &Path, updated_content: &str) -> Result<()> {
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    let mut temp_file = NamedTempFile::new_in(parent)
+        .with_context(|| format!("Could not create temporary file in {}", parent.display()))?;
+
+    std::io::Write::write_all(&mut temp_file, updated_content.as_bytes())
+        .with_context(|| format!("Could not write to temporary file for {}", path.display()))?;
+
+    temp_file.persist(path)
+        .with_context(|| format!("Could not atomically update file {}", path.display()))?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
-
     use super::*;
-    use crate::utils::test_utils::TestCase;
-    use crate::utils::test_utils::test_with;
+    use tempfile::tempdir;
 
     #[test]
-    fn test_process_text_file_updates_content() -> Result<()> {
-        let test_cases = vec![TestCase {
-            file_name_and_ext: "test.md",
-            original_contents: Some("original content"),
-            expected_final_contents: Some("updated content"),
-        }];
+    fn test_process_text_file_updates_content() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test.txt");
+        fs::write(&file_path, "original content").unwrap();
 
-        test_with(&test_cases, |dir_path: &std::path::Path| {
-            let file_path = dir_path.join("test.md");
-            process_text_file(
-                &file_path,
-                |s| s.contains("original"),
-                |_| Cow::Borrowed("updated content"),
-            )
-        })
+        process_text_file(
+            &file_path,
+            |_| true,
+            |s| Cow::Owned(s.replace("original", "updated")),
+        )
+        .unwrap();
+
+        let updated_content = fs::read_to_string(&file_path).unwrap();
+        assert_eq!(updated_content, "updated content");
     }
 
     #[test]
-    fn test_process_text_file_skips_if_should_not_process() -> Result<()> {
-        let test_cases = vec![TestCase {
-            file_name_and_ext: "test.md",
-            original_contents: Some("original content"),
-            expected_final_contents: Some("original content"),
-        }];
+    fn test_process_text_file_skips_if_should_not_process() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test.txt");
+        fs::write(&file_path, "original content").unwrap();
 
-        test_with(&test_cases, |dir_path: &std::path::Path| {
-            let file_path = dir_path.join("test.md");
-            process_text_file(
-                &file_path,
-                |s| s.contains("other"),
-                |_| Cow::Borrowed("updated content"),
-            )
-        })
+        process_text_file(
+            &file_path,
+            |_| false,
+            |s| Cow::Owned(s.replace("original", "updated")),
+        )
+        .unwrap();
+
+        let content = fs::read_to_string(&file_path).unwrap();
+        assert_eq!(content, "original content");
+    }
+
+    #[test]
+    fn test_process_text_file_to_empty() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test.txt");
+        fs::write(&file_path, "original content").unwrap();
+
+        process_text_file(
+            &file_path,
+            |_| true,
+            |_| Cow::Owned("".to_string()),
+        )
+        .unwrap();
+
+        let content = fs::read_to_string(&file_path).unwrap();
+        assert_eq!(content, "");
     }
 }

@@ -12,6 +12,7 @@ use std::sync::Arc;
 use clap::Parser;
 use links::AsyncLinkChecker;
 use parse_lib::parse_document;
+use tokio::runtime::Handle;
 use tracing::error;
 use tracing::info;
 use tracing::warn;
@@ -29,6 +30,7 @@ async fn main() -> anyhow::Result<()> {
     let scope = core_lib::Scope::default();
 
     let link_checker = Arc::new(AsyncLinkChecker::new());
+    let handle = Handle::current();
 
     for directory in &args.directories {
         if !directory.exists() {
@@ -43,12 +45,14 @@ async fn main() -> anyhow::Result<()> {
 
         let checker = Arc::clone(&link_checker);
         let config = conf.clone();
+        let handle_clone = handle.clone();
 
         core_lib::walk_directory_and_process_files(&dir, &scope, move |p| {
             let checker = Arc::clone(&checker);
             let config = config.clone();
+            let handle = handle_clone.clone();
 
-            check_links_in_file(p, &config, &checker)
+            check_links_in_file(p, &config, &checker, &handle)
         })?;
     }
     println!("DONE");
@@ -59,6 +63,7 @@ fn check_links_in_file(
     filepath: &Path,
     conf: &conf::Config,
     checker: &AsyncLinkChecker,
+    handle: &Handle,
 ) -> anyhow::Result<()> {
     core_lib::process_text_file(
         filepath,
@@ -98,14 +103,8 @@ fn check_links_in_file(
                             continue;
                         }
 
-                        // We use a new runtime handle or similar if needed,
-                        // but since we are in a rayon thread, we might need a dedicated way
-                        // to call async from sync.
-                        let rt = tokio::runtime::Builder::new_current_thread()
-                            .enable_all()
-                            .build()
-                            .unwrap();
-                        let result = rt.block_on(checker.check_url(url.clone()));
+                        // Use the shared handle to block on the async check.
+                        let result = handle.block_on(checker.check_url(url.clone()));
                         if !result.success {
                             warn!(
                                 "Broken link in {}: {} (Status: {:?}, Error: {:?})",
