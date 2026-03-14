@@ -80,7 +80,7 @@ fn parse_balanced_parentheses<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 }
 
 /// The main parser for a non-empty sequence of characters not starting by `<`.
-pub(crate) fn parse_non_empty_sequence<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+pub fn parse_non_empty_sequence<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     // Ensure the first character is not '<'.
     winnow::combinator::peek(any.verify(|c| *c != '<' && *c != ' ' && *c != ')'))
         .parse_next(input)?;
