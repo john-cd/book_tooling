@@ -9,8 +9,6 @@
 //! - The brackets in link text bind more tightly than markers for emphasis and strong emphasis. Thus, for example, `*[foo*](url)` is a link.
 
 use winnow::Parser;
-use winnow::ascii::alphanumeric0;
-use winnow::ascii::space0;
 use winnow::ascii::take_escaped;
 use winnow::combinator::alt;
 use winnow::combinator::cut_err;
@@ -22,32 +20,36 @@ use winnow::error::ModalResult;
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
 use winnow::token::one_of;
+use winnow::token::take_while;
 
 /// Parses text that may contain escaped brackets or backslashes: \[ or \] or \\.
+///
+/// It must consume at least one character.
 fn parse_text_with_escapes<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    let allowed_chars = alt((alphanumeric0, space0));
-
-    take_escaped(allowed_chars, '\\', one_of(['[', ']', '\\']))
-        .context(Label("text with Markdown 'link text'"))
-        .context(Expected(Description(
-            r"alphanumeric characters, spaces, or tabs. May contain \-escaped [ or ] or \",
-        )))
-        .parse_next(input)
-        .map_err(ErrMode::Backtrack)
+    repeat::<_, _, (), _, _>(
+        1..,
+        alt((
+            take_while(1.., |c: char| c != '[' && c != ']' && c != '\\').void(),
+            ('\\', one_of(['[', ']', '\\'])).void(),
+        )),
+    )
+    .take()
+    .context(Label("text with Markdown 'link text'"))
+    .context(Expected(Description(
+        r"characters that are not [, ] or \. May contain \-escaped [ or ] or \",
+    )))
+    .parse_next(input)
+    .map_err(ErrMode::Backtrack)
 }
 
 /// Parses content within balanced brackets.
 /// It can contain text with escaped brackets, or nested balanced parentheses.
 fn parse_balanced_brackets_content<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    repeat::<_, _, String, _, _>(
+    repeat::<_, _, (), _, _>(
         0..,
         alt((
-            parse_text_with_escapes,
-            parse_balanced_brackets, // Recursively parse.
-            fail.context(Label("balanced brackets content"))
-                .context(Expected(Description(
-                    "text (with possibly escaped brackets) or nested balanced brackets",
-                ))),
+            parse_text_with_escapes.void(),
+            parse_balanced_brackets.void(), // Recursively parse.
         )),
     )
     .take()
@@ -74,14 +76,12 @@ fn parse_balanced_brackets<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 
 /// Parses the contents of a Markdown link's text.
 fn parse_link_text_content<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    repeat::<_, _, String, _, _>(
+    repeat::<_, _, (), _, _>(
         0..,
         alt((
             // [parse image](https://github.com/john-cd/rust_howto/issues/1424)
-            parse_balanced_brackets,
-            parse_text_with_escapes,
-            fail.context(Label("link text content"))
-                .context(Expected(Description(""))),
+            parse_balanced_brackets.void(),
+            parse_text_with_escapes.void(),
         )),
     )
     .take()
@@ -93,23 +93,6 @@ fn parse_link_text_content<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 /// This parser handles:
 /// - Any character within the brackets.
 /// - Escaped square brackets (`\[` and `\]`) which should be treated as literal characters.
-///
-/// # Arguments
-/// * `input` - The input string slice to parse.
-///
-/// # Returns
-/// A `Result` containing the parsed link text as a `String` if successful,
-/// or a `winnow::error::Err` if parsing fails.
-///
-/// # Examples
-/// ```rust
-/// use winnow::Parser;
-/// use parse_lib::parts::parse_link_text;
-///
-/// assert_eq!(parse_link_text.parse("[Hello World]").unwrap(), "Hello World");
-/// assert_eq!(parse_link_text.parse("[Link with \\[bracket\\]]").unwrap(), "Link with [bracket]");
-/// assert_eq!(parse_link_text.parse("[]").unwrap(), "");
-/// ```
 pub(crate) fn parse_link_text<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     // The entire link text is delimited by `[` and `]`.
     delimited('[', parse_link_text_content, cut_err(']'))
