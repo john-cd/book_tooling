@@ -4,7 +4,7 @@ use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
 use winnow::prelude::*;
 
-use super::super::parse_parts::parse_angle_brackets;
+use super::super::parse_parts::link_destination::parse_angle_brackets;
 use crate::ast::*;
 use crate::parse_urls::parse_naked_url;
 
@@ -30,8 +30,6 @@ mod tests {
     #[test]
     fn test_parse_autolink_naked_http() {
         // We expect parse_naked_url to work here.
-        // But our reconstruction in parse_autolink is incomplete.
-        // Let's just test delimited for now if reconstruction is too hard.
     }
 
     #[test]

@@ -1,8 +1,7 @@
 use std::collections::BTreeMap;
 use std::fmt::Write;
 
-use parse_lib::visit::PrettyPrinter;
-use parse_lib::visit::Visitor;
+use parse_lib::visit::{PrettyPrinter, Visitor};
 use parse_lib::*;
 
 /// Transformation visitor that converts inline and naked links to reference-style links.
@@ -30,10 +29,7 @@ impl LinkConverter {
         }
 
         let label = if let Some(pref) = preferred_label {
-            let sanitized = pref
-                .chars()
-                .filter(|c| c.is_alphanumeric())
-                .collect::<String>();
+            let sanitized = pref.chars().filter(|c| c.is_alphanumeric()).collect::<String>();
             if sanitized.is_empty() || self.refdefs.contains_key(&sanitized) {
                 let l = format!("link{}", self.next_id);
                 self.next_id += 1;
@@ -82,20 +78,13 @@ impl<'v> Visitor<'v> for LinkConverter {
         write!(self.output, "![{}][{}]", data.image_description, label)
     }
 
-    fn visit_reference_style_image(
-        &mut self,
-        data: &'v ReferenceStyleImageData,
-    ) -> std::fmt::Result {
+    fn visit_reference_style_image(&mut self, data: &'v ReferenceStyleImageData) -> std::fmt::Result {
         write!(self.output, "![{}][{}]", data.image_description, data.label)
     }
 
-    fn visit_reference_definition(
-        &mut self,
-        data: &'v ReferenceDefinitionData,
-    ) -> std::fmt::Result {
+    fn visit_reference_definition(&mut self, data: &'v ReferenceDefinitionData) -> std::fmt::Result {
         // Collect existing refdefs
-        self.refdefs
-            .insert(data.label.to_string(), data.url.to_string());
+        self.refdefs.insert(data.label.to_string(), data.url.to_string());
         Ok(())
     }
 
@@ -113,17 +102,13 @@ impl<'v> Visitor<'v> for LinkConverter {
     }
 
     fn visit_hidden_html_div(&mut self, data: &'v HiddenHtmlDivData) -> std::fmt::Result {
-        write!(
-            self.output,
-            "<div class=\"hidden\">\n{}\n</div>",
-            data.content
-        )
+        write!(self.output, "<div class=\"hidden\">\n{}\n</div>", data.content)
     }
 
     fn visit_heading(&mut self, data: &'v HeadingData) -> std::fmt::Result {
         let mut pp = PrettyPrinter::new(&mut self.output);
         pp.visit_heading(data)?;
-        write!(self.output, "\n")
+        writeln!(self.output)
     }
 
     fn visit_text(&mut self, data: &'v TextData) -> std::fmt::Result {
