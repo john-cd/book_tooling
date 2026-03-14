@@ -56,19 +56,19 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::utils::test_utils::{TestCase, test_with};
     use std::borrow::Cow;
+
+    use super::*;
+    use crate::utils::test_utils::TestCase;
+    use crate::utils::test_utils::test_with;
 
     #[test]
     fn test_process_text_file_updates_content() -> Result<()> {
-        let test_cases = vec![
-            TestCase {
-                file_name_and_ext: "test.md",
-                original_contents: Some("original content"),
-                expected_final_contents: Some("updated content"),
-            },
-        ];
+        let test_cases = vec![TestCase {
+            file_name_and_ext: "test.md",
+            original_contents: Some("original content"),
+            expected_final_contents: Some("updated content"),
+        }];
 
         test_with(&test_cases, |dir_path: &std::path::Path| {
             let file_path = dir_path.join("test.md");
@@ -82,13 +82,11 @@ mod tests {
 
     #[test]
     fn test_process_text_file_skips_if_should_not_process() -> Result<()> {
-        let test_cases = vec![
-            TestCase {
-                file_name_and_ext: "test.md",
-                original_contents: Some("original content"),
-                expected_final_contents: Some("original content"),
-            },
-        ];
+        let test_cases = vec![TestCase {
+            file_name_and_ext: "test.md",
+            original_contents: Some("original content"),
+            expected_final_contents: Some("original content"),
+        }];
 
         test_with(&test_cases, |dir_path: &std::path::Path| {
             let file_path = dir_path.join("test.md");
