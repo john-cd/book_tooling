@@ -10,5 +10,4 @@ pub use utils::*;
 mod replace;
 pub use replace::*;
 
-mod templates;
-// TODO pub use templates::*;
+pub mod templates;

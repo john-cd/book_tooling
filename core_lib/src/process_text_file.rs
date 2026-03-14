@@ -37,18 +37,12 @@ where
 
     if !original.is_empty() && should_process(&original) {
         let updated: Cow<'_, str> = update_contents(&original);
-        // TODO: Handle the case where the updated content is empty, if that's a valid outcome.
-        // if  updated.is_empty() {
-        //
-        //     return Ok(());
-        // }
         if updated != original {
-            let temp_filepath = filepath.with_extension(".tmp");
-            // TODO: Ensure the temporary file name is unique to avoid collisions during parallel processing.
-            let mut temp_file = File::create(&temp_filepath)?;
+            // Using a unique temporary file in the same directory to ensure atomic rename.
+            let dir = filepath.parent().unwrap_or_else(|| Path::new("."));
+            let mut temp_file = tempfile::NamedTempFile::new_in(dir)?;
             temp_file.write_all(updated.as_bytes())?;
-            // Renames a file or directory to a new name, replacing the original file if it already exists.
-            std::fs::rename(&temp_filepath, filepath)?;
+            temp_file.persist(filepath).map_err(|e| e.error)?;
         }
     }
     Ok(())

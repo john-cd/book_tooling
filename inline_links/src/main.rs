@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! Convert any naked URLs and inline links in Markdown files within a folder into reference-style links.
 //!
 //! - Convert inline links e.g. [...](http(s)://...) into reference-style links: [...][...] [...]: http://...
@@ -9,10 +8,14 @@
 //! - Move refdefs into a central file (and sort them).
 
 mod cli;
+mod converter;
 
 use std::borrow::Cow;
+use std::path::Path;
 
 use clap::Parser;
+use converter::LinkConverter;
+use parse_lib::parse_document;
 
 fn main() -> anyhow::Result<()> {
     // Install a global tracing subscriber that listens for events
@@ -32,47 +35,38 @@ fn main() -> anyhow::Result<()> {
 }
 
 /// Convert inline and naked links to reference-style links.
-fn convert_links(filepath: &std::path::Path) -> anyhow::Result<()> {
-    // Read a text file in memory, test if its contents should be processed, and if true, update its contents.
+fn convert_links(filepath: &Path) -> anyhow::Result<()> {
     core_lib::process_text_file(
         filepath,
-        |_s: &str| true, // FIXME
-        |_s: &str| Cow::Borrowed(""),
+        |s: &str| s.contains("http") || s.contains("["),
+        |content: &str| {
+            let filename = filepath.file_name().unwrap_or_default().to_string_lossy();
+            let doc = match parse_document(&filename, Some(filepath), content) {
+                Ok(d) => d,
+                Err(e) => {
+                    eprintln!("Failed to parse {}: {}", filepath.display(), e);
+                    return Cow::Borrowed(content);
+                }
+            };
+
+            let mut converter = LinkConverter::new();
+            if let Err(e) = doc.accept(&mut converter) {
+                eprintln!("Failed to transform {}: {}", filepath.display(), e);
+                return Cow::Borrowed(content);
+            }
+
+            let mut final_output = converter.output;
+            if !converter.refdefs.is_empty() {
+                final_output.push_str("\n\n");
+                // Sort refdefs by label for consistency.
+                let sorted_refdefs: std::collections::BTreeMap<_, _> = converter.refdefs;
+                for (label, url) in sorted_refdefs {
+                    final_output.push_str(&format!("[{}]: {}\n", label, url));
+                }
+            }
+
+            Cow::Owned(final_output)
+        },
     )?;
     Ok(())
 }
-
-// [reuse fragments below if needed.](https://github.com/john-cd/rust_howto/issues/1432)
-
-// # replace https::/github.com/.../...
-// s=([^"'\''(]?https?://github.com/)([^/ ]+/)([^/ ]+)(/[^"'\'')↗]*)?=[`\3`][\3~repo] [\3~repo]: \1\2\3\4=gp;
-
-// # General case http://...
-// s=([^"'\''(]?https?://)([^/\s]+)(/[^"'\'')↗]*)?=[\2][\2] [\2]: \1\2\3=gp ;
-
-// echo "${contents}" | rg --pcre2 --only-matching -r '[`$2`][$2~website] [$2~website]: $1$2$3' '(?<!: |["`([])(http(?:s)?://(?:www\d?\.)?)([^./]+)(\S+)?'
-// echo "${contents}" | rg --pcre2 --only-matching -r '[`$2`][$2~repo] [$2~repo]: $1$2$3' '(?<!: |["`([])(http(?:s)?://(?:github\.com/)?)([^./]+)(\S+)?'
-
-// REGEXES
-
-// use std::sync::LazyLock;
-// use regex::Regex;
-// static RE: LazyLock<Regex> =
-//     LazyLock::new(|| Regex::new(r#"^|[^"'](https?://)([^/\s]+)(/[^"'\[\])↗]*)?"#).unwrap());
-
-// static GITHUB: LazyLock<Regex> = LazyLock::new(|| {
-//     Regex::new(r#"^|[^"'](https?://github.com/)([^/ ]+/)([^/ ]+)(/[^"'\[\])↗]*)?"#).unwrap()
-// });
-
-//
-
-// let (matching, typ, crates) =
-//     (
-//         caps.get(0).map_or("", |m| m.as_str()), // Guaranteed to return a non-None value.
-//         caps.get(1).map_or("", |m| m.as_str()),
-//         caps.get(2).map_or("", |m| m.as_str()),
-//     );
-
-// format!(
-//             "[![{crate_name}][c~{crate_name}{suffix}~badge]][c~{crate_name}{suffix}]{{{{hi:{crate_name}}}}}"
-//         ) }).collect::<Vec<_>>().join("");

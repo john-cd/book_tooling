@@ -53,10 +53,21 @@ pub(super) fn link_or_badge_regexes() -> Vec<RegexAndReplacement> {
         r"\{\{\s*(!?)\s*(cat|docs|github|lib\.rs|crates\.io|web|crate)\s*:?\s+([^}]+)\s*\}\}"
             .into();
     let re = Regex::new(&re_string).expect("Invalid regex");
-    let replacement = "$1"; // TODO call function in template.
     vec![RegexAndReplacement {
         re,
-        replacement: Some(Box::new(|_| replacement.into())),
+        replacement: Some(Box::new(|caps| {
+            let directive = extract_directive(caps);
+            match directive {
+                Directive::Link { kind, name } => {
+                    // Logic for generating link string based on kind and name.
+                    // For now, reuse get_replacement_string but it's meant for badges.
+                    // FIXME: Implement specific link replacement.
+                    crate::get_replacement_string(kind, name)
+                }
+                Directive::Badge { kind, name } => crate::get_replacement_string(kind, name),
+                _ => String::new(),
+            }
+        })),
     }]
 }
 

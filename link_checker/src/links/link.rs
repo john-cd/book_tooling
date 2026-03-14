@@ -1,22 +1,47 @@
-// use tracing::debug;
-// use tracing::error;
-// use tracing::info;
-// use tracing::trace;
-// use tracing::warn;
+use std::collections::HashSet;
 
-// pub struct Link {
-//     url: url::Url,
-// }
+use parse_lib::visit::Visitor;
+use parse_lib::*;
+use url::Url;
 
-// // TODO
-// /// Check links.
-// pub fn check_links(content: &str, check_external_links: bool) -> Vec<Link> {
-//     // if check_external_links {}
-//     Vec::new()
-// }
+pub fn extract_urls(doc: &Document) -> HashSet<Url> {
+    let mut urls = HashSet::new();
 
-// // FIXME
-// fn check_external_links(content: &str) -> Vec<Link> {
-//     todo!();
-//     // Vec::new()
-// }
+    struct UrlCollector<'a> {
+        urls: &'a mut HashSet<Url>,
+    }
+
+    impl<'v> Visitor<'v> for UrlCollector<'_> {
+        fn visit_autolink(&mut self, data: &'v AutolinkData) -> std::fmt::Result {
+            if let Ok(url) = Url::parse(data.url) {
+                self.urls.insert(url);
+            }
+            Ok(())
+        }
+        fn visit_inline_link(&mut self, data: &'v InlineLinkData) -> std::fmt::Result {
+            if let Ok(url) = Url::parse(data.url) {
+                self.urls.insert(url);
+            }
+            Ok(())
+        }
+        fn visit_inline_image(&mut self, data: &'v InlineImageData) -> std::fmt::Result {
+            if let Ok(url) = Url::parse(data.url) {
+                self.urls.insert(url);
+            }
+            Ok(())
+        }
+        fn visit_reference_definition(
+            &mut self,
+            data: &'v ReferenceDefinitionData,
+        ) -> std::fmt::Result {
+            if let Ok(url) = Url::parse(data.url) {
+                self.urls.insert(url);
+            }
+            Ok(())
+        }
+    }
+
+    let mut collector = UrlCollector { urls: &mut urls };
+    let _ = doc.accept(&mut collector);
+    urls
+}

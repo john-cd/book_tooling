@@ -1,7 +1,6 @@
 use winnow::ModalResult;
 use winnow::Parser;
 use winnow::ascii::space0;
-use winnow::ascii::space1;
 use winnow::combinator::opt;
 use winnow::combinator::preceded;
 use winnow::combinator::seq;

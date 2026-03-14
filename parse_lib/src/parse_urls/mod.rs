@@ -12,8 +12,6 @@ use winnow::combinator::alt;
 use winnow::combinator::seq;
 use winnow::error::ContextError;
 use winnow::error::ErrMode;
-use winnow::error::StrContext::*;
-use winnow::error::StrContextValue::*;
 use winnow::stream::Stream;
 
 // use crate::ast::*;
@@ -34,7 +32,7 @@ pub fn parse_naked_url<'s>(input: &mut &'s str) -> ModalResult<(&'s str, UrlKind
 
     match url_kind(url_text) {
         Ok(kind) => Ok((url_text, kind)),
-        Err(e) => {
+        Err(_e) => {
             input.reset(&start);
             // This shouldn't really happen if parse_url_chars is correct.
             Err(ErrMode::Backtrack(ContextError::default()))
