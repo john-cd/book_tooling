@@ -18,12 +18,19 @@ use examples::*;
 mod wikilinks;
 use wikilinks::*;
 
-/// Process all directives in all files in scope, in the given directories.
+/// Process all directives in all files within the specified directories.
+///
+/// This function walks through each directory, identifies files in scope,
+/// and applies transformations based on the provided configuration.
 ///
 /// # Arguments
 ///
-/// * `directories` - An iterator over the directories to process.
-/// * `conf` - The configuration for processing directives.
+/// * `directories` - An iterator over the directories to scan for files.
+/// * `conf` - The configuration determining which directives to process.
+///
+/// # Errors
+///
+/// Returns an error if directory canonicalization fails or if any file processing error occurs.
 pub fn process_all_directives<I>(directories: I, conf: &Config) -> anyhow::Result<()>
 where
     I: IntoIterator<Item = std::path::PathBuf>,
@@ -32,6 +39,7 @@ where
     let regexes_and_replacements = get_regexes_and_replacements(conf);
 
     // Extensions to process and excluded files.
+    // TODO: Make the scope configurable via the `Config` struct.
     let scope = core_lib::Scope::default();
 
     for directory in directories.into_iter() {

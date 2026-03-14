@@ -141,14 +141,15 @@ fn to_destination_kind(input: &str) -> DestinationKind {
 
 use super::ast::DirectiveData;
 
-/// Parses a complete directive line, extracting the directive type () / kind and its value (e.g., crate name).
+/// Parses a complete directive line, extracting the directive type / kind and its value (e.g., crate name).
 ///
 /// The expected structure is:
-/// "{{" + zero or more spaces + Sigil (# or ! or nothing) + DestinationKind + (zero or more spaces + :) + 1 or more spaces + Value(s) + zero or more spaces + "}}"
+/// `{{` + zero or more spaces + Sigil (# or ! or nothing) + DestinationKind + (zero or more spaces + :) + 1 or more spaces + Value(s) + zero or more spaces + `}}`
 ///
 /// The `value` part can contain spaces and can be optionally followed
-/// by whitespace before the final "}}",
+/// by whitespace before the final `}}`.
 fn parse_directive<'s>(input: &mut &'s str) -> Result<DirectiveData<'s>> {
+    // TODO: Add support for nested directives if ever required.
     let insert_link = seq!(_: parse_prefix, parse_kinds, _: parse_optional_colon, parse_value);
 
     let insert_badge = seq!(
