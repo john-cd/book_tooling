@@ -82,12 +82,16 @@ impl<W: fmt::Write> Visitor<'_> for PrettyPrinter<W> {
     }
 
     fn visit_fenced_code_block(&mut self, fenced_code_block: &FencedCodeBlockData) -> Result {
-        write!(self.w, "```\n{}\n```", fenced_code_block.content)?;
+        writeln!(self.w, "```")?;
+        writeln!(self.w, "{}", fenced_code_block.content)?;
+        writeln!(self.w, "```")?;
         Ok(())
     }
 
     fn visit_hidden_html_div(&mut self, div: &HiddenHtmlDivData) -> Result {
-        write!(self.w, "<div class=\"hidden\">\n{}\n</div>", div.content)?;
+        writeln!(self.w, "<div class=\"hidden\">")?;
+        writeln!(self.w, "{}", div.content)?;
+        writeln!(self.w, "</div>")?;
         Ok(())
     }
 
@@ -98,9 +102,9 @@ impl<W: fmt::Write> Visitor<'_> for PrettyPrinter<W> {
             .map(|c| format!(" {c}"))
             .unwrap_or_else(|| "".into());
         if let Some(id) = heading.id {
-            write!(self.w, "{hashes}{content} {{#{id}}}")?;
+            writeln!(self.w, "{hashes}{content} {{#{id}}}")?;
         } else {
-            write!(self.w, "{hashes}{content}")?;
+            writeln!(self.w, "{hashes}{content}")?;
         }
         Ok(())
     }
@@ -112,6 +116,30 @@ impl<W: fmt::Write> Visitor<'_> for PrettyPrinter<W> {
 
     fn visit_custom_directive(&mut self, directive: &DirectiveData) -> Result {
         write!(self.w, "{directive}")?;
+        Ok(())
+    }
+
+    fn visit_task_item(&mut self, task: &TaskItemData) -> Result {
+        let check = if task.completed { 'x' } else { ' ' };
+        writeln!(self.w, "- [{check}] {}", task.content)?;
+        Ok(())
+    }
+
+    fn visit_table(&mut self, table: &TableData) -> Result {
+        writeln!(self.w, "| {} |", table.header.join(" | "))?;
+        writeln!(
+            self.w,
+            "| {} |",
+            table
+                .header
+                .iter()
+                .map(|_| "---")
+                .collect::<Vec<_>>()
+                .join(" | ")
+        )?;
+        for row in &table.rows {
+            writeln!(self.w, "| {} |", row.join(" | "))?;
+        }
         Ok(())
     }
 }
