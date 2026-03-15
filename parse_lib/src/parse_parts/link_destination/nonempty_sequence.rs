@@ -43,13 +43,13 @@ fn parse_allowed_chars<'s>(input: &mut &'s str) -> Result<&'s str> {
 
 /// Parses text that may contain escaped parentheses, e.g., "\(" or "\)".
 fn parse_text_with_escapes<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    let mut p = take_escaped(parse_allowed_chars, '\\', one_of(['(', ')', '\\']))
+    take_escaped(parse_allowed_chars, '\\', one_of(['(', ')', '\\']))
+        .verify(|s: &str| !s.is_empty())
         .context(Label("text"))
         .context(Expected(Description(
             r"text that may contain escaped parentheses or backslashes, e.g., \( or \) or \\",
-        )));
-
-    p.parse_next(input)
+        )))
+        .parse_next(input)
         .map_err(|e: ContextError| ErrMode::Backtrack(e))
 }
 
@@ -86,20 +86,28 @@ fn parse_balanced_parentheses<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 
 /// The main parser for a non-empty sequence of characters not starting by `<`.
 pub(crate) fn parse_non_empty_sequence<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    // Ensure the first character is not '<'.
-    any.verify(|c| *c != '<').parse_next(input)?;
+    fn parse_first_char(input: &mut &str) -> ModalResult<()> {
+        any.verify(|c: &char| {
+            *c != '<' && *c != ' ' && !c.is_ascii_control() && *c != '(' && *c != ')'
+        })
+        .void()
+        .parse_next(input)
+    }
 
-    repeat::<_, _, String, _, _>(
-        0..,
-        alt((
-            parse_balanced_parentheses,
-            parse_text_with_escapes,
-            fail
-              .context(Label("link destination not between < and >"))
-              .context(Expected(Description("a non-empty sequence of characters not starting by < without ASCII control characters or space"))),
-        )),
-    )
-    .take()
+    alt((
+        parse_balanced_parentheses,
+        (
+            parse_first_char,
+            repeat::<_, _, (), _, _>(
+                0..,
+                alt((
+                    parse_balanced_parentheses.void(),
+                    parse_text_with_escapes.void(),
+                )),
+            ),
+        )
+            .take(),
+    ))
     .parse_next(input)
 }
 

@@ -42,6 +42,9 @@
 mod category_links_badges_tests;
 
 use core_lib::RegexAndReplacement;
+use core_lib::templates::DestinationKind;
+use core_lib::templates::render_badge;
+use core_lib::templates::render_link;
 use regex::Captures;
 use regex::Regex;
 
@@ -53,10 +56,31 @@ pub(super) fn link_or_badge_regexes() -> Vec<RegexAndReplacement> {
         r"\{\{\s*(!?)\s*(cat|docs|github|lib\.rs|crates\.io|web|crate)\s*:?\s+([^}]+)\s*\}\}"
             .into();
     let re = Regex::new(&re_string).expect("Invalid regex");
-    let replacement = "$1"; // TODO call function in template.
+
     vec![RegexAndReplacement {
         re,
-        replacement: Some(Box::new(|_| replacement.into())),
+        replacement: Some(Box::new(|caps| {
+            let is_badge = caps.get(1).map(|m| m.as_str()) == Some("!");
+            let kind_str = caps.get(2).map(|m| m.as_str()).unwrap_or("");
+            let name = caps.get(3).map(|m| m.as_str()).unwrap_or("");
+
+            let kind = match kind_str {
+                "cat" => DestinationKind::Category,
+                "crate" => DestinationKind::Crate,
+                "docs" => DestinationKind::Docs,
+                "github" => DestinationKind::GithubRepo,
+                "lib.rs" => DestinationKind::LibRs,
+                "crates.io" => DestinationKind::CratesIo,
+                "web" => DestinationKind::Web,
+                _ => return "".into(),
+            };
+
+            if is_badge {
+                render_badge(&kind, name.trim())
+            } else {
+                render_link(&kind, name.trim())
+            }
+        })),
     }]
 }
 

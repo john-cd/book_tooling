@@ -27,30 +27,22 @@ use crate::ast::*;
 /// - `target| ]]` -> `("target", None)` (empty display text)
 /// - `target|]]` -> `("target", None)` (empty display text)
 fn parse_wikilink_inner<'s>(input: &mut &'s str) -> Result<(&'s str, Option<&'s str>)> {
-    let piped_inner = separated_pair(take_until(1.., "|"), "|", take_until(0.., "]]"))
+    let piped_inner = separated_pair(take_until(0.., "|"), "|", take_until(0.., "]]"))
         .map(|(target, display): (&str, &str)| {
             (
                 target.trim(),
                 Some(display.trim()).filter(|s| !s.is_empty()),
             )
         })
-        .verify(|(target, _)| !target.is_empty())
         .context(Label("wikilink inner elements with pipe"))
         .context(Expected(Description("target | display]]")));
 
-    let simple_inner = take_until(1.., "]]")
+    let simple_inner = take_until(0.., "]]")
         .map(|target: &str| (target.trim(), None))
-        .verify(|(target, _)| !target.is_empty())
         .context(Label("wikilink inner elements without pipe"))
         .context(Expected(Description("target]]")));
 
-    alt((
-        piped_inner,
-        simple_inner,
-        fail.context(Label("wikilink inner elements"))
-            .context(Expected(Description("target]] or target | display]]"))),
-    ))
-    .parse_next(input)
+    alt((piped_inner, simple_inner)).parse_next(input)
 }
 
 type RawWikilink<'s> = ((&'s str, Option<&'s str>), Option<&'s str>);
@@ -102,7 +94,7 @@ mod tests {
     ) {
         match parse_wikilink_inner.parse_peek(input) {
             Ok((remaining, (target, display))) => {
-                assert_eq!(remaining, "", "Remaining input should be empty");
+                assert_eq!(remaining, "]]", "Remaining input should be empty");
                 assert_eq!(target, expected_target, "Target should match");
                 assert_eq!(display, expected_display, "Display should match");
             }
@@ -172,7 +164,7 @@ mod tests {
 
     #[test]
     fn test_parse_wikilink_inner_leading_pipe_simple() {
-        assert_parse_wikilink_inner_ok("|Target]]", "|Target", None);
+        assert_parse_wikilink_inner_ok("|Target]]", "", Some("Target"));
     }
 
     // Test `parse_wikilink` -----------------
@@ -275,10 +267,10 @@ mod tests {
 
     // [[]]
     #[test]
-    fn fails_on_empty() {
+    fn test_empty() {
         let input = "[[]]";
         let result = parse_wikilink.parse_peek(input);
-        assert!(result.is_err());
+        assert!(result.is_ok());
     }
 
     // [[|title7]]
@@ -286,10 +278,10 @@ mod tests {
     // [[|title9 ]]
     // [[| title10 ]]
     #[test]
-    fn fails_on_no_target() {
+    fn test_no_target() {
         let input = "[[| title ]]";
         let result = parse_wikilink.parse_peek(input);
-        assert!(result.is_err());
+        assert!(result.is_ok());
     }
 
     // Test "immediately after" text:

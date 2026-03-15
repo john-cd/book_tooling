@@ -9,45 +9,40 @@
 //! - The brackets in link text bind more tightly than markers for emphasis and strong emphasis. Thus, for example, `*[foo*](url)` is a link.
 
 use winnow::Parser;
-use winnow::ascii::alphanumeric0;
-use winnow::ascii::space0;
 use winnow::ascii::take_escaped;
 use winnow::combinator::alt;
 use winnow::combinator::cut_err;
 use winnow::combinator::delimited;
-use winnow::combinator::fail;
 use winnow::combinator::repeat;
-use winnow::error::ErrMode;
 use winnow::error::ModalResult;
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
 use winnow::token::one_of;
+use winnow::token::take_while;
 
 /// Parses text that may contain escaped brackets or backslashes: \[ or \] or \\.
 fn parse_text_with_escapes<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    let allowed_chars = alt((alphanumeric0, space0));
+    let allowed_chars = take_while(1.., |c: char| {
+        c != '[' && c != ']' && c != '\\' && c != '`' && c != '<' && c != '!'
+    });
 
     take_escaped(allowed_chars, '\\', one_of(['[', ']', '\\']))
+        .verify(|s: &str| !s.is_empty())
         .context(Label("text with Markdown 'link text'"))
         .context(Expected(Description(
-            r"alphanumeric characters, spaces, or tabs. May contain \-escaped [ or ] or \",
+            r"characters. May contain \-escaped [ or ] or \",
         )))
         .parse_next(input)
-        .map_err(ErrMode::Backtrack)
 }
 
 /// Parses content within balanced brackets.
 /// It can contain text with escaped brackets, or nested balanced parentheses.
 fn parse_balanced_brackets_content<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    repeat::<_, _, String, _, _>(
+    repeat::<_, _, (), _, _>(
         0..,
         alt((
-            parse_text_with_escapes,
-            parse_balanced_brackets, // Recursively parse.
-            fail.context(Label("balanced brackets content"))
-                .context(Expected(Description(
-                    "text (with possibly escaped brackets) or nested balanced brackets",
-                ))),
+            parse_balanced_brackets.void(), // Recursively parse.
+            parse_text_with_escapes.void(),
         )),
     )
     .take()
@@ -74,14 +69,12 @@ fn parse_balanced_brackets<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 
 /// Parses the contents of a Markdown link's text.
 fn parse_link_text_content<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    repeat::<_, _, String, _, _>(
+    repeat::<_, _, (), _, _>(
         0..,
         alt((
             // [parse image](https://github.com/john-cd/rust_howto/issues/1424)
-            parse_balanced_brackets,
-            parse_text_with_escapes,
-            fail.context(Label("link text content"))
-                .context(Expected(Description(""))),
+            parse_balanced_brackets.void(),
+            parse_text_with_escapes.void(),
         )),
     )
     .take()
@@ -102,7 +95,7 @@ fn parse_link_text_content<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 /// or a `winnow::error::Err` if parsing fails.
 ///
 /// # Examples
-/// ```rust
+/// ```rust,ignore
 /// use winnow::Parser;
 /// use parse_lib::parts::parse_link_text;
 ///

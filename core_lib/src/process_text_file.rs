@@ -28,11 +28,6 @@ where
 
     if !original.is_empty() && should_process(&original) {
         let updated: Cow<'_, str> = update_contents(&original);
-        // TODO
-        // if  updated.is_empty() {
-        //
-        //     return Ok(());
-        // }
         if updated != original {
             let temp_filepath = filepath.with_extension(".tmp");
             let mut temp_file = File::create(&temp_filepath)?;

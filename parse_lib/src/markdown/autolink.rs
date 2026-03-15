@@ -1,7 +1,9 @@
 use winnow::Parser;
+use winnow::combinator::alt;
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
 use winnow::prelude::*;
+use winnow::token::take_while;
 
 use super::super::parse_parts::parse_angle_brackets;
 use crate::ast::*;
@@ -10,13 +12,20 @@ use crate::ast::*;
 ///
 /// <https://www.w3schools.com/tags//ref_urlencode.asp>
 pub fn parse_autolink<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
-    parse_angle_brackets
-        .map(|url| Element::Autolink(AutolinkData { url }))
-        .context(Label("autolink"))
-        .context(Expected(Description(
-            "an autolink starting with < and ending with >",
-        )))
-        .parse_next(input)
+    let mut autolink_p = alt((
+        parse_angle_brackets,
+        take_while(1.., |c: char| {
+            !c.is_ascii_control() && c != ' ' && c != '<' && c != '>'
+        })
+        .verify(|s: &str| s.starts_with("http://") || s.starts_with("https://")),
+    ))
+    .map(|url| Element::Autolink(AutolinkData { url }))
+    .context(Label("autolink"))
+    .context(Expected(Description(
+        "an autolink starting with < and ending with >; or a naked http(s) URL",
+    )));
+
+    autolink_p.parse_next(input)
 }
 
 #[cfg(test)]

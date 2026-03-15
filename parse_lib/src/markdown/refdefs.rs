@@ -13,6 +13,7 @@ use winnow::Parser;
 use winnow::ascii::line_ending;
 use winnow::ascii::space0;
 use winnow::ascii::space1;
+use winnow::combinator::alt;
 use winnow::combinator::opt;
 use winnow::combinator::preceded;
 use winnow::combinator::seq;
@@ -34,7 +35,7 @@ fn parse_indentation(input: &mut &str) -> ModalResult<()> {
 /// This is used for the whitespace around the colon and destination.
 ///
 /// Example: " \t\n " -> ()
-fn parse_optional_whitespace_with_one_newline(input: &mut &str) -> ModalResult<()> {
+pub(crate) fn parse_optional_whitespace_with_one_newline(input: &mut &str) -> ModalResult<()> {
     (
         space0,           // Zero or more spaces/tabs
         opt(line_ending), // Optional single line ending
@@ -60,8 +61,8 @@ pub fn parse_link_reference_definition<'s>(input: &mut &'s str) -> ModalResult<E
         // Optional spaces/tabs (including up to one line ending) before title.
         _: opt(parse_optional_whitespace_with_one_newline),
         // Optional link title. If it is present, it must be separated from the link destination by spaces or tabs.
-        opt(preceded(space1, parse_link_title)),
-        _: line_ending,
+        opt(preceded(alt((space1.void(), parse_optional_whitespace_with_one_newline)), parse_link_title)),
+        _: (opt(space0), opt(line_ending)),
     )
     .map(|(label, url, title)| {
         Element::ReferenceDefinition(ReferenceDefinitionData { label, url, title })
@@ -270,7 +271,7 @@ mod tests {
         });
         assert_eq!(
             parse_link_reference_definition.parse_peek(input),
-            Ok((" ", expected))
+            Ok(("", expected))
         );
     }
 
@@ -284,7 +285,7 @@ mod tests {
         });
         assert_eq!(
             parse_link_reference_definition.parse_peek(input),
-            Ok((" ", expected))
+            Ok(("", expected))
         );
     }
 }

@@ -353,6 +353,7 @@ dependencies = [
  "core_lib",
  "futures-util",
  "moka",
+ "parse_lib",
  "reqwest",
  "serde",
  "tokio",
@@ -781,6 +782,7 @@ dependencies = [
  "core_lib",
  "parse_lib",
  "tracing-subscriber",
+ "url",
 ]
 
 [[package]]

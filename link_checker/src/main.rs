@@ -1,14 +1,15 @@
-// [finish](https://github.com/john-cd/rust_howto/issues/1422)
-#![allow(unused)]
-
 mod cli;
 mod conf;
 mod links;
 mod refdefs;
 
-use clap::Parser;
+use std::path::Path;
 
-fn main() -> anyhow::Result<()> {
+use clap::Parser;
+use tracing::info;
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     // Install a global tracing subscriber that listens for events
     // and filters based on the value of the RUST_LOG environment variable.
     tracing_subscriber::fmt::init();
@@ -16,24 +17,43 @@ fn main() -> anyhow::Result<()> {
     // Process command-line arguments to retrieve the directory to process:
     let args = cli::Args::parse();
 
-    let conf = conf::Config::default();
+    let _conf = conf::Config::default();
     let scope = core_lib::Scope::default();
 
     for directory in &args.directories {
         let dir = directory.as_path().canonicalize()?;
-        println!("Processing {}", dir.display());
-        core_lib::walk_directory_and_process_files(&dir, &scope, check_links_in_file)?;
+        info!("Processing {}", dir.display());
+        core_lib::walk_directory_and_process_files(&dir, &scope, |p| {
+            // Use a block to handle the async call in a sync closure
+            // In a real app we might want to collect all paths and then process async
+            tokio::task::block_in_place(|| {
+                let rt = tokio::runtime::Handle::current();
+                rt.block_on(check_links_in_file(p))
+            })
+        })?;
     }
-    println!("DONE");
+    info!("DONE");
     Ok(())
 }
 
-fn check_links_in_file(filepath: &std::path::Path) -> anyhow::Result<()> {
-    // Read a text file in memory, test if its contents should be processed, and if true, update its contents.
-    core_lib::process_text_file(
-        filepath,
-        |s: &str| true, // TODO: check if the file contains any links.
-        |s: &str| std::borrow::Cow::Borrowed(""), // FIXME: update the file.
-    )?;
+async fn check_links_in_file(filepath: &Path) -> anyhow::Result<()> {
+    info!("Checking file: {}", filepath.display());
+
+    // Read the file content
+    let content = std::fs::read_to_string(filepath)?;
+
+    // Find all links
+    let links = links::check_links(&content, true);
+
+    if links.is_empty() {
+        return Ok(());
+    }
+
+    info!("Found {} links in {}", links.len(), filepath.display());
+
+    for link in links {
+        links::validate_link(&link).await;
+    }
+
     Ok(())
 }

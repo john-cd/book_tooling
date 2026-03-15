@@ -1,25 +1,18 @@
-#![allow(dead_code)]
-//! Convert any naked URLs and inline links in Markdown files within a folder into reference-style links.
-//!
-//! - Convert inline links e.g. [...](http(s)://...) into reference-style links: [...][...] [...]: http://...
-//! - Convert http(s)://... naked links into reference-style links.
-//! - Skip URLs between ``` and ``` and within hidden sections: <div class="hidden">...</div>
-//! - Ignore URLs within reference-style link labels: [https://...][...]
-//! - Do not convert links to GitHub issues e.g. https://github.com/john-cd/rust_howto/issues links.
-//! - Move refdefs into a central file (and sort them).
-
 mod cli;
 
 use std::borrow::Cow;
+use std::collections::BTreeMap;
+use std::collections::HashSet;
+use std::path::Path;
 
 use clap::Parser;
+use parse_lib::Document;
+use parse_lib::Element;
+use url::Url;
 
 fn main() -> anyhow::Result<()> {
-    // Install a global tracing subscriber that listens for events
-    // and filters based on the value of the RUST_LOG environment variable.
     tracing_subscriber::fmt::init();
 
-    // Process command-line arguments to retrieve the directory to process:
     let args = cli::Args::parse();
     let scope = core_lib::Scope::default();
     for directory in &args.directories {
@@ -31,48 +24,98 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Convert inline and naked links to reference-style links.
-fn convert_links(filepath: &std::path::Path) -> anyhow::Result<()> {
-    // Read a text file in memory, test if its contents should be processed, and if true, update its contents.
+fn convert_links(filepath: &Path) -> anyhow::Result<()> {
     core_lib::process_text_file(
         filepath,
-        |_s: &str| true, // FIXME
-        |_s: &str| Cow::Borrowed(""),
+        |s: &str| s.contains("http://") || s.contains("https://"),
+        |content: &str| {
+            if let Ok(document) = parse_lib::parse_document("file", Some(filepath), content) {
+                let (new_content, refdefs) = transform_document(document);
+                if refdefs.is_empty() {
+                    return Cow::Borrowed(content);
+                }
+
+                let mut final_content = new_content;
+                final_content.push_str("\n\n");
+
+                // Sort refdefs by label
+                let mut sorted_labels: Vec<_> = refdefs.keys().collect();
+                sorted_labels.sort();
+
+                for label in sorted_labels {
+                    final_content.push_str(&format!(
+                        "[{}]: {}\n",
+                        label,
+                        refdefs.get(label).unwrap()
+                    ));
+                }
+
+                Cow::Owned(final_content)
+            } else {
+                Cow::Borrowed(content)
+            }
+        },
     )?;
     Ok(())
 }
 
-// [reuse fragments below if needed.](https://github.com/john-cd/rust_howto/issues/1432)
+fn transform_document(doc: Document) -> (String, BTreeMap<String, String>) {
+    let mut refdefs = BTreeMap::new();
+    let mut result = String::new();
+    let mut used_labels = HashSet::new();
 
-// # replace https::/github.com/.../...
-// s=([^"'\''(]?https?://github.com/)([^/ ]+/)([^/ ]+)(/[^"'\'')↗]*)?=[`\3`][\3~repo] [\3~repo]: \1\2\3\4=gp;
+    // First pass to collect existing reference labels to avoid collisions
+    for element in &doc.elements {
+        if let Element::ReferenceDefinition(data) = element {
+            used_labels.insert(data.label.to_string());
+            refdefs.insert(data.label.to_string(), data.url.to_string());
+        }
+    }
 
-// # General case http://...
-// s=([^"'\''(]?https?://)([^/\s]+)(/[^"'\'')↗]*)?=[\2][\2] [\2]: \1\2\3=gp ;
+    for element in doc.elements {
+        match element {
+            Element::InlineLink(data) => {
+                let label = generate_label(data.url, &used_labels);
+                used_labels.insert(label.clone());
+                refdefs.insert(label.clone(), data.url.to_string());
+                result.push_str(&format!("[{}][{}]", data.text, label));
+            }
+            Element::Autolink(data) => {
+                let label = generate_label(data.url, &used_labels);
+                used_labels.insert(label.clone());
+                refdefs.insert(label.clone(), data.url.to_string());
+                result.push_str(&format!("[{}][{}]", data.url, label));
+            }
+            Element::Text(data) => {
+                result.push_str(data.content);
+            }
+            Element::ReferenceDefinition(_) => {}
+            _ => {}
+        }
+    }
 
-// echo "${contents}" | rg --pcre2 --only-matching -r '[`$2`][$2~website] [$2~website]: $1$2$3' '(?<!: |["`([])(http(?:s)?://(?:www\d?\.)?)([^./]+)(\S+)?'
-// echo "${contents}" | rg --pcre2 --only-matching -r '[`$2`][$2~repo] [$2~repo]: $1$2$3' '(?<!: |["`([])(http(?:s)?://(?:github\.com/)?)([^./]+)(\S+)?'
+    (result, refdefs)
+}
 
-// REGEXES
+fn generate_label(url_str: &str, used: &HashSet<String>) -> String {
+    if let Ok(url) = Url::parse(url_str) {
+        let mut label = if let Some(host) = url.host_str() {
+            host.to_string()
+        } else {
+            "link".to_string()
+        };
 
-// use std::sync::LazyLock;
-// use regex::Regex;
-// static RE: LazyLock<Regex> =
-//     LazyLock::new(|| Regex::new(r#"^|[^"'](https?://)([^/\s]+)(/[^"'\[\])↗]*)?"#).unwrap());
+        label = label.replace('.', "-");
 
-// static GITHUB: LazyLock<Regex> = LazyLock::new(|| {
-//     Regex::new(r#"^|[^"'](https?://github.com/)([^/ ]+/)([^/ ]+)(/[^"'\[\])↗]*)?"#).unwrap()
-// });
-
-//
-
-// let (matching, typ, crates) =
-//     (
-//         caps.get(0).map_or("", |m| m.as_str()), // Guaranteed to return a non-None value.
-//         caps.get(1).map_or("", |m| m.as_str()),
-//         caps.get(2).map_or("", |m| m.as_str()),
-//     );
-
-// format!(
-//             "[![{crate_name}][c~{crate_name}{suffix}~badge]][c~{crate_name}{suffix}]{{{{hi:{crate_name}}}}}"
-//         ) }).collect::<Vec<_>>().join("");
+        if used.contains(&label) {
+            let mut i = 1;
+            while used.contains(&format!("{}-{}", label, i)) {
+                i += 1;
+            }
+            label = format!("{}-{}", label, i);
+        }
+        label
+    } else {
+        "link".to_string()
+    }
+}

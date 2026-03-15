@@ -1,11 +1,15 @@
 use winnow::ModalResult;
 use winnow::Parser;
+use winnow::ascii::space1;
+use winnow::combinator::alt;
 use winnow::combinator::opt;
+use winnow::combinator::preceded;
 use winnow::combinator::seq;
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
 
 use crate::ast::*;
+use crate::markdown::refdefs::parse_optional_whitespace_with_one_newline;
 use crate::parse_parts::*;
 
 /// Parses an inline image: `![desc](url "title")`.
@@ -15,7 +19,7 @@ pub fn parse_inline_image<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
         parse_link_text,
         _: '(',
         parse_link_destination,
-        opt(parse_link_title),
+        opt(preceded(alt((space1.void(), parse_optional_whitespace_with_one_newline)), parse_link_title)),
         _: ')',
     )
     .map(|(image_description, url, title)| {

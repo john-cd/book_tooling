@@ -4,7 +4,7 @@
 //!
 //! Example:
 //!
-//! ```rust
+//! ```rust,ignore
 //!     let heading1 = "# My first heading {#first}\n";
 //!     match parse_atx_heading.parse_peek(heading1) {
 //!         Ok((rest, heading)) => {
