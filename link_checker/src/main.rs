@@ -4,7 +4,6 @@ mod links;
 mod refdefs;
 
 use std::path::Path;
-
 use clap::Parser;
 use tracing::info;
 

@@ -1,5 +1,4 @@
 use std::time::Duration;
-
 use anyhow::Result;
 use reqwest::ClientBuilder;
 use url::Url;

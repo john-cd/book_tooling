@@ -1,7 +1,6 @@
-use parse_lib::Element;
-use tracing::error;
-use tracing::info;
+use tracing::{error, info};
 use url::Url;
+use parse_lib::Element;
 
 pub struct Link {
     pub url: Url,

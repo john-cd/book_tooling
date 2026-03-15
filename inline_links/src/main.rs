@@ -1,13 +1,10 @@
 mod cli;
 
 use std::borrow::Cow;
-use std::collections::BTreeMap;
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::path::Path;
-
 use clap::Parser;
-use parse_lib::Document;
-use parse_lib::Element;
+use parse_lib::{Element, Document};
 use url::Url;
 
 fn main() -> anyhow::Result<()> {
@@ -43,11 +40,7 @@ fn convert_links(filepath: &Path) -> anyhow::Result<()> {
                 sorted_labels.sort();
 
                 for label in sorted_labels {
-                    final_content.push_str(&format!(
-                        "[{}]: {}\n",
-                        label,
-                        refdefs.get(label).unwrap()
-                    ));
+                    final_content.push_str(&format!("[{}]: {}\n", label, refdefs.get(label).unwrap()));
                 }
 
                 Cow::Owned(final_content)
@@ -89,8 +82,10 @@ fn transform_document(doc: Document) -> (String, BTreeMap<String, String>) {
             Element::Text(data) => {
                 result.push_str(data.content);
             }
-            Element::ReferenceDefinition(_) => {}
-            _ => {}
+            Element::ReferenceDefinition(_) => {
+            }
+            _ => {
+            }
         }
     }
 
