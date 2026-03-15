@@ -29,6 +29,7 @@ pub fn parse_plain_text<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
         Ok(Element::Text(crate::TextData { content }))
     } else {
         // Consume until the next special character.
+        // This is much faster than one-by-one.
         let content = take_while(1.., |c: char| !special.contains(&c)).parse_next(input)?;
         Ok(Element::Text(crate::TextData { content }))
     }

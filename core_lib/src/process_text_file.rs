@@ -4,8 +4,8 @@ use std::path::Path;
 
 use anyhow::Context;
 use anyhow::Result;
-use tempfile::NamedTempFile;
 use memmap2::Mmap;
+use tempfile::NamedTempFile;
 
 /// Atomically process a text file.
 ///
@@ -22,39 +22,32 @@ where
     Trans: FnOnce(&str) -> Cow<'_, str>,
 {
     let path = filepath.as_ref();
-    let file = fs::File::open(path)
-        .with_context(|| format!("Could not open file {}", path.display()))?;
+    let file =
+        fs::File::open(path).with_context(|| format!("Could not open file {}", path.display()))?;
     let metadata = file.metadata()?;
 
-    // For larger files, we can use memory mapping for efficient reading.
-    // However, for text processing that might result in string transformations,
-    // we need to be careful with lifetimes.
-    // Since we usually need to read the entire file into a String anyway for the parsers,
-    // let's stick to read_to_string for now but keep the mmap logic structure if needed for read-only tasks.
-
-    if metadata.len() > 10 * 1024 * 1024 {
-        // Just an example of how mmap could be used if we only needed to READ and check a predicate.
+    if metadata.len() > 1024 * 1024 {
+        // Use memory mapping for files larger than 1MB
         let mmap = unsafe { Mmap::map(&file)? };
         let content = std::str::from_utf8(&mmap)
             .with_context(|| format!("File {} is not valid UTF-8", path.display()))?;
+
         if should_process(content) {
-             // If we need to transform, we still need to generate a new String.
-             let updated_content = transform(content);
-             if updated_content != content {
-                 write_atomically(path, &updated_content)?;
-             }
+            let updated_content = transform(content);
+            if updated_content != content {
+                write_atomically(path, &updated_content)?;
+            }
         }
-        return Ok(());
-    }
+    } else {
+        let content = fs::read_to_string(path)
+            .with_context(|| format!("Could not read file {}", path.display()))?;
 
-    let content = fs::read_to_string(path)
-        .with_context(|| format!("Could not read file {}", path.display()))?;
+        if should_process(&content) {
+            let updated_content = transform(&content);
 
-    if should_process(&content) {
-        let updated_content = transform(&content);
-
-        if updated_content != content {
-            write_atomically(path, &updated_content)?;
+            if updated_content != content {
+                write_atomically(path, &updated_content)?;
+            }
         }
     }
 
@@ -69,15 +62,17 @@ fn write_atomically(path: &Path, updated_content: &str) -> Result<()> {
     std::io::Write::write_all(&mut temp_file, updated_content.as_bytes())
         .with_context(|| format!("Could not write to temporary file for {}", path.display()))?;
 
-    temp_file.persist(path)
+    temp_file
+        .persist(path)
         .with_context(|| format!("Could not atomically update file {}", path.display()))?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use tempfile::tempdir;
+
+    use super::*;
 
     #[test]
     fn test_process_text_file_updates_content() {
@@ -119,12 +114,7 @@ mod tests {
         let file_path = dir.path().join("test.txt");
         fs::write(&file_path, "original content").unwrap();
 
-        process_text_file(
-            &file_path,
-            |_| true,
-            |_| Cow::Owned("".to_string()),
-        )
-        .unwrap();
+        process_text_file(&file_path, |_| true, |_| Cow::Owned("".to_string())).unwrap();
 
         let content = fs::read_to_string(&file_path).unwrap();
         assert_eq!(content, "");

@@ -103,6 +103,9 @@ fn parse_crate_block_directive<'a>(input: &mut &'a str) -> ModalResult<Directive
 }
 
 fn parse_example_block_directive<'a>(input: &mut &'a str) -> ModalResult<DirectiveData<'a>> {
+    // Nested directives: {{#example {{#include ...}}}}
+    // Actually, commonmark-style directives usually aren't that complex but let's allow
+    // the content to contain {{ if we can.
     delimited("{{#example ", take_until(1.., "}}"), "}}")
         .map(|name: &str| DirectiveData::ExampleBlock { name: name.trim() })
         .parse_next(input)
