@@ -42,7 +42,11 @@ fn parse_wikilink_inner<'s>(input: &mut &'s str) -> Result<(&'s str, Option<&'s 
         .context(Label("wikilink inner elements without pipe"))
         .context(Expected(Description("target]]")));
 
-    alt((piped_inner, simple_inner)).parse_next(input)
+    alt((
+        piped_inner,
+        simple_inner,
+    ))
+    .parse_next(input)
 }
 
 type RawWikilink<'s> = ((&'s str, Option<&'s str>), Option<&'s str>);
@@ -53,15 +57,17 @@ type RawWikilink<'s> = ((&'s str, Option<&'s str>), Option<&'s str>);
 fn parse_wikilink_to_strings<'s>(input: &mut &'s str) -> Result<RawWikilink<'s>> {
     // Letters and other non-punctuation characters immediately after a wikilink's closing brackets,
     // with no intervening space, become part of its displayed link text. The target is unchanged.
-    let immediately_after = opt(take_while(0.., |c: char| c.is_alphanumeric()))
+    let mut immediately_after_p = opt(take_while(1.., |c: char| c.is_alphanumeric()))
         .context(Label("text immediately after wikilink"))
         .context(Expected(Description("alphanumeric characters")));
 
-    (
+    let (inner, immediately_after) = (
         delimited("[[", parse_wikilink_inner, "]]"),
-        immediately_after,
+        immediately_after_p,
     )
-        .parse_next(input)
+        .parse_next(input)?;
+
+    Ok((inner, immediately_after))
 }
 
 /// Parses a wikilink in the format `[[target]]` or `[[target | display]]`.

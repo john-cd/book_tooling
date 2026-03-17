@@ -10,61 +10,52 @@
 //! but at least three levels of nesting should be supported.)
 
 use winnow::ModalResult;
-use winnow::Result;
-use winnow::ascii::take_escaped;
-use winnow::combinator::alt;
-use winnow::combinator::cut_err;
-use winnow::combinator::delimited;
-use winnow::combinator::fail;
-use winnow::combinator::repeat;
-use winnow::error::ContextError;
-use winnow::error::ErrMode;
+use winnow::Parser;
+use winnow::combinator::{alt, cut_err, delimited, repeat};
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
-use winnow::prelude::*;
-use winnow::token::any;
-use winnow::token::one_of;
-use winnow::token::take_while;
+use winnow::token::{any, one_of, take_while};
 
-/// Returns true if a character that is not control, space, < ( or ).
+/// Returns true if a character that is not control, space, < ( ) or \.
 fn is_allowed_char(c: char) -> bool {
-    !(c.is_ascii_control() || c == ' ' || c == '<' || c == '(' || c == ')')
+    !(c.is_ascii_control() || c == ' ' || c == '<' || c == '(' || c == ')' || c == '\\')
 }
 
 /// Parses a sequence of allowed chars.
-fn parse_allowed_chars<'s>(input: &mut &'s str) -> Result<&'s str> {
+fn parse_allowed_chars<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     take_while(1.., is_allowed_char)
         .context(Label("character"))
         .context(Expected(Description(
-            "a character that is not a control char; a space; or < ( )",
+            "a character that is not a control char; a space; or < ( ) \\",
         )))
         .parse_next(input)
 }
 
 /// Parses text that may contain escaped parentheses, e.g., "\(" or "\)".
 fn parse_text_with_escapes<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    take_escaped(parse_allowed_chars, '\\', one_of(['(', ')', '\\']))
-        .verify(|s: &str| !s.is_empty())
-        .context(Label("text"))
-        .context(Expected(Description(
-            r"text that may contain escaped parentheses or backslashes, e.g., \( or \) or \\",
-        )))
-        .parse_next(input)
-        .map_err(|e: ContextError| ErrMode::Backtrack(e))
+    let parse_escaped = ('\\', one_of(['(', ')', '\\'])).take();
+
+    let res = repeat::<_, _, (), _, _>(1.., alt((parse_escaped, parse_allowed_chars)))
+        .take()
+        .parse_next(input)?;
+
+    // If the next character is a backslash, it means it's an invalid escape sequence
+    // because parse_escaped failed to consume it.
+    if input.starts_with('\\') {
+        return Err(winnow::error::ErrMode::Backtrack(Default::default()));
+    }
+
+    Ok(res)
 }
 
 /// Recursively parses content within balanced parentheses.
 /// It can contain allowed characters, escaped parentheses, or nested balanced parentheses.
 fn parse_balanced_parentheses_content<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    repeat::<_, _, String, _, _>(
+    repeat::<_, _, (), _, _>(
         0..,
         alt((
-            parse_balanced_parentheses, // Recursively parse.
-            parse_text_with_escapes,
-            fail.context(Label("balanced parentheses content"))
-                .context(Expected(Description(
-                    "content within balanced parentheses.",
-                ))),
+            parse_balanced_parentheses.void(), // Recursively parse.
+            parse_text_with_escapes.void(),
         )),
     )
     .take()
@@ -225,17 +216,17 @@ mod text_with_escapes_tests {
         // Stops at unescaped parenthesis.
         assert_eq!(
             parse_text_with_escapes.parse_peek("foo(bar"),
-            Ok(("(", "foo"))
+            Ok(("(bar", "foo"))
         );
         // Stops at unescaped parenthesis after escapes.
         assert_eq!(
             parse_text_with_escapes.parse_peek(r"foo\)bar(baz"),
-            Ok(("(", r"foo\)bar"))
+            Ok(("(baz", r"foo\)bar"))
         );
         // Stops at unescaped parenthesis after escaped.
         assert_eq!(
             parse_text_with_escapes.parse_peek(r"\(foo)bar"),
-            Ok((")", r"\(foo"))
+            Ok((")bar", r"\(foo"))
         );
     }
 

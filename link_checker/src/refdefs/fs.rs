@@ -62,10 +62,24 @@ where
 
 #[cfg(test)]
 mod test {
-    // TODO
-    // use super::*;
+    use super::*;
+    use tempfile::tempdir;
 
-    // #[test]
-    // fn test() {
-    // }
+    #[test]
+    fn test_check_is_dir() {
+        let dir = tempdir().unwrap();
+        assert!(check_is_dir(dir.path()).is_ok());
+
+        let file_path = dir.path().join("file.txt");
+        std::fs::write(&file_path, "hello").unwrap();
+        assert!(check_is_dir(&file_path).is_err());
+    }
+
+    #[test]
+    fn test_create_dir() {
+        let dir = tempdir().unwrap();
+        let nested = dir.path().join("a/b/c");
+        assert!(create_dir(&nested).is_ok());
+        assert!(nested.is_dir());
+    }
 }

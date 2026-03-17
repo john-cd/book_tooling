@@ -1087,6 +1087,7 @@ dependencies = [
  "anyhow",
  "fmt2io",
  "multimap",
+ "tracing",
  "url",
  "winnow",
 ]
@@ -1147,6 +1148,7 @@ dependencies = [
  "clap",
  "core_lib",
  "directive_lib",
+ "tracing",
  "tracing-subscriber",
 ]
 

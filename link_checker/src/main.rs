@@ -5,29 +5,33 @@ mod refdefs;
 
 use std::path::Path;
 use clap::Parser;
-use tracing::info;
+use tracing::{info, error};
+use std::sync::Arc;
+use links::asynchro::LinkValidator;
+use conf::Config;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Install a global tracing subscriber that listens for events
-    // and filters based on the value of the RUST_LOG environment variable.
     tracing_subscriber::fmt::init();
 
-    // Process command-line arguments to retrieve the directory to process:
     let args = cli::Args::parse();
-
-    let _conf = conf::Config::default();
+    let conf = Arc::new(Config::default());
     let scope = core_lib::Scope::default();
+
+    let validator = Arc::new(LinkValidator::new(conf.follow_redirects));
 
     for directory in &args.directories {
         let dir = directory.as_path().canonicalize()?;
         info!("Processing {}", dir.display());
-        core_lib::walk_directory_and_process_files(&dir, &scope, |p| {
-            // Use a block to handle the async call in a sync closure
-            // In a real app we might want to collect all paths and then process async
+
+        let v = Arc::clone(&validator);
+        let c = Arc::clone(&conf);
+        core_lib::walk_directory_and_process_files(&dir, &scope, move |p| {
+            let v = Arc::clone(&v);
+            let c = Arc::clone(&c);
             tokio::task::block_in_place(|| {
                 let rt = tokio::runtime::Handle::current();
-                rt.block_on(check_links_in_file(p))
+                rt.block_on(process_file(p, &v, &c))
             })
         })?;
     }
@@ -35,14 +39,35 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn check_links_in_file(filepath: &Path) -> anyhow::Result<()> {
-    info!("Checking file: {}", filepath.display());
+async fn process_file(filepath: &Path, validator: &LinkValidator, conf: &Config) -> anyhow::Result<()> {
+    info!("Processing file: {}", filepath.display());
 
-    // Read the file content
     let content = std::fs::read_to_string(filepath)?;
 
-    // Find all links
-    let links = links::check_links(&content, true);
+    if conf.check_urls {
+        check_links_in_file(filepath, &content, validator).await?;
+    }
+
+    if conf.detect_unused_reference_definitions {
+        let unused = refdefs::detect_unused_reference_definitions(&content);
+        if !unused.is_empty() {
+            info!("Found {} unused reference definitions in {}", unused.len(), filepath.display());
+        }
+
+        if conf.delete_unused_reference_definitions {
+            let new_content = refdefs::delete_unused_reference_definitions(&content);
+            if let std::borrow::Cow::Owned(new_content) = new_content {
+                std::fs::write(filepath, new_content)?;
+                info!("Deleted unused reference definitions in {}", filepath.display());
+            }
+        }
+    }
+
+    Ok(())
+}
+
+async fn check_links_in_file(filepath: &Path, content: &str, validator: &LinkValidator) -> anyhow::Result<()> {
+    let links = links::check_links(content, true);
 
     if links.is_empty() {
         return Ok(());
@@ -50,8 +75,15 @@ async fn check_links_in_file(filepath: &Path) -> anyhow::Result<()> {
 
     info!("Found {} links in {}", links.len(), filepath.display());
 
-    for link in links {
-        links::validate_link(&link).await;
+    let urls: Vec<_> = links.into_iter().map(|l| l.url).collect();
+    let results = validator.validate_all(urls).await;
+
+    for result in results {
+        if !result.success {
+            error!("Link FAILED ({}): {}", result.status, result.url);
+        } else {
+            info!("Link OK: {}", result.url);
+        }
     }
 
     Ok(())

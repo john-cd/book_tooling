@@ -1,4 +1,3 @@
-use tracing::{error, info};
 use url::Url;
 use parse_lib::Element;
 
@@ -29,23 +28,4 @@ pub fn check_links(content: &str, _check_external_links: bool) -> Vec<Link> {
     }
 
     links
-}
-
-pub async fn validate_link(link: &Link) -> bool {
-    info!("Validating link: {}", link.url);
-    match crate::links::asynchro::check_web_url(link.url.clone()).await {
-        Ok(check) => {
-            if check.success {
-                info!("Link OK: {}", link.url);
-                true
-            } else {
-                error!("Link FAILED ({}): {}", check.status, link.url);
-                false
-            }
-        }
-        Err(e) => {
-            error!("Error checking link {}: {}", link.url, e);
-            false
-        }
-    }
 }

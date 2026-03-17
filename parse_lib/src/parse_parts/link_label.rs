@@ -9,26 +9,32 @@
 
 use winnow::ModalResult;
 use winnow::Parser;
-use winnow::combinator::delimited;
+use winnow::combinator::{alt, delimited, repeat};
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
-use winnow::token::take_while;
+use winnow::token::{one_of, take_while};
 
 /// Parses link label.
 ///
 /// Example: "[my label]" -> "my label".
-/// Does not handle escaped brackets.
+/// Handles escaped brackets: "\[" and "\]".
 pub(crate) fn parse_link_label<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    let label_content = take_while(1..=999, |c: char| {
-        c != '[' && c != ']' && c != '\n' && c != '\r'
-    })
-    .verify(|s: &str| !s.trim().is_empty());
+    let parse_escaped = ('\\', one_of(['[', ']', '\\'])).take();
+    let parse_normal = take_while(1.., |c: char| {
+        c != '[' && c != ']' && c != '\\' && c != '\n' && c != '\r'
+    });
 
-    let mut parser = delimited("[", label_content, "]")
+    let mut label_content = repeat::<_, _, (), _, _>(1.., alt((parse_escaped, parse_normal)))
+        .take()
+        .verify(|s: &str| {
+            let len = s.chars().count();
+            (1..=999).contains(&len) && !s.trim().is_empty()
+        });
+
+    delimited("[", label_content, "]")
         .context(Label("link label"))
-        .context(Expected(Description("[my label]. No newline allowed.")));
-
-    parser.parse_next(input)
+        .context(Expected(Description("[my label]. No newline allowed.")))
+        .parse_next(input)
 }
 
 #[cfg(test)]
@@ -71,13 +77,11 @@ mod tests {
 
     #[test]
     fn test_fail_on_empty_label() {
-        // Fails because take_while_m_n requires at least 1 char.
         assert!(parse_link_label(&mut "[]").is_err());
     }
 
     #[test]
     fn test_fail_on_whitespace_only_label() {
-        // Fails because the `verify` condition checks that the trimmed label is not empty.
         assert!(parse_link_label(&mut "[ ]").is_err());
         assert!(parse_link_label(&mut "[\t\t]").is_err());
     }
@@ -97,12 +101,24 @@ mod tests {
 
     #[test]
     fn test_fail_on_nested_brackets() {
-        // TODO Fails because `[` and `]` are not allowed in the label content.
         assert!(parse_link_label(&mut "[a[b]c]").is_err());
     }
 
     #[test]
     fn test_fail_on_newline() {
         assert!(parse_link_label(&mut "[label\nwith newline]").is_err());
+    }
+
+    #[test]
+    fn test_escaped_brackets() {
+        assert_eq!(
+            parse_link_label.parse_peek(r"[a\[b\]c]"),
+            Ok(("", r"a\[b\]c"))
+        );
+    }
+
+    #[test]
+    fn test_escaped_backslash() {
+        assert_eq!(parse_link_label.parse_peek(r"[a\\b]"), Ok(("", r"a\\b")));
     }
 }

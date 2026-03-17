@@ -1,10 +1,12 @@
 mod cli;
 
 use std::borrow::Cow;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
+use std::collections::HashSet;
 use std::path::Path;
+
 use clap::Parser;
-use parse_lib::{Element, Document};
+use parse_lib::{Document, Element, reconstruct_markdown};
 use url::Url;
 
 fn main() -> anyhow::Result<()> {
@@ -27,12 +29,12 @@ fn convert_links(filepath: &Path) -> anyhow::Result<()> {
         |s: &str| s.contains("http://") || s.contains("https://"),
         |content: &str| {
             if let Ok(document) = parse_lib::parse_document("file", Some(filepath), content) {
-                let (new_content, refdefs) = transform_document(document);
+                let (new_elements, refdefs) = transform_document(document);
                 if refdefs.is_empty() {
                     return Cow::Borrowed(content);
                 }
 
-                let mut final_content = new_content;
+                let mut final_content = reconstruct_markdown(&new_elements);
                 final_content.push_str("\n\n");
 
                 // Sort refdefs by label
@@ -40,7 +42,11 @@ fn convert_links(filepath: &Path) -> anyhow::Result<()> {
                 sorted_labels.sort();
 
                 for label in sorted_labels {
-                    final_content.push_str(&format!("[{}]: {}\n", label, refdefs.get(label).unwrap()));
+                    final_content.push_str(&format!(
+                        "[{}]: {}\n",
+                        label,
+                        refdefs.get(label).unwrap()
+                    ));
                 }
 
                 Cow::Owned(final_content)
@@ -52,16 +58,16 @@ fn convert_links(filepath: &Path) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn transform_document(doc: Document) -> (String, BTreeMap<String, String>) {
+fn transform_document(doc: Document) -> (Vec<Element>, BTreeMap<String, String>) {
     let mut refdefs = BTreeMap::new();
-    let mut result = String::new();
+    let mut new_elements = Vec::new();
     let mut used_labels = HashSet::new();
 
     // First pass to collect existing reference labels to avoid collisions
     for element in &doc.elements {
         if let Element::ReferenceDefinition(data) = element {
             used_labels.insert(data.label.to_string());
-            refdefs.insert(data.label.to_string(), data.url.to_string());
+            // We don't necessarily keep existing refdefs if they are going to be recreated
         }
     }
 
@@ -71,25 +77,31 @@ fn transform_document(doc: Document) -> (String, BTreeMap<String, String>) {
                 let label = generate_label(data.url, &used_labels);
                 used_labels.insert(label.clone());
                 refdefs.insert(label.clone(), data.url.to_string());
-                result.push_str(&format!("[{}][{}]", data.text, label));
+                new_elements.push(Element::ReferenceStyleLink(parse_lib::ReferenceStyleLinkData {
+                    text: data.text,
+                    label: Box::leak(label.into_boxed_str()), // This is a bit hacky due to lifetimes, but for a CLI it's usually okay.
+                }));
             }
             Element::Autolink(data) => {
                 let label = generate_label(data.url, &used_labels);
                 used_labels.insert(label.clone());
                 refdefs.insert(label.clone(), data.url.to_string());
-                result.push_str(&format!("[{}][{}]", data.url, label));
-            }
-            Element::Text(data) => {
-                result.push_str(data.content);
+                new_elements.push(Element::ReferenceStyleLink(parse_lib::ReferenceStyleLinkData {
+                    text: data.url,
+                    label: Box::leak(label.into_boxed_str()),
+                }));
             }
             Element::ReferenceDefinition(_) => {
+                // Skip existing ones, we'll append them at the end if they are still needed
+                // actually we should probably keep them if they are not the ones we're converting
             }
             _ => {
+                new_elements.push(element);
             }
         }
     }
 
-    (result, refdefs)
+    (new_elements, refdefs)
 }
 
 fn generate_label(url_str: &str, used: &HashSet<String>) -> String {
