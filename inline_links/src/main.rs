@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::path::Path;
 
 use clap::Parser;
-use parse_lib::{Document, Element, reconstruct_markdown};
+use parse_lib::{Document, Element, reconstruct_markdown, ReferenceStyleLinkData};
 use url::Url;
 
 fn main() -> anyhow::Result<()> {
@@ -35,7 +35,13 @@ fn convert_links(filepath: &Path) -> anyhow::Result<()> {
                 }
 
                 let mut final_content = reconstruct_markdown(&new_elements);
-                final_content.push_str("\n\n");
+                if !final_content.ends_with("\n\n") {
+                    if final_content.ends_with('\n') {
+                        final_content.push('\n');
+                    } else {
+                        final_content.push_str("\n\n");
+                    }
+                }
 
                 // Sort refdefs by label
                 let mut sorted_labels: Vec<_> = refdefs.keys().collect();
@@ -67,7 +73,6 @@ fn transform_document(doc: Document) -> (Vec<Element>, BTreeMap<String, String>)
     for element in &doc.elements {
         if let Element::ReferenceDefinition(data) = element {
             used_labels.insert(data.label.to_string());
-            // We don't necessarily keep existing refdefs if they are going to be recreated
         }
     }
 
@@ -77,23 +82,24 @@ fn transform_document(doc: Document) -> (Vec<Element>, BTreeMap<String, String>)
                 let label = generate_label(data.url, &used_labels);
                 used_labels.insert(label.clone());
                 refdefs.insert(label.clone(), data.url.to_string());
-                new_elements.push(Element::ReferenceStyleLink(parse_lib::ReferenceStyleLinkData {
+                new_elements.push(Element::ReferenceStyleLink(ReferenceStyleLinkData {
                     text: data.text,
-                    label: Box::leak(label.into_boxed_str()), // This is a bit hacky due to lifetimes, but for a CLI it's usually okay.
+                    label: Box::leak(label.into_boxed_str()),
                 }));
             }
             Element::Autolink(data) => {
                 let label = generate_label(data.url, &used_labels);
                 used_labels.insert(label.clone());
                 refdefs.insert(label.clone(), data.url.to_string());
-                new_elements.push(Element::ReferenceStyleLink(parse_lib::ReferenceStyleLinkData {
+                new_elements.push(Element::ReferenceStyleLink(ReferenceStyleLinkData {
                     text: data.url,
                     label: Box::leak(label.into_boxed_str()),
                 }));
             }
-            Element::ReferenceDefinition(_) => {
-                // Skip existing ones, we'll append them at the end if they are still needed
-                // actually we should probably keep them if they are not the ones we're converting
+            Element::ReferenceDefinition(data) => {
+                // Keep existing refdefs but only if they are not being replaced.
+                // Actually, we keep them all for simplicity here.
+                new_elements.push(Element::ReferenceDefinition(data));
             }
             _ => {
                 new_elements.push(element);

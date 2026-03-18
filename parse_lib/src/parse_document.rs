@@ -39,6 +39,7 @@ fn parse_elements<'a>(input: &mut &'a str) -> ModalResult<Vec<Element<'a>>> {
             parse_autolink,
             // parse_naked_url,
             parse_plain_text,
+            parse_fallback_char,
             fail.context(Label("text element"))
                 .context(Expected(Description("one of a hidden HTML div, fenced code block, code span, autolink, inline link, naked URL, plain text, or whitespace"))),
         )),

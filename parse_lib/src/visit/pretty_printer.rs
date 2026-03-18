@@ -102,12 +102,12 @@ impl<W: fmt::Write> Visitor<'_> for PrettyPrinter<W> {
     }
 
     fn visit_fenced_code_block(&mut self, fenced_code_block: &FencedCodeBlockData) -> Result {
-        write!(self.w, "```\n{}\n```", fenced_code_block.content)?;
+        write!(self.w, "```{}```", fenced_code_block.content)?;
         Ok(())
     }
 
     fn visit_hidden_html_div(&mut self, div: &HiddenHtmlDivData) -> Result {
-        write!(self.w, "<div class=\"hidden\">\n{}\n</div>", div.content)?;
+        write!(self.w, "<div class=\"hidden\">{}</div>", div.content)?;
         Ok(())
     }
 

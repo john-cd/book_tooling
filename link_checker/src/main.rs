@@ -9,6 +9,7 @@ use tracing::{info, error};
 use std::sync::Arc;
 use links::asynchro::LinkValidator;
 use conf::Config;
+use std::sync::Mutex;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -20,21 +21,24 @@ async fn main() -> anyhow::Result<()> {
 
     let validator = Arc::new(LinkValidator::new(conf.follow_redirects));
 
+    // Collect all files to process first.
+    let files = Arc::new(Mutex::new(Vec::new()));
     for directory in &args.directories {
         let dir = directory.as_path().canonicalize()?;
-        info!("Processing {}", dir.display());
-
-        let v = Arc::clone(&validator);
-        let c = Arc::clone(&conf);
+        info!("Walking {}", dir.display());
+        let f = Arc::clone(&files);
         core_lib::walk_directory_and_process_files(&dir, &scope, move |p| {
-            let v = Arc::clone(&v);
-            let c = Arc::clone(&c);
-            tokio::task::block_in_place(|| {
-                let rt = tokio::runtime::Handle::current();
-                rt.block_on(process_file(p, &v, &c))
-            })
+            f.lock().unwrap().push(p.to_path_buf());
+            Ok(())
         })?;
     }
+
+    // Process files asynchronously.
+    let files_to_process = files.lock().unwrap().clone();
+    for filepath in files_to_process {
+        process_file(&filepath, &validator, &conf).await?;
+    }
+
     info!("DONE");
     Ok(())
 }
