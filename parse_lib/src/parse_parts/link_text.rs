@@ -72,7 +72,7 @@ fn parse_link_text_content<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     repeat::<_, _, (), _, _>(
         0..,
         alt((
-            // [parse image](https://github.com/john-cd/rust_howto/issues/1424)
+            // TODO [parse image](https://github.com/john-cd/rust_howto/issues/1424)
             parse_balanced_brackets.void(),
             parse_text_with_escapes.void(),
         )),
