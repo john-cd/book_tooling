@@ -6,8 +6,8 @@ pub use directive_model::*;
 mod crate_blocks;
 use crate_blocks::*;
 
-mod conf;
-use conf::*;
+pub mod conf;
+pub use conf::*;
 
 mod links_or_badges;
 use links_or_badges::*;
@@ -18,12 +18,19 @@ use examples::*;
 mod wikilinks;
 use wikilinks::*;
 
-/// Process all directives in all files in scope, in the given directories.
+/// Process all directives in all files within the specified directories.
+///
+/// This function walks through each directory, identifies files in scope,
+/// and applies transformations based on the provided configuration.
 ///
 /// # Arguments
 ///
-/// * `directories` - An iterator over the directories to process.
-/// * `conf` - The configuration for processing directives.
+/// * `directories` - An iterator over the directories to scan for files.
+/// * `conf` - The configuration determining which directives to process.
+///
+/// # Errors
+///
+/// Returns an error if directory canonicalization fails or if any file processing error occurs.
 pub fn process_all_directives<I>(directories: I, conf: &Config) -> anyhow::Result<()>
 where
     I: IntoIterator<Item = std::path::PathBuf>,
@@ -32,7 +39,13 @@ where
     let regexes_and_replacements = get_regexes_and_replacements(conf);
 
     // Extensions to process and excluded files.
-    let scope = core_lib::Scope::default();
+    let mut scope = core_lib::Scope::default();
+    if let Some(ref extensions) = conf.included_extensions {
+        scope.included_extensions = extensions.iter().map(|s| s.into()).collect();
+    }
+    if let Some(ref exclusions) = conf.excluded_filenames {
+        scope.excluded_filenames = exclusions.iter().map(|s| s.into()).collect();
+    }
 
     for directory in directories.into_iter() {
         let dir = directory.as_path().canonicalize()?;

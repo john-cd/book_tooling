@@ -4,12 +4,15 @@ use core_lib::RegexAndReplacement;
 use regex::Regex;
 
 pub(super) fn wikilink_regexes() -> Vec<RegexAndReplacement> {
-    let re_string: String = r"\[\[\s*(\S+)\s*(\|\s*([^}]+)\s*)?\]\]".into();
+    let re_string: String = r"\[\[\s*([^|\]\s]+)\s*(?:\|\s*([^\]]+))?\s*\]\]".into();
     let re = Regex::new(&re_string).expect("Invalid regex");
-    let replacement = "[$3][p~$1]{{hi:$1}}";
     vec![RegexAndReplacement {
         re,
-        replacement: Some(Box::new(|_| replacement.into())),
+        replacement: Some(Box::new(|caps| {
+            let target = caps.get(1).map(|m| m.as_str()).unwrap_or("");
+            let display = caps.get(2).map(|m| m.as_str().trim()).unwrap_or(target);
+            format!("[{}][p~{}]{{hi:{}}}", display, target, target)
+        })),
     }]
 }
 
@@ -34,17 +37,16 @@ pub(super) fn wikilink_regexes() -> Vec<RegexAndReplacement> {
 // [[| title10 ]]
 #[cfg(test)]
 mod tests {
-    // use super::*;
-    //
-    // // TODO [finish tests](https://github.com/john-cd/rust_howto/issues/1433)
-    // #[test]
-    // fn test_replace_wikilinks() {
-    //     let text = "[[file | title]]";
-    //     let expected = "[title][p~file]{{hi:file}}";
-    //     let r = wikilink_regexes();
-    //     let res = r[0]
-    //         .re
-    //         .replace_all(text, r[0].replacement.as_ref().unwrap());
-    //     assert_eq!(res, expected);
-    // }
+    use super::*;
+
+    #[test]
+    fn test_replace_wikilinks() {
+        let text = "[[file | title]]";
+        let expected = "[title][p~file]{hi:file}";
+        let r = wikilink_regexes();
+        let res = r[0].re.replace_all(text, |caps: &regex::Captures| {
+            (r[0].replacement.as_ref().unwrap())(caps)
+        });
+        assert_eq!(res, expected);
+    }
 }
