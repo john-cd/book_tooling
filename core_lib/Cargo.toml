@@ -14,8 +14,10 @@ publish.workspace = true
 license.workspace = true
 
 [dependencies]
-anyhow = "1.0.95"
-walkdir = "2.5.0"
-tempfile = "3.20.0"
-tracing = "0.1.41"
-regex = "1.11.1"
+anyhow.workspace = true
+tracing.workspace = true
+regex.workspace = true
+rayon.workspace = true
+tempfile.workspace = true
+memmap2.workspace = true
+walkdir.workspace = true

@@ -1,4 +1,14 @@
+//! Convert any naked URLs and inline links in Markdown files within a folder into reference-style links.
+//!
+//! - Convert inline links e.g. [...](http(s)://...) into reference-style links: [...][...] [...]: http://...
+//! - Convert http(s)://... naked links into reference-style links.
+//! - Skip URLs between ``` and ``` and within hidden sections: <div class="hidden">...</div>
+//! - Ignore URLs within reference-style link labels: [https://...][...]
+//! - Do not convert links to GitHub issues e.g. https://github.com/john-cd/rust_howto/issues links.
+//! - Move refdefs into a central file (and sort them).
+
 mod cli;
+mod converter;
 
 use std::borrow::Cow;
 use std::collections::BTreeMap;

@@ -1,8 +1,7 @@
-#![allow(unused)]
-
 mod cli;
 
 use clap::Parser;
+use directive_lib::process_all_directives;
 
 fn main() -> anyhow::Result<()> {
     // Install a global tracing subscriber that listens for events
@@ -11,9 +10,12 @@ fn main() -> anyhow::Result<()> {
 
     // Process command-line arguments to retrieve the directory to process:
     let args = cli::Args::parse();
-    let scope = core_lib::Scope::default();
 
-    // [finish](https://github.com/john-cd/rust_howto/issues/1423)
+    // Use default configuration for now.
+    let conf = directive_lib::Config::default();
+
+    process_all_directives(args.directories, &conf)?;
+
     println!("DONE");
     Ok(())
 }

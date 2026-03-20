@@ -1,8 +1,9 @@
 use winnow::ModalResult;
 use winnow::Parser;
-use winnow::error::StrContext::*;
-use winnow::error::StrContextValue::*;
-use winnow::token::take_till;
+use winnow::stream::Offset;
+use winnow::stream::Stream;
+use winnow::token::any;
+use winnow::token::take_while;
 
 use crate::ast::Element;
 

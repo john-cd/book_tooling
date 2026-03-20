@@ -1,3 +1,5 @@
+// [finish](https://github.com/john-cd/rust_howto/issues/1422)
+
 mod cli;
 mod conf;
 mod links;
@@ -24,6 +26,13 @@ async fn main() -> anyhow::Result<()> {
     // Collect all files to process first.
     let files = Arc::new(Mutex::new(Vec::new()));
     for directory in &args.directories {
+        if !directory.exists() {
+            warn!(
+                "Directory {} does not exist, skipping.",
+                directory.display()
+            );
+            continue;
+        }
         let dir = directory.as_path().canonicalize()?;
         info!("Walking {}", dir.display());
         let f = Arc::clone(&files);

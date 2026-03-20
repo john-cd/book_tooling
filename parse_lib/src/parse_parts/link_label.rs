@@ -9,10 +9,13 @@
 
 use winnow::ModalResult;
 use winnow::Parser;
-use winnow::combinator::{alt, delimited, repeat};
+use winnow::combinator::alt;
+use winnow::combinator::delimited;
+use winnow::combinator::repeat;
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
-use winnow::token::{one_of, take_while};
+use winnow::token::one_of;
+use winnow::token::take_while;
 
 /// Parses link label.
 ///
