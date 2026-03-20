@@ -69,6 +69,6 @@ where
     'a: 'd,
 {
     let mut vis = RefDefVisitor::new();
-    let _ = docs.accept(&mut vis);
+    docs.accept(&mut vis)?;
     Ok(vis.0)
 }

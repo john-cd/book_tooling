@@ -1,125 +1,111 @@
-// [finish](https://github.com/john-cd/rust_howto/issues/1422)
-
 mod cli;
 mod conf;
 mod links;
 mod refdefs;
 
-use std::borrow::Cow;
 use std::path::Path;
 use std::sync::Arc;
+use std::sync::Mutex;
 
 use clap::Parser;
-use links::AsyncLinkChecker;
-use parse_lib::parse_document;
-use tokio::runtime::Handle;
+use conf::Config;
+use links::asynchro::LinkValidator;
 use tracing::error;
 use tracing::info;
-use tracing::warn;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Install a global tracing subscriber that listens for events
-    // and filters based on the value of the RUST_LOG environment variable.
     tracing_subscriber::fmt::init();
 
-    // Process command-line arguments to retrieve the directory to process:
     let args = cli::Args::parse();
-
-    let conf = conf::Config::default();
+    let conf = Arc::new(Config::default());
     let scope = core_lib::Scope::default();
 
-    let link_checker = Arc::new(AsyncLinkChecker::new());
-    let handle = Handle::current();
+    let validator = Arc::new(LinkValidator::new(conf.follow_redirects));
 
+    // Collect all files to process first.
+    let files = Arc::new(Mutex::new(Vec::new()));
     for directory in &args.directories {
-        if !directory.exists() {
-            warn!(
-                "Directory {} does not exist, skipping.",
-                directory.display()
-            );
-            continue;
-        }
         let dir = directory.as_path().canonicalize()?;
-        println!("Processing {}", dir.display());
-
-        let checker = Arc::clone(&link_checker);
-        let config = conf.clone();
-        let handle_clone = handle.clone();
-
+        info!("Walking {}", dir.display());
+        let f = Arc::clone(&files);
         core_lib::walk_directory_and_process_files(&dir, &scope, move |p| {
-            let checker = Arc::clone(&checker);
-            let config = config.clone();
-            let handle = handle_clone.clone();
-
-            check_links_in_file(p, &config, &checker, &handle)
+            f.lock().unwrap().push(p.to_path_buf());
+            Ok(())
         })?;
     }
-    println!("DONE");
+
+    // Process files asynchronously.
+    let files_to_process = files.lock().unwrap().clone();
+    for filepath in files_to_process {
+        process_file(&filepath, &validator, &conf).await?;
+    }
+
+    info!("DONE");
     Ok(())
 }
 
-fn check_links_in_file(
+async fn process_file(
     filepath: &Path,
-    conf: &conf::Config,
-    checker: &AsyncLinkChecker,
-    handle: &Handle,
+    validator: &LinkValidator,
+    conf: &Config,
 ) -> anyhow::Result<()> {
-    core_lib::process_text_file(
-        filepath,
-        |s: &str| s.contains("[") || s.contains("http"),
-        |content: &str| {
-            let filename = filepath.file_name().unwrap_or_default().to_string_lossy();
-            let doc = match parse_document(&filename, Some(filepath), content) {
-                Ok(d) => d,
-                Err(e) => {
-                    error!("Failed to parse {}: {}", filepath.display(), e);
-                    return Cow::Borrowed(content);
-                }
-            };
+    info!("Processing file: {}", filepath.display());
 
-            let mut current_content = Cow::Borrowed(content);
+    let content = std::fs::read_to_string(filepath)?;
 
-            if conf.detect_unused_reference_definitions {
-                let unused = refdefs::find_unused_refdefs(&doc);
-                if !unused.is_empty() {
-                    info!(
-                        "Found {} unused refdefs in {}",
-                        unused.len(),
-                        filepath.display()
-                    );
-                    if conf.delete_unused_reference_definitions {
-                        let new_content = refdefs::delete_unused_refdefs(&doc, &unused);
-                        current_content = Cow::Owned(new_content);
-                    }
-                }
+    if conf.check_urls {
+        check_links_in_file(filepath, &content, validator).await?;
+    }
+
+    if conf.detect_unused_reference_definitions {
+        let unused = refdefs::detect_unused_reference_definitions(&content);
+        if !unused.is_empty() {
+            info!(
+                "Found {} unused reference definitions in {}",
+                unused.len(),
+                filepath.display()
+            );
+        }
+
+        if conf.delete_unused_reference_definitions {
+            let new_content = refdefs::delete_unused_reference_definitions(&content);
+            if let std::borrow::Cow::Owned(new_content) = new_content {
+                std::fs::write(filepath, new_content)?;
+                info!(
+                    "Deleted unused reference definitions in {}",
+                    filepath.display()
+                );
             }
+        }
+    }
 
-            if conf.check_urls {
-                let urls = links::extract_urls(&doc);
-                for url in urls {
-                    if url.scheme() == "http" || url.scheme() == "https" {
-                        if !conf.check_external_urls {
-                            continue;
-                        }
+    Ok(())
+}
 
-                        // Use the shared handle to block on the async check.
-                        let result = handle.block_on(checker.check_url(url.clone()));
-                        if !result.success {
-                            warn!(
-                                "Broken link in {}: {} (Status: {:?}, Error: {:?})",
-                                filepath.display(),
-                                url,
-                                result.status,
-                                result.error
-                            );
-                        }
-                    }
-                }
-            }
+async fn check_links_in_file(
+    filepath: &Path,
+    content: &str,
+    validator: &LinkValidator,
+) -> anyhow::Result<()> {
+    let links = links::check_links(content, true);
 
-            current_content
-        },
-    )?;
+    if links.is_empty() {
+        return Ok(());
+    }
+
+    info!("Found {} links in {}", links.len(), filepath.display());
+
+    let urls: Vec<_> = links.into_iter().map(|l| l.url).collect();
+    let results = validator.validate_all(urls).await;
+
+    for result in results {
+        if !result.success {
+            error!("Link FAILED ({}): {}", result.status, result.url);
+        } else {
+            info!("Link OK: {}", result.url);
+        }
+    }
+
     Ok(())
 }

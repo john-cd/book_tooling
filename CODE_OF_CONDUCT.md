@@ -70,8 +70,14 @@ Community leaders will follow these Community Impact Guidelines in determining t
 
 ## Attribution
 
-This Code of Conduct is adapted from the [Contributor Covenant](https://contributor-covenant.org)↗, version 2.0, [available here](https://contributor-covenant.org/version/2/0/code_of_conduct.html)↗.
+This Code of Conduct is adapted from the [Contributor Covenant][homepage]↗, version 2.0, [available here][code_of_conduct]↗.
 
-Community Impact Guidelines were inspired by [Mozilla's code of conduct enforcement ladder](https://github.com/mozilla/diversity)↗.
+Community Impact Guidelines were inspired by [Mozilla's code of conduct enforcement ladder][enforcement_ladder]↗.
 
-For answers to common questions about this code of conduct, see the [FAQ](https://contributor-covenant.org/faq)↗. [Translations](https://contributor-covenant.org/translations)↗ are available.
+For answers to common questions about this code of conduct, see the [FAQ][faq]↗. [Translations][translations]↗ are available.
+
+[homepage]: https://contributor-covenant.org
+[code_of_conduct]: https://contributor-covenant.org/version/2/0/code_of_conduct.html
+[enforcement_ladder]: https://github.com/mozilla/diversity
+[faq]: https://contributor-covenant.org/faq
+[translations]: https://contributor-covenant.org/translations

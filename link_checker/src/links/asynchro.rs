@@ -1,27 +1,42 @@
 use std::time::Duration;
 
+use anyhow::Result;
+use futures_util::stream::StreamExt;
+use futures_util::stream::{self};
 use moka::future::Cache;
-use reqwest::Client;
-use tracing::debug;
+use reqwest::ClientBuilder;
+use reqwest::redirect::Policy;
 use url::Url;
 
-#[derive(Debug, Clone)]
+/// Results of a batch of URL checks.
+pub type UrlChecks = Vec<UrlCheck>;
+
+/// Result of a single URL check.
+#[derive(Clone, Debug)]
 pub struct UrlCheck {
+    pub url: Url,
     pub success: bool,
-    pub status: Option<reqwest::StatusCode>,
-    pub error: Option<String>,
+    pub status: reqwest::StatusCode,
 }
 
-pub struct AsyncLinkChecker {
-    client: Client,
+pub struct LinkValidator {
+    client: reqwest::Client,
     cache: Cache<Url, UrlCheck>,
 }
 
-impl AsyncLinkChecker {
-    pub fn new() -> Self {
-        let client = Client::builder()
-            .timeout(Duration::from_secs(10))
-            .user_agent("book-tooling-link-checker")
+impl LinkValidator {
+    pub fn new(follow_redirects: bool) -> Self {
+        let timeout = Duration::new(10, 0);
+        let redirect_policy = if follow_redirects {
+            Policy::default()
+        } else {
+            Policy::none()
+        };
+
+        let client = ClientBuilder::new()
+            .user_agent("book_tooling/0.1.0")
+            .timeout(timeout)
+            .redirect(redirect_policy)
             .build()
             .unwrap();
 
@@ -30,27 +45,39 @@ impl AsyncLinkChecker {
         Self { client, cache }
     }
 
-    pub async fn check_url(&self, url: Url) -> UrlCheck {
-        if let Some(cached) = self.cache.get(&url).await {
-            debug!("Cache hit for {}", url);
-            return cached;
+    pub async fn check_web_url(&self, url: Url) -> Result<UrlCheck> {
+        if let Some(check) = self.cache.get(&url).await {
+            return Ok(check);
         }
 
-        debug!("Checking {}", url);
-        let result = match self.client.head(url.clone()).send().await {
-            Ok(resp) => UrlCheck {
-                success: resp.status().is_success(),
-                status: Some(resp.status()),
-                error: None,
-            },
-            Err(e) => UrlCheck {
-                success: false,
-                status: None,
-                error: Some(e.to_string()),
-            },
+        let response = self.client.head(url.clone()).send().await?;
+        let check = UrlCheck {
+            url: url.clone(),
+            success: response.status().is_success(),
+            status: response.status(),
         };
 
-        self.cache.insert(url, result.clone()).await;
-        result
+        self.cache.insert(url, check.clone()).await;
+        Ok(check)
+    }
+
+    pub async fn validate_all(&self, urls: Vec<Url>) -> UrlChecks {
+        let mut stream = stream::iter(urls)
+            .map(|url| async move { self.check_web_url(url).await })
+            .buffer_unordered(10);
+
+        let mut results = Vec::new();
+        while let Some(res) = stream.next().await {
+            if let Ok(check) = res {
+                results.push(check);
+            }
+        }
+        results
+    }
+}
+
+impl Default for LinkValidator {
+    fn default() -> Self {
+        Self::new(true)
     }
 }

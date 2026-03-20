@@ -20,27 +20,108 @@ use winnow::token::take_while;
 /// Parses link label.
 ///
 /// Example: "[my label]" -> "my label".
-pub fn parse_link_label<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    // According to spec, link labels can contain escaped brackets.
-    // However, they cannot contain unescaped brackets.
-    let label_content = repeat::<_, _, (), _, _>(
-        1..,
-        alt((
-            take_while(1.., |c: char| {
-                c != '[' && c != ']' && c != '\\' && c != '\n' && c != '\r'
-            })
-            .void(),
-            ('\\', one_of(['[', ']', '\\'])).void(),
-        )),
-    )
-    .take()
-    .verify(|s: &str| !s.trim().is_empty() && s.len() <= 999);
+/// Handles escaped brackets: "\[" and "\]".
+pub(crate) fn parse_link_label<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+    let parse_escaped = ('\\', one_of(['[', ']', '\\'])).take();
+    let parse_normal = take_while(1.., |c: char| {
+        c != '[' && c != ']' && c != '\\' && c != '\n' && c != '\r'
+    });
 
-    let mut parser = delimited("[", label_content, "]")
+    let mut label_content = repeat::<_, _, (), _, _>(1.., alt((parse_escaped, parse_normal)))
+        .take()
+        .verify(|s: &str| {
+            let len = s.chars().count();
+            (1..=999).contains(&len) && !s.trim().is_empty()
+        });
+
+    delimited("[", label_content, "]")
         .context(Label("link label"))
-        .context(Expected(Description(
-            "[my label]. Max 999 chars. No newline allowed.",
-        )));
+        .context(Expected(Description("[my label]. No newline allowed.")))
+        .parse_next(input)
+}
 
-    parser.parse_next(input)
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_label() {
+        assert_eq!(
+            parse_link_label.parse_peek("[my label]"),
+            Ok(("", "my label"))
+        );
+    }
+
+    #[test]
+    fn test_label_with_trailing_text() {
+        assert_eq!(
+            parse_link_label.parse_peek("[label] and more"),
+            Ok((" and more", "label"))
+        );
+    }
+
+    #[test]
+    fn test_label_with_internal_whitespace() {
+        assert_eq!(
+            parse_link_label.parse_peek("[  my label  ]"),
+            Ok(("", "  my label  "))
+        );
+    }
+
+    #[test]
+    fn test_label_max_length() {
+        let max_label = "a".repeat(999);
+        let input = format!("[{max_label}]");
+        assert_eq!(
+            parse_link_label.parse_peek(&input),
+            Ok(("", max_label.as_str()))
+        );
+    }
+
+    #[test]
+    fn test_fail_on_empty_label() {
+        assert!(parse_link_label(&mut "[]").is_err());
+    }
+
+    #[test]
+    fn test_fail_on_whitespace_only_label() {
+        assert!(parse_link_label(&mut "[ ]").is_err());
+        assert!(parse_link_label(&mut "[\t\t]").is_err());
+    }
+
+    #[test]
+    fn test_fail_on_label_too_long() {
+        let long_label = "a".repeat(1000);
+        let s = format!("[{long_label}]");
+        let mut input = s.as_str();
+        assert!(parse_link_label(&mut input).is_err());
+    }
+
+    #[test]
+    fn test_fail_on_unclosed_bracket() {
+        assert!(parse_link_label(&mut "[unclosed").is_err());
+    }
+
+    #[test]
+    fn test_fail_on_nested_brackets() {
+        assert!(parse_link_label(&mut "[a[b]c]").is_err());
+    }
+
+    #[test]
+    fn test_fail_on_newline() {
+        assert!(parse_link_label(&mut "[label\nwith newline]").is_err());
+    }
+
+    #[test]
+    fn test_escaped_brackets() {
+        assert_eq!(
+            parse_link_label.parse_peek(r"[a\[b\]c]"),
+            Ok(("", r"a\[b\]c"))
+        );
+    }
+
+    #[test]
+    fn test_escaped_backslash() {
+        assert_eq!(parse_link_label.parse_peek(r"[a\\b]"), Ok(("", r"a\\b")));
+    }
 }

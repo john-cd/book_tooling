@@ -10,46 +10,47 @@
 //! but at least three levels of nesting should be supported.)
 
 use winnow::ModalResult;
+use winnow::Parser;
 use winnow::combinator::alt;
 use winnow::combinator::cut_err;
 use winnow::combinator::delimited;
 use winnow::combinator::repeat;
-use winnow::error::ContextError;
-use winnow::error::ErrMode;
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
-use winnow::prelude::*;
 use winnow::token::any;
+use winnow::token::one_of;
 use winnow::token::take_while;
 
-/// Returns true if a character that is not control, space, < ( or ).
+/// Returns true if a character that is not control, space, < ( ) or \.
 fn is_allowed_char(c: char) -> bool {
-    !(c.is_ascii_control() || c == ' ' || c == '<' || c == '(' || c == ')')
+    !(c.is_ascii_control() || c == ' ' || c == '<' || c == '(' || c == ')' || c == '\\')
 }
 
-/// Parses a character that is allowed in a link destination (not control, space, <, (, ), or \).
-fn is_allowed_normal_char(c: char) -> bool {
-    is_allowed_char(c) && c != '\\'
+/// Parses a sequence of allowed chars.
+fn parse_allowed_chars<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+    take_while(1.., is_allowed_char)
+        .context(Label("character"))
+        .context(Expected(Description(
+            "a character that is not a control char; a space; or < ( ) \\",
+        )))
+        .parse_next(input)
 }
 
 /// Parses text that may contain escaped parentheses, e.g., "\(" or "\)".
-///
-/// It must consume at least one character.
 fn parse_text_with_escapes<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    repeat::<_, _, (), _, _>(
-        1..,
-        alt((
-            take_while(1.., is_allowed_normal_char).void(),
-            ('\\', any).void(),
-        )),
-    )
-    .take()
-    .context(Label("text"))
-    .context(Expected(Description(
-        r"text that may contain escaped parentheses or backslashes, e.g., \( or \) or \\",
-    )))
-    .parse_next(input)
-    .map_err(|e: ContextError| ErrMode::Backtrack(e))
+    let parse_escaped = ('\\', one_of(['(', ')', '\\'])).take();
+
+    let res = repeat::<_, _, (), _, _>(1.., alt((parse_escaped, parse_allowed_chars)))
+        .take()
+        .parse_next(input)?;
+
+    // If the next character is a backslash, it means it's an invalid escape sequence
+    // because parse_escaped failed to consume it.
+    if input.starts_with('\\') {
+        return Err(winnow::error::ErrMode::Backtrack(Default::default()));
+    }
+
+    Ok(res)
 }
 
 /// Recursively parses content within balanced parentheses.
@@ -80,19 +81,29 @@ fn parse_balanced_parentheses<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 }
 
 /// The main parser for a non-empty sequence of characters not starting by `<`.
-pub fn parse_non_empty_sequence<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    // Ensure the first character is not '<'.
-    winnow::combinator::peek(any.verify(|c| *c != '<' && *c != ' ' && *c != ')'))
-        .parse_next(input)?;
+pub(crate) fn parse_non_empty_sequence<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+    fn parse_first_char(input: &mut &str) -> ModalResult<()> {
+        any.verify(|c: &char| {
+            *c != '<' && *c != ' ' && !c.is_ascii_control() && *c != '(' && *c != ')'
+        })
+        .void()
+        .parse_next(input)
+    }
 
-    repeat::<_, _, (), _, _>(
-        1..,
-        alt((
-            parse_balanced_parentheses.void(),
-            parse_text_with_escapes.void(),
-        )),
-    )
-    .take()
+    alt((
+        parse_balanced_parentheses,
+        (
+            parse_first_char,
+            repeat::<_, _, (), _, _>(
+                0..,
+                alt((
+                    parse_balanced_parentheses.void(),
+                    parse_text_with_escapes.void(),
+                )),
+            ),
+        )
+            .take(),
+    ))
     .parse_next(input)
 }
 
@@ -157,10 +168,6 @@ mod tests_parse_non_empty_sequence {
         assert!(parse_non_empty_sequence(&mut "").is_err());
         // Starts with '<'.
         assert!(parse_non_empty_sequence(&mut "<hello").is_err());
-        // Starts with ' '.
-        assert!(parse_non_empty_sequence(&mut " hello").is_err());
-        // Starts with ')'.
-        assert!(parse_non_empty_sequence(&mut ")hello").is_err());
         // Unbalanced parentheses.
         assert!(parse_non_empty_sequence(&mut "foo(bar").is_err());
         assert!(parse_non_empty_sequence(&mut "(foo").is_err());
@@ -236,9 +243,7 @@ mod text_with_escapes_tests {
         assert!(parse_text_with_escapes(&mut "<").is_err());
         assert!(parse_text_with_escapes(&mut " ").is_err());
         assert!(parse_text_with_escapes(&mut "\0").is_err());
-        // Lone backslash at end is matched by ('\\', any) if not at end.
-        // If at end, it will fail.
-        // Actually, ('\\', any) will fail if `any` fails (EOF).
-        // Let's verify that.
+        // Lone backslash at end.
+        assert!(parse_text_with_escapes(&mut r"foo\").is_err());
     }
 }

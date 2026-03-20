@@ -14,6 +14,8 @@ pub struct Config {
     // Has no effect if check_urls = false.
     // Beware of the performance penalty when true.
     pub check_external_urls: bool,
+    // Whether to follow redirects when checking external URLs (default = true).
+    pub follow_redirects: bool,
     // If true (default), detect e.g. [ref]: http://example.com without a corresponding [some_text][ref].
     pub detect_unused_reference_definitions: bool,
     // Remove unused ref defs from the markdown, if true (default).
@@ -25,6 +27,7 @@ impl Default for Config {
         Self {
             check_urls: true,
             check_external_urls: false,
+            follow_redirects: true,
             detect_unused_reference_definitions: true,
             delete_unused_reference_definitions: true,
         }
