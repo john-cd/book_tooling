@@ -1,5 +1,5 @@
-use url::Url;
 use parse_lib::Element;
+use url::Url;
 
 pub struct Link {
     pub url: Url,

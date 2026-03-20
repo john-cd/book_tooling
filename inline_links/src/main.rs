@@ -16,7 +16,10 @@ use std::collections::HashSet;
 use std::path::Path;
 
 use clap::Parser;
-use parse_lib::{Document, Element, reconstruct_markdown, ReferenceStyleLinkData};
+use parse_lib::Document;
+use parse_lib::Element;
+use parse_lib::ReferenceStyleLinkData;
+use parse_lib::reconstruct_markdown;
 use url::Url;
 
 fn main() -> anyhow::Result<()> {

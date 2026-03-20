@@ -19,7 +19,6 @@ use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
 use winnow::token::one_of;
 use winnow::token::take_while;
-use winnow::token::take_while;
 
 /// Parses text that may contain escaped brackets or backslashes: \[ or \] or \\.
 ///
@@ -41,7 +40,6 @@ fn parse_text_with_escapes<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 /// Parses content within balanced brackets.
 /// It can contain text with escaped brackets, or nested balanced parentheses.
 fn parse_balanced_brackets_content<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    repeat::<_, _, (), _, _>(
     repeat::<_, _, (), _, _>(
         0..,
         alt((
@@ -73,7 +71,6 @@ fn parse_balanced_brackets<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 
 /// Parses the contents of a Markdown link's text.
 fn parse_link_text_content<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    repeat::<_, _, (), _, _>(
     repeat::<_, _, (), _, _>(
         0..,
         alt((

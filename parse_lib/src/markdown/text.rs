@@ -20,7 +20,8 @@ pub fn parse_plain_text<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
 
 /// Fallback parser that consumes exactly one character.
 pub fn parse_fallback_char<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
-    winnow::token::any.take()
+    winnow::token::any
+        .take()
         .map(|content| Element::Text(crate::TextData { content }))
         .parse_next(input)
 }

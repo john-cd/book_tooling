@@ -42,11 +42,7 @@ fn parse_wikilink_inner<'s>(input: &mut &'s str) -> Result<(&'s str, Option<&'s 
         .context(Label("wikilink inner elements without pipe"))
         .context(Expected(Description("target]]")));
 
-    alt((
-        piped_inner,
-        simple_inner,
-    ))
-    .parse_next(input)
+    alt((piped_inner, simple_inner)).parse_next(input)
 }
 
 type RawWikilink<'s> = ((&'s str, Option<&'s str>), Option<&'s str>);

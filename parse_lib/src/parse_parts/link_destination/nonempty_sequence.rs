@@ -10,17 +10,18 @@
 //! but at least three levels of nesting should be supported.)
 
 use winnow::ModalResult;
+use winnow::Parser;
 use winnow::combinator::alt;
 use winnow::combinator::cut_err;
 use winnow::combinator::delimited;
 use winnow::combinator::repeat;
 use winnow::error::ContextError;
 use winnow::error::ErrMode;
-use winnow::Parser;
-use winnow::combinator::{alt, cut_err, delimited, repeat};
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
-use winnow::token::{any, one_of, take_while};
+use winnow::token::any;
+use winnow::token::one_of;
+use winnow::token::take_while;
 
 /// Returns true if a character that is not control, space, < ( ) or \.
 fn is_allowed_char(c: char) -> bool {

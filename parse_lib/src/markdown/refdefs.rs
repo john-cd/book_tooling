@@ -10,7 +10,6 @@
 
 use winnow::ModalResult;
 use winnow::Parser;
-use winnow::combinator::alt;
 use winnow::ascii::line_ending;
 use winnow::ascii::space0;
 use winnow::combinator::alt;

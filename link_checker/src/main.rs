@@ -6,12 +6,14 @@ mod links;
 mod refdefs;
 
 use std::path::Path;
-use clap::Parser;
-use tracing::{info, error};
 use std::sync::Arc;
-use links::asynchro::LinkValidator;
-use conf::Config;
 use std::sync::Mutex;
+
+use clap::Parser;
+use conf::Config;
+use links::asynchro::LinkValidator;
+use tracing::error;
+use tracing::info;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -52,7 +54,11 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn process_file(filepath: &Path, validator: &LinkValidator, conf: &Config) -> anyhow::Result<()> {
+async fn process_file(
+    filepath: &Path,
+    validator: &LinkValidator,
+    conf: &Config,
+) -> anyhow::Result<()> {
     info!("Processing file: {}", filepath.display());
 
     let content = std::fs::read_to_string(filepath)?;
@@ -64,14 +70,21 @@ async fn process_file(filepath: &Path, validator: &LinkValidator, conf: &Config)
     if conf.detect_unused_reference_definitions {
         let unused = refdefs::detect_unused_reference_definitions(&content);
         if !unused.is_empty() {
-            info!("Found {} unused reference definitions in {}", unused.len(), filepath.display());
+            info!(
+                "Found {} unused reference definitions in {}",
+                unused.len(),
+                filepath.display()
+            );
         }
 
         if conf.delete_unused_reference_definitions {
             let new_content = refdefs::delete_unused_reference_definitions(&content);
             if let std::borrow::Cow::Owned(new_content) = new_content {
                 std::fs::write(filepath, new_content)?;
-                info!("Deleted unused reference definitions in {}", filepath.display());
+                info!(
+                    "Deleted unused reference definitions in {}",
+                    filepath.display()
+                );
             }
         }
     }
@@ -79,7 +92,11 @@ async fn process_file(filepath: &Path, validator: &LinkValidator, conf: &Config)
     Ok(())
 }
 
-async fn check_links_in_file(filepath: &Path, content: &str, validator: &LinkValidator) -> anyhow::Result<()> {
+async fn check_links_in_file(
+    filepath: &Path,
+    content: &str,
+    validator: &LinkValidator,
+) -> anyhow::Result<()> {
     let links = links::check_links(content, true);
 
     if links.is_empty() {
