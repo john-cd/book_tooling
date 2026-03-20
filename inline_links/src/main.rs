@@ -1,28 +1,20 @@
-//! Convert any naked URLs and inline links in Markdown files within a folder into reference-style links.
-//!
-//! - Convert inline links e.g. [...](http(s)://...) into reference-style links: [...][...] [...]: http://...
-//! - Convert http(s)://... naked links into reference-style links.
-//! - Skip URLs between ``` and ``` and within hidden sections: <div class="hidden">...</div>
-//! - Ignore URLs within reference-style link labels: [https://...][...]
-//! - Do not convert links to GitHub issues e.g. https://github.com/john-cd/rust_howto/issues links.
-//! - Move refdefs into a central file (and sort them).
-
 mod cli;
-mod converter;
 
 use std::borrow::Cow;
+use std::collections::BTreeMap;
+use std::collections::HashSet;
 use std::path::Path;
 
 use clap::Parser;
-use converter::LinkConverter;
-use parse_lib::parse_document;
+use parse_lib::Document;
+use parse_lib::Element;
+use parse_lib::ReferenceStyleLinkData;
+use parse_lib::reconstruct_markdown;
+use url::Url;
 
 fn main() -> anyhow::Result<()> {
-    // Install a global tracing subscriber that listens for events
-    // and filters based on the value of the RUST_LOG environment variable.
     tracing_subscriber::fmt::init();
 
-    // Process command-line arguments to retrieve the directory to process:
     let args = cli::Args::parse();
     let scope = core_lib::Scope::default();
     for directory in &args.directories {
@@ -34,39 +26,112 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Convert inline and naked links to reference-style links.
 fn convert_links(filepath: &Path) -> anyhow::Result<()> {
     core_lib::process_text_file(
         filepath,
-        |s: &str| s.contains("http") || s.contains("["),
+        |s: &str| s.contains("http://") || s.contains("https://"),
         |content: &str| {
-            let filename = filepath.file_name().unwrap_or_default().to_string_lossy();
-            let doc = match parse_document(&filename, Some(filepath), content) {
-                Ok(d) => d,
-                Err(e) => {
-                    eprintln!("Failed to parse {}: {}", filepath.display(), e);
+            if let Ok(document) = parse_lib::parse_document("file", Some(filepath), content) {
+                let (new_elements, refdefs) = transform_document(document);
+                if refdefs.is_empty() {
                     return Cow::Borrowed(content);
                 }
-            };
 
-            let mut converter = LinkConverter::new();
-            if let Err(e) = doc.accept(&mut converter) {
-                eprintln!("Failed to transform {}: {}", filepath.display(), e);
-                return Cow::Borrowed(content);
-            }
-
-            let mut final_output = converter.output;
-            if !converter.refdefs.is_empty() {
-                final_output.push_str("\n\n");
-                // Sort refdefs by label for consistency.
-                let sorted_refdefs: std::collections::BTreeMap<_, _> = converter.refdefs;
-                for (label, url) in sorted_refdefs {
-                    final_output.push_str(&format!("[{}]: {}\n", label, url));
+                let mut final_content = reconstruct_markdown(&new_elements);
+                if !final_content.ends_with("\n\n") {
+                    if final_content.ends_with('\n') {
+                        final_content.push('\n');
+                    } else {
+                        final_content.push_str("\n\n");
+                    }
                 }
-            }
 
-            Cow::Owned(final_output)
+                // Sort refdefs by label
+                let mut sorted_labels: Vec<_> = refdefs.keys().collect();
+                sorted_labels.sort();
+
+                for label in sorted_labels {
+                    final_content.push_str(&format!(
+                        "[{}]: {}\n",
+                        label,
+                        refdefs.get(label).unwrap()
+                    ));
+                }
+
+                Cow::Owned(final_content)
+            } else {
+                Cow::Borrowed(content)
+            }
         },
     )?;
     Ok(())
+}
+
+fn transform_document(doc: Document) -> (Vec<Element>, BTreeMap<String, String>) {
+    let mut refdefs = BTreeMap::new();
+    let mut new_elements = Vec::new();
+    let mut used_labels = HashSet::new();
+
+    // First pass to collect existing reference labels to avoid collisions
+    for element in &doc.elements {
+        if let Element::ReferenceDefinition(data) = element {
+            used_labels.insert(data.label.to_string());
+        }
+    }
+
+    for element in doc.elements {
+        match element {
+            Element::InlineLink(data) => {
+                let label = generate_label(data.url, &used_labels);
+                used_labels.insert(label.clone());
+                refdefs.insert(label.clone(), data.url.to_string());
+                new_elements.push(Element::ReferenceStyleLink(ReferenceStyleLinkData {
+                    text: data.text,
+                    label: Box::leak(label.into_boxed_str()),
+                }));
+            }
+            Element::Autolink(data) => {
+                let label = generate_label(data.url, &used_labels);
+                used_labels.insert(label.clone());
+                refdefs.insert(label.clone(), data.url.to_string());
+                new_elements.push(Element::ReferenceStyleLink(ReferenceStyleLinkData {
+                    text: data.url,
+                    label: Box::leak(label.into_boxed_str()),
+                }));
+            }
+            Element::ReferenceDefinition(data) => {
+                // Keep existing refdefs but only if they are not being replaced.
+                // Actually, we keep them all for simplicity here.
+                new_elements.push(Element::ReferenceDefinition(data));
+            }
+            _ => {
+                new_elements.push(element);
+            }
+        }
+    }
+
+    (new_elements, refdefs)
+}
+
+fn generate_label(url_str: &str, used: &HashSet<String>) -> String {
+    if let Ok(url) = Url::parse(url_str) {
+        let mut label = if let Some(host) = url.host_str() {
+            host.to_string()
+        } else {
+            "link".to_string()
+        };
+
+        label = label.replace('.', "-");
+
+        if used.contains(&label) {
+            let mut i = 1;
+            while used.contains(&format!("{}-{}", label, i)) {
+                i += 1;
+            }
+            label = format!("{}-{}", label, i);
+        }
+        label
+    } else {
+        "link".to_string()
+    }
 }

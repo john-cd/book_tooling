@@ -81,18 +81,6 @@ pub struct TextData<'a> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct TaskItemData<'a> {
-    pub completed: bool,
-    pub content: &'a str,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct TableData<'a> {
-    pub header: Vec<&'a str>,
-    pub rows: Vec<Vec<&'a str>>,
-}
-
-#[derive(Debug, PartialEq, Eq)]
 pub enum Element<'a> {
     /// A standalone URL: `http://...` or `https://...`
     /// optionally between < and > (i.e., an autolink).
@@ -145,10 +133,4 @@ pub enum Element<'a> {
 
     /// Custom directive, e.g., `{{#crate my_crate}}`.
     CustomDirective(DirectiveData<'a>),
-
-    /// GFM Task List Item: `- [ ] content` or `- [x] content`.
-    TaskItem(TaskItemData<'a>),
-
-    /// GFM Table.
-    Table(TableData<'a>),
 }

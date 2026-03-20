@@ -4,6 +4,9 @@
 
 use annotate_snippets::AnnotationKind;
 use annotate_snippets::Group;
+use annotate_snippets::Level;
+use annotate_snippets::Renderer;
+use annotate_snippets::Snippet;
 use winnow::error::ContextError;
 use winnow::error::ParseError;
 

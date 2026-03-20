@@ -8,10 +8,13 @@ use regex::Regex;
 pub(super) fn example_regexes() -> Vec<RegexAndReplacement> {
     let re_string: String = r"\{\{\s*#\s*example\s*:?\s+([^}]+)\s*\}\}".into();
     let re = Regex::new(&re_string).expect("Invalid regex");
-    let replacement = "$1"; // FIXME
+
     vec![RegexAndReplacement {
         re,
-        replacement: Some(Box::new(|_| replacement.into())),
+        replacement: Some(Box::new(|caps| {
+            let name = caps.get(1).map(|m| m.as_str()).unwrap_or("").trim();
+            format!("{{{{#include examples/{}.md}}}}", name)
+        })),
     }]
 }
 
@@ -28,17 +31,17 @@ pub(super) fn example_regexes() -> Vec<RegexAndReplacement> {
 // {{#example }}
 #[cfg(test)]
 mod tests {
-    // use super::*;
+    use super::*;
 
-    // // [finish  tests](https://github.com/john-cd/rust_howto/issues/1434)
-    // #[test]
-    // fn test_replace_example() {
-    //     let text = "{{#example some_example}}";
-    //     let expected = "some_example";
-    //     let r = example_regexes();
-    //     let res = r[0]
-    //         .re
-    //         .replace_all(text, r[0].replacement.as_ref().unwrap());
-    //     assert_eq!(res, expected);
-    // }
+    // [finish  tests](https://github.com/john-cd/rust_howto/issues/1434)
+    #[test]
+    fn test_replace_example() {
+        let text = "{{#example some_example}}";
+        let expected = "{{#include examples/some_example.md}}";
+        let r = example_regexes();
+        let res = r[0]
+            .re
+            .replace_all(text, r[0].replacement.as_ref().unwrap());
+        assert_eq!(res, expected);
+    }
 }

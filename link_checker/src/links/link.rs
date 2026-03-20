@@ -1,47 +1,31 @@
-use std::collections::HashSet;
-
-use parse_lib::visit::Visitor;
-use parse_lib::*;
+use parse_lib::Element;
 use url::Url;
 
-pub fn extract_urls(doc: &Document) -> HashSet<Url> {
-    let mut urls = HashSet::new();
+pub struct Link {
+    pub url: Url,
+}
 
-    struct UrlCollector<'a> {
-        urls: &'a mut HashSet<Url>,
-    }
+/// Check links in the provided content.
+pub fn check_links(content: &str, _check_external_links: bool) -> Vec<Link> {
+    let mut links = Vec::new();
 
-    impl<'v> Visitor<'v> for UrlCollector<'_> {
-        fn visit_autolink(&mut self, data: &'v AutolinkData) -> std::fmt::Result {
-            if let Ok(url) = Url::parse(data.url) {
-                self.urls.insert(url);
+    if let Ok(document) = parse_lib::parse_document("content", None, content) {
+        for element in document.elements {
+            match element {
+                Element::InlineLink(data) => {
+                    if let Ok(url) = Url::parse(data.url) {
+                        links.push(Link { url });
+                    }
+                }
+                Element::Autolink(data) => {
+                    if let Ok(url) = Url::parse(data.url) {
+                        links.push(Link { url });
+                    }
+                }
+                _ => {}
             }
-            Ok(())
-        }
-        fn visit_inline_link(&mut self, data: &'v InlineLinkData) -> std::fmt::Result {
-            if let Ok(url) = Url::parse(data.url) {
-                self.urls.insert(url);
-            }
-            Ok(())
-        }
-        fn visit_inline_image(&mut self, data: &'v InlineImageData) -> std::fmt::Result {
-            if let Ok(url) = Url::parse(data.url) {
-                self.urls.insert(url);
-            }
-            Ok(())
-        }
-        fn visit_reference_definition(
-            &mut self,
-            data: &'v ReferenceDefinitionData,
-        ) -> std::fmt::Result {
-            if let Ok(url) = Url::parse(data.url) {
-                self.urls.insert(url);
-            }
-            Ok(())
         }
     }
 
-    let mut collector = UrlCollector { urls: &mut urls };
-    let _ = doc.accept(&mut collector);
-    urls
+    links
 }
