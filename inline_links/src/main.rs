@@ -1,4 +1,14 @@
+//! Convert any naked URLs and inline links in Markdown files within a folder into reference-style links.
+//!
+//! - Convert inline links e.g. [...](http(s)://...) into reference-style links: [...][...] [...]: http://...
+//! - Convert http(s)://... naked links into reference-style links.
+//! - Skip URLs between ``` and ``` and within hidden sections: <div class="hidden">...</div>
+//! - Ignore URLs within reference-style link labels: [https://...][...]
+//! - Do not convert links to GitHub issues e.g. https://github.com/john-cd/rust_howto/issues links.
+//! - Move refdefs into a central file (and sort them).
+
 mod cli;
+mod converter;
 
 use std::borrow::Cow;
 use std::collections::BTreeMap;
@@ -26,42 +36,38 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Convert inline and naked links to reference-style links.
 fn convert_links(filepath: &Path) -> anyhow::Result<()> {
     core_lib::process_text_file(
         filepath,
-        |s: &str| s.contains("http://") || s.contains("https://"),
+        |s: &str| s.contains("http") || s.contains("["),
         |content: &str| {
-            if let Ok(document) = parse_lib::parse_document("file", Some(filepath), content) {
-                let (new_elements, refdefs) = transform_document(document);
-                if refdefs.is_empty() {
+            let filename = filepath.file_name().unwrap_or_default().to_string_lossy();
+            let doc = match parse_document(&filename, Some(filepath), content) {
+                Ok(d) => d,
+                Err(e) => {
+                    eprintln!("Failed to parse {}: {}", filepath.display(), e);
                     return Cow::Borrowed(content);
                 }
+            };
 
-                let mut final_content = reconstruct_markdown(&new_elements);
-                if !final_content.ends_with("\n\n") {
-                    if final_content.ends_with('\n') {
-                        final_content.push('\n');
-                    } else {
-                        final_content.push_str("\n\n");
-                    }
-                }
-
-                // Sort refdefs by label
-                let mut sorted_labels: Vec<_> = refdefs.keys().collect();
-                sorted_labels.sort();
-
-                for label in sorted_labels {
-                    final_content.push_str(&format!(
-                        "[{}]: {}\n",
-                        label,
-                        refdefs.get(label).unwrap()
-                    ));
-                }
-
-                Cow::Owned(final_content)
-            } else {
-                Cow::Borrowed(content)
+            let mut converter = LinkConverter::new();
+            if let Err(e) = doc.accept(&mut converter) {
+                eprintln!("Failed to transform {}: {}", filepath.display(), e);
+                return Cow::Borrowed(content);
             }
+
+            let mut final_output = converter.output;
+            if !converter.refdefs.is_empty() {
+                final_output.push_str("\n\n");
+                // Sort refdefs by label for consistency.
+                let sorted_refdefs: std::collections::BTreeMap<_, _> = converter.refdefs;
+                for (label, url) in sorted_refdefs {
+                    final_output.push_str(&format!("[{}]: {}\n", label, url));
+                }
+            }
+
+            Cow::Owned(final_output)
         },
     )?;
     Ok(())

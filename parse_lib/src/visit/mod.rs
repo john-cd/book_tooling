@@ -55,6 +55,12 @@ pub trait Visitor<'v> {
     fn visit_custom_directive(&mut self, directive: &'v DirectiveData) -> Result {
         Ok(())
     }
+    fn visit_task_item(&mut self, task: &'v TaskItemData) -> Result {
+        Ok(())
+    }
+    fn visit_table(&mut self, table: &'v TableData) -> Result {
+        Ok(())
+    }
 }
 
 impl<'s> Element<'s> {
@@ -82,6 +88,8 @@ impl<'s> Element<'s> {
             Element::Heading(ref heading) => visitor.visit_heading(heading)?,
             Element::Text(ref text) => visitor.visit_text(text)?,
             Element::CustomDirective(ref directive) => visitor.visit_custom_directive(directive)?,
+            Element::TaskItem(ref task) => visitor.visit_task_item(task)?,
+            Element::Table(ref table) => visitor.visit_table(table)?,
         }
         Ok(())
     }

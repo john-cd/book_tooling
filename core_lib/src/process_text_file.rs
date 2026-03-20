@@ -1,23 +1,25 @@
 use std::borrow::Cow;
-use std::fs::File;
-use std::io::Read;
-use std::io::Write;
+use std::fs;
 use std::path::Path;
 
+use anyhow::Context;
 use anyhow::Result;
+use memmap2::Mmap;
+use tempfile::NamedTempFile;
 
-/// Read a text file in memory, and, if its contents should be processed, update its contents on disk.
+/// Atomically process a text file.
 ///
-/// # Arguments
-///
-/// * `filepath` - The path to the text file to process.
-/// * `should_process` - a function that returns true if the file should be processed, given its contents.
-/// * `update_contents` - a function that returns the updated contents of the file, given its contents.
-///
-pub fn process_text_file<P, F>(filepath: &Path, should_process: P, update_contents: F) -> Result<()>
+/// It reads the file, applies a predicate, and if the predicate matches,
+/// it applies a transformation and writes the result back to the file atomically.
+pub fn process_text_file<P, Pred, Trans>(
+    filepath: P,
+    should_process: Pred,
+    transform: Trans,
+) -> Result<()>
 where
-    P: Fn(&str) -> bool,
-    F: Fn(&str) -> Cow<str>,
+    P: AsRef<Path>,
+    Pred: FnOnce(&str) -> bool,
+    Trans: FnOnce(&str) -> Cow<'_, str>,
 {
     // Read the file into memory.
     let mut file = File::open(filepath)?;
@@ -28,6 +30,11 @@ where
 
     if !original.is_empty() && should_process(&original) {
         let updated: Cow<'_, str> = update_contents(&original);
+        // TODO
+        // if  updated.is_empty() {
+        //
+        //     return Ok(());
+        // }
         if updated != original {
             let temp_filepath = filepath.with_extension(".tmp");
             let mut temp_file = File::create(&temp_filepath)?;
@@ -37,4 +44,57 @@ where
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use tempfile::tempdir;
+
+    use super::*;
+
+    #[test]
+    fn test_process_text_file_updates_content() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test.txt");
+        fs::write(&file_path, "original content").unwrap();
+
+        process_text_file(
+            &file_path,
+            |_| true,
+            |s| Cow::Owned(s.replace("original", "updated")),
+        )
+        .unwrap();
+
+        let updated_content = fs::read_to_string(&file_path).unwrap();
+        assert_eq!(updated_content, "updated content");
+    }
+
+    #[test]
+    fn test_process_text_file_skips_if_should_not_process() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test.txt");
+        fs::write(&file_path, "original content").unwrap();
+
+        process_text_file(
+            &file_path,
+            |_| false,
+            |s| Cow::Owned(s.replace("original", "updated")),
+        )
+        .unwrap();
+
+        let content = fs::read_to_string(&file_path).unwrap();
+        assert_eq!(content, "original content");
+    }
+
+    #[test]
+    fn test_process_text_file_to_empty() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test.txt");
+        fs::write(&file_path, "original content").unwrap();
+
+        process_text_file(&file_path, |_| true, |_| Cow::Owned("".to_string())).unwrap();
+
+        let content = fs::read_to_string(&file_path).unwrap();
+        assert_eq!(content, "");
+    }
 }

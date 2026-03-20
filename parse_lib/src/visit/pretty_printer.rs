@@ -5,26 +5,6 @@ use fmt::Result;
 use super::Visitor;
 use crate::ast::*;
 
-// pub struct Conf {
-//     process_directives: bool,
-//     convert_autolinks: bool,
-//     convert_inline_links_and_images: bool,
-//     convert_wikilinks: bool,
-//     remove_hidden_sections: bool,
-// }
-
-// impl Default for Conf {
-//     fn default() -> Self {
-//         Self {
-//             process_directives: true,
-//             convert_autolinks: true,
-//             convert_inline_links_and_images: true,
-//             convert_wikilinks: true,
-//             remove_hidden_sections: false,
-//         }
-//     }
-// }
-
 pub struct PrettyPrinter<W>
 where
     W: fmt::Write,
@@ -79,9 +59,9 @@ impl<W: fmt::Write> Visitor<'_> for PrettyPrinter<W> {
 
     fn visit_reference_definition(&mut self, refdef: &ReferenceDefinitionData) -> Result {
         if let Some(title) = refdef.title {
-            write!(self.w, "[{}]: {} \"{title}\"", refdef.label, refdef.url)?;
+            writeln!(self.w, "[{}]: {} \"{title}\"", refdef.label, refdef.url)?;
         } else {
-            write!(self.w, "[{}]: {}", refdef.label, refdef.url)?;
+            writeln!(self.w, "[{}]: {}", refdef.label, refdef.url)?;
         }
         Ok(())
     }
@@ -102,12 +82,24 @@ impl<W: fmt::Write> Visitor<'_> for PrettyPrinter<W> {
     }
 
     fn visit_fenced_code_block(&mut self, fenced_code_block: &FencedCodeBlockData) -> Result {
+<<<<<<< HEAD
         write!(self.w, "```{}```", fenced_code_block.content)?;
+=======
+        writeln!(self.w, "```")?;
+        writeln!(self.w, "{}", fenced_code_block.content)?;
+        writeln!(self.w, "```")?;
+>>>>>>> jules-3582745748344015560-6d4fedb4
         Ok(())
     }
 
     fn visit_hidden_html_div(&mut self, div: &HiddenHtmlDivData) -> Result {
+<<<<<<< HEAD
         write!(self.w, "<div class=\"hidden\">{}</div>", div.content)?;
+=======
+        writeln!(self.w, "<div class=\"hidden\">")?;
+        writeln!(self.w, "{}", div.content)?;
+        writeln!(self.w, "</div>")?;
+>>>>>>> jules-3582745748344015560-6d4fedb4
         Ok(())
     }
 
@@ -116,11 +108,11 @@ impl<W: fmt::Write> Visitor<'_> for PrettyPrinter<W> {
         let content = heading
             .content
             .map(|c| format!(" {c}"))
-            .unwrap_or("".into());
+            .unwrap_or_else(|| "".into());
         if let Some(id) = heading.id {
-            write!(self.w, "{hashes}{content} {{#{id}}}")?;
+            writeln!(self.w, "{hashes}{content} {{#{id}}}")?;
         } else {
-            write!(self.w, "{hashes}{content}")?;
+            writeln!(self.w, "{hashes}{content}")?;
         }
         Ok(())
     }
@@ -132,6 +124,30 @@ impl<W: fmt::Write> Visitor<'_> for PrettyPrinter<W> {
 
     fn visit_custom_directive(&mut self, directive: &DirectiveData) -> Result {
         write!(self.w, "{directive}")?;
+        Ok(())
+    }
+
+    fn visit_task_item(&mut self, task: &TaskItemData) -> Result {
+        let check = if task.completed { 'x' } else { ' ' };
+        writeln!(self.w, "- [{check}] {}", task.content)?;
+        Ok(())
+    }
+
+    fn visit_table(&mut self, table: &TableData) -> Result {
+        writeln!(self.w, "| {} |", table.header.join(" | "))?;
+        writeln!(
+            self.w,
+            "| {} |",
+            table
+                .header
+                .iter()
+                .map(|_| "---")
+                .collect::<Vec<_>>()
+                .join(" | ")
+        )?;
+        for row in &table.rows {
+            writeln!(self.w, "| {} |", row.join(" | "))?;
+        }
         Ok(())
     }
 }

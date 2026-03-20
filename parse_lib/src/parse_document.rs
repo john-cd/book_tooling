@@ -1,23 +1,68 @@
-use std::path::Path;
-
 use winnow::ModalResult;
 use winnow::Parser;
+use winnow::ascii::line_ending;
 use winnow::combinator::alt;
+use winnow::combinator::eof;
 use winnow::combinator::fail;
+use winnow::combinator::opt;
 use winnow::combinator::repeat;
+use winnow::combinator::seq;
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
+use winnow::token::take_till;
 
-use crate::Document;
 use crate::ast::Element;
+<<<<<<< HEAD
 // TODO [finish URL parsing](https://github.com/john-cd/rust_howto/issues/1427)
 // use crate::urls::parse_naked_url;
 // use crate::directives::parse_directive;
+=======
+use crate::ast::TableData;
+use crate::ast::TaskItemData;
+>>>>>>> jules-3582745748344015560-6d4fedb4
 use crate::markdown::*;
 use crate::parse_directives::parse_directive_element;
 use crate::parse_hidden::parse_hidden_html_div;
-// use crate::parse_urls::*;
 use crate::parse_wikilinks::parse_wikilink;
+
+/// Parses a GFM task list item.
+fn parse_task_item<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
+    seq!(
+        "- [",
+        alt(("x", "X", " ")),
+        "] ",
+        take_till(0.., ['\n', '\r'])
+    )
+    .map(|(_, completed, _, content)| {
+        Element::TaskItem(TaskItemData {
+            completed: completed == "x" || completed == "X",
+            content,
+        })
+    })
+    .parse_next(input)
+}
+
+/// Parses a simplified GFM table row.
+fn parse_table_row<'a>(input: &mut &'a str) -> ModalResult<Vec<&'a str>> {
+    seq!(
+        _: opt("|"),
+        repeat(1.., seq!(take_till(1.., ['|', '\n', '\r']), _: opt("|")).map(|(c,): (&str,)| c.trim())),
+        _: alt((line_ending, eof))
+    ).map(|(cells,): (Vec<&str>,)| cells)
+    .parse_next(input)
+}
+
+/// Parses a simplified GFM table.
+fn parse_table<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
+    seq!(
+        parse_table_row,
+        _: repeat::<_, _, (), _, _>(1.., alt(("-", "|", " ", ":"))), // separator row
+        _: alt((line_ending, eof)),
+        repeat(1.., parse_table_row)
+    )
+    .map(|(header, rows)| Element::Table(TableData { header, rows }))
+    .parse_next(input)
+}
 
 /// Parse a sequence of text elements.
 /// It tries to parse specific elements first, then falls back to plain text.
@@ -37,7 +82,8 @@ fn parse_elements<'a>(input: &mut &'a str) -> ModalResult<Vec<Element<'a>>> {
             parse_reference_style_link,
             parse_inline_link,
             parse_autolink,
-            // parse_naked_url,
+            parse_task_item,
+            parse_table,
             parse_plain_text,
             parse_fallback_char,
             fail.context(Label("text element"))
@@ -50,61 +96,59 @@ fn parse_elements<'a>(input: &mut &'a str) -> ModalResult<Vec<Element<'a>>> {
 /// Parse a Markdown document.
 pub fn parse_document<'s>(
     name: &'s str,
-    path: Option<&'s Path>,
+    path: Option<&'s std::path::Path>,
     input: &'s str,
-) -> anyhow::Result<Document<'s>> {
-    parse_elements
-        .map(|elements| Document::new(name, path, elements))
-        .parse(input)
-        .map_err(move |e| anyhow::anyhow!("{e}")) // ParsingError::from_parse(e))
+) -> anyhow::Result<crate::Document<'s>> {
+    let mut input_ref = input;
+    match parse_elements.parse_next(&mut input_ref) {
+        Ok(elements) => {
+            let doc = crate::Document::new(name, path, elements);
+            Ok(doc)
+        }
+        Err(e) => anyhow::bail!("Parsing Failure: {:?}", e),
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use winnow::Parser;
-
     use super::*;
 
     #[test]
     fn test_parser() {
-        let text_input = r#"
-# Title {#anchor}
+        let text_input = r#"# Title
 
-Hello, this is some text with a `code span`.
-Visit https://www.rust-lang.org for Rust info.
-Here's a [link to Google](https://www.google.com).
-<div class="hidden">This is a hidden HTML div block.</div>
-A bit more text.
-<div>this is a div content.</div>
-And a final piece of text.
-
-```
-This is a block of text
-enclosed in triple backticks.
-It can span multiple lines
-and retain its formatting.
-```
+Hello [link](url)
+[label]: url
 "#;
+        let doc = parse_document("test.md", None, text_input).unwrap();
+        // Since parse_plain_text is currently consuming character by character,
+        // we'll have a lot of Text elements.
+        assert!(doc.elements.len() >= 5);
+    }
 
-        println!("Parsing Text Input:\n---\n{}\n---\n", text_input.trim());
+    #[test]
+    fn test_parse_task_item() {
+        let input = "- [x] task 1";
+        let mut input_ref = input;
+        let result = parse_task_item.parse_next(&mut input_ref).unwrap();
+        if let Element::TaskItem(task) = result {
+            assert!(task.completed);
+            assert_eq!(task.content, "task 1");
+        } else {
+            panic!("Expected TaskItem");
+        }
+    }
 
-        match parse_elements.parse_peek(text_input.trim()) {
-            Ok((remaining, elements)) => {
-                if remaining.is_empty() {
-                    println!("Successfully parsed entire document:");
-                } else {
-                    println!(
-                        "Parsed document with remaining input (may indicate unhandled parts):"
-                    );
-                    println!("Remaining: \"{remaining}\"");
-                }
-                for element in elements {
-                    println!("{element:?}");
-                }
-            }
-            Err(e) => {
-                eprintln!("Error parsing text: {e:?}");
-            }
+    #[test]
+    fn test_parse_table() {
+        let input = "| h1 | h2 |\n|---|---|\n| r1c1 | r1c2 |";
+        let mut input_ref = input;
+        let result = parse_table.parse_next(&mut input_ref).unwrap();
+        if let Element::Table(table) = result {
+            assert_eq!(table.header, vec!["h1", "h2"]);
+            assert_eq!(table.rows[0], vec!["r1c1", "r1c2"]);
+        } else {
+            panic!("Expected Table");
         }
     }
 }

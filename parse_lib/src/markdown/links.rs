@@ -1,6 +1,8 @@
 use winnow::ModalResult;
 use winnow::Parser;
+use winnow::ascii::space0;
 use winnow::combinator::opt;
+use winnow::combinator::preceded;
 use winnow::combinator::seq;
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
@@ -14,7 +16,7 @@ pub fn parse_inline_link<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
         parse_link_text,
         _: '(',
         parse_link_destination,
-        opt(parse_link_title),
+        opt(preceded(space0, parse_link_title)),
         _: ')',
     )
     .map(|(text, url, title)| Element::InlineLink(InlineLinkData { text, url, title }))

@@ -1,7 +1,6 @@
 use winnow::ModalResult;
 use winnow::Parser;
-use winnow::ascii::space1;
-use winnow::combinator::alt;
+use winnow::ascii::space0;
 use winnow::combinator::opt;
 use winnow::combinator::preceded;
 use winnow::combinator::seq;
@@ -19,7 +18,7 @@ pub fn parse_inline_image<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
         parse_link_text,
         _: '(',
         parse_link_destination,
-        opt(preceded(alt((space1.void(), parse_optional_whitespace_with_one_newline)), parse_link_title)),
+        opt(preceded(space0, parse_link_title)),
         _: ')',
     )
     .map(|(image_description, url, title)| {
