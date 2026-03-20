@@ -2,9 +2,9 @@
 use std::path::Path;
 use std::path::PathBuf;
 
-use anyhow::bail;
 use anyhow::Context;
 use anyhow::Error;
+use anyhow::bail;
 use tracing::info;
 
 /// Check if a path is a directory.
@@ -27,10 +27,11 @@ pub(crate) fn create_parent_dir_for<P>(file_path: P) -> Result<(), Error>
 where
     P: AsRef<Path>,
 {
-    if let Some(dir) = AsRef::<Path>::as_ref(&file_path).parent() {
-        if dir != Path::new("") {
+    match AsRef::<Path>::as_ref(&file_path).parent() {
+        Some(dir) if dir != Path::new("") => {
             create_dir(dir)?;
         }
+        _ => {}
     }
     Ok(())
 }

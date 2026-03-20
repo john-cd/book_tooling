@@ -1,89 +1,121 @@
-//! Parses link titles.
+//! Parses link title.
 //!
-//! <https://spec.commonmark.org/0.31.2/#link-title>
-//!
-//! A link title consists of either
-//! - a sequence of zero or more characters enclosed in double-quotes ("),
-//!   including a " character only if it is backslash-escaped, or
-//! - a sequence of zero or more characters enclosed in single-quotes ('),
-//!   including a ' character only if it is backslash-escaped, or
-//! - a sequence of zero or more characters enclosed in parentheses (()),
-//!   including a ) character only if it is backslash-escaped.
+//! Simplified from <https://spec.commonmark.org/0.31.2/#link-title>.
 
 use winnow::ModalResult;
 use winnow::Parser;
 use winnow::combinator::alt;
-use winnow::combinator::cut_err;
 use winnow::combinator::delimited;
-use winnow::combinator::repeat;
-use winnow::error::ErrMode;
+use winnow::combinator::fail;
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
-use winnow::token::one_of;
 use winnow::token::take_while;
 
-/// Parses a character that is allowed in a link title (not control or the delimiter).
-fn is_allowed_normal_char(c: char, delimiter: char) -> bool {
-    c != delimiter && c != '\\' && c != '\n' && c != '\r'
-}
-
-/// Helper to parse the content of a title based on the delimiter used.
-fn parse_title_content<'s>(input: &mut &'s str, delimiter: char) -> ModalResult<&'s str> {
-    repeat::<_, _, (), _, _>(
-        0..,
-        alt((
-            take_while(1.., move |c: char| is_allowed_normal_char(c, delimiter)).void(),
-            ('\\', one_of(['"', '\'', '(', ')', '\\'])).void(),
-        )),
-    )
-    .take()
-    .parse_next(input)
-    .map_err(ErrMode::Backtrack)
-}
-
-/// Parses a link title enclosed in double quotes.
-fn parse_double_quoted_title<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    delimited(
-        '"',
-        |i: &mut &'s str| parse_title_content(i, '"'),
-        cut_err('"'),
-    )
-    .context(Label("double-quoted link title"))
-    .parse_next(input)
-}
-
-/// Parses a link title enclosed in single quotes.
-fn parse_single_quoted_title<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    delimited(
-        '\'',
-        |i: &mut &'s str| parse_title_content(i, '\''),
-        cut_err('\''),
-    )
-    .context(Label("single-quoted link title"))
-    .parse_next(input)
-}
-
-/// Parses a link title enclosed in parentheses.
-fn parse_parenthesized_title<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    delimited(
-        '(',
-        |i: &mut &'s str| parse_title_content(i, ')'),
-        cut_err(')'),
-    )
-    .context(Label("parenthesized link title"))
-    .parse_next(input)
-}
-
-/// The main parser for a link title.
-pub fn parse_link_title<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+/// Parses an optional link title.
+/// The title can be enclosed in double quotes `""`, single quotes `''`, or parentheses `()`.
+///
+/// Example: "\"My Title\"" -> "My Title"
+/// Example: "'Another Title'" -> "Another Title"
+/// Example: "(Yet Another Title)" -> "Yet Another Title"
+pub(crate) fn parse_link_title<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     alt((
-        parse_double_quoted_title,
-        parse_single_quoted_title,
-        parse_parenthesized_title,
+        // Double quotes.
+        delimited(
+            '"',
+            take_while(0.., |c: char| c != '"' && c != '\n' && c != '\r'),
+            '"',
+        ),
+        // Single quotes.
+        delimited(
+            '\'',
+            take_while(0.., |c: char| c != '\'' && c != '\n' && c != '\r'),
+            '\'',
+        ),
+        // Parentheses.
+        delimited(
+            "(",
+            take_while(0.., |c: char| c != ')' && c != '\n' && c != '\r'),
+            ")",
+        ),
+        fail.context(Label("link title"))
+            .context(Expected(Description(
+                r#"enclosed in double quotes `""`, single quotes `''`, or parentheses"#,
+            ))),
     ))
-    .context(Label("link title"))
-    .context(Expected(Description(
-        "a sequence of characters enclosed in \", ' or ()",
-    )))
     .parse_next(input)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_double_quoted_title() {
+        assert_eq!(
+            parse_link_title.parse_peek(r#""My Title""#),
+            Ok(("", "My Title"))
+        );
+    }
+
+    #[test]
+    fn test_single_quoted_title() {
+        assert_eq!(
+            parse_link_title.parse_peek(r#"'Another Title'"#),
+            Ok(("", "Another Title"))
+        );
+    }
+
+    #[test]
+    fn test_parenthesized_title() {
+        assert_eq!(
+            parse_link_title.parse_peek(r#"(Yet Another Title)"#),
+            Ok(("", "Yet Another Title"))
+        );
+    }
+
+    #[test]
+    fn test_title_with_trailing_text() {
+        assert_eq!(
+            parse_link_title.parse_peek(r#""title" and more"#),
+            Ok((" and more", "title"))
+        );
+    }
+
+    #[test]
+    fn test_empty_title() {
+        assert_eq!(parse_link_title.parse_peek(r#""""#), Ok(("", "")));
+        assert_eq!(parse_link_title.parse_peek(r#"''"#), Ok(("", "")));
+        assert_eq!(parse_link_title.parse_peek(r#"()"#), Ok(("", "")));
+    }
+
+    #[test]
+    fn test_title_with_other_quotes_inside() {
+        assert_eq!(
+            parse_link_title.parse_peek(r#""title with 'single' quotes""#),
+            Ok(("", "title with 'single' quotes"))
+        );
+        assert_eq!(
+            parse_link_title.parse_peek(r#"'title with "double" quotes'"#),
+            Ok(("", "title with \"double\" quotes"))
+        );
+    }
+
+    #[test]
+    fn test_fail_on_unclosed_quotes() {
+        assert!(parse_link_title(&mut r#""unclosed"#).is_err());
+        assert!(parse_link_title(&mut r#"'unclosed"#).is_err());
+        assert!(parse_link_title(&mut r#"(unclosed"#).is_err());
+    }
+
+    #[test]
+    fn test_fail_on_newline() {
+        assert!(parse_link_title(&mut "\"title\nwith newline\"").is_err());
+        assert!(parse_link_title(&mut "'title\nwith newline'").is_err());
+        assert!(parse_link_title(&mut "(title\nwith newline)").is_err());
+    }
+
+    #[test]
+    fn test_no_match_on_plain_text() {
+        assert!(parse_link_title(&mut "just text").is_err());
+    }
 }

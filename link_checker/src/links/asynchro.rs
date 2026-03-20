@@ -1,9 +1,12 @@
 use std::time::Duration;
+
 use anyhow::Result;
-use reqwest::{ClientBuilder, redirect::Policy};
-use url::Url;
-use futures_util::stream::{self, StreamExt};
+use futures_util::stream::StreamExt;
+use futures_util::stream::{self};
 use moka::future::Cache;
+use reqwest::ClientBuilder;
+use reqwest::redirect::Policy;
+use url::Url;
 
 /// Results of a batch of URL checks.
 pub type UrlChecks = Vec<UrlCheck>;
@@ -60,9 +63,7 @@ impl LinkValidator {
 
     pub async fn validate_all(&self, urls: Vec<Url>) -> UrlChecks {
         let mut stream = stream::iter(urls)
-            .map(|url| async move {
-                self.check_web_url(url).await
-            })
+            .map(|url| async move { self.check_web_url(url).await })
             .buffer_unordered(10);
 
         let mut results = Vec::new();

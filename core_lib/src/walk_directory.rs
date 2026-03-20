@@ -2,15 +2,14 @@ use std::ffi::OsString;
 use std::path::Path;
 
 use anyhow::Result;
-use rayon::prelude::*;
 use walkdir::WalkDir;
 
-/// Defines what files should be processed based on their extension and filename.
+/// Defines what files should be processed.
 #[derive(Debug)]
 pub struct Scope {
-    /// Extensions to process (e.g., "md", "txt").
+    /// Extensions to process.
     pub included_extensions: Vec<OsString>,
-    /// File names (i.e. final component of a `Path`) to exclude (e.g., "SUMMARY.md").
+    /// File names (i.e. final component of a `Path`) to exclude.
     pub excluded_filenames: Vec<OsString>,
 }
 
@@ -23,20 +22,16 @@ impl Default for Scope {
     }
 }
 
-/// Walks through a directory and processes all files matching the specified scope.
+/// Walks through a directory and processes all files.
 ///
 /// # Arguments
 ///
 /// * `root` - The directory to walk through.
-/// * `scope` - The criteria for including/excluding files.
-/// * `f` - A function that processes one file at a time.
-///
-/// # Errors
-///
-/// Returns an error if directory traversal fails or if the processing function `f` returns an error.
+/// * `scope` - The scope.
+/// * `f` - A function that processes one file at the time.
 pub fn walk_directory_and_process_files<F>(root: &Path, scope: &Scope, f: F) -> Result<()>
 where
-    F: Fn(&Path) -> Result<()> + Sync + Send,
+    F: Fn(&Path) -> Result<()>,
 {
     let files = WalkDir::new(root)
         .into_iter()
@@ -54,11 +49,10 @@ where
         .map(|e| e.path().to_path_buf())
         .collect::<Vec<_>>();
 
-    files.into_par_iter().try_for_each(|file| {
+    for file in files {
         tracing::info!("Processing {}.", file.display());
-        f(&file)
-    })?;
-
+        f(&file)?;
+    }
     Ok(())
 }
 

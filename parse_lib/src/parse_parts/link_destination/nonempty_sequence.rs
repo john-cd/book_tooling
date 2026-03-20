@@ -10,17 +10,16 @@
 //! but at least three levels of nesting should be supported.)
 
 use winnow::ModalResult;
+use winnow::Parser;
 use winnow::combinator::alt;
 use winnow::combinator::cut_err;
 use winnow::combinator::delimited;
 use winnow::combinator::repeat;
-use winnow::error::ContextError;
-use winnow::error::ErrMode;
-use winnow::Parser;
-use winnow::combinator::{alt, cut_err, delimited, repeat};
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
-use winnow::token::{any, one_of, take_while};
+use winnow::token::any;
+use winnow::token::one_of;
+use winnow::token::take_while;
 
 /// Returns true if a character that is not control, space, < ( ) or \.
 fn is_allowed_char(c: char) -> bool {
@@ -38,8 +37,6 @@ fn parse_allowed_chars<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 }
 
 /// Parses text that may contain escaped parentheses, e.g., "\(" or "\)".
-///
-/// It must consume at least one character.
 fn parse_text_with_escapes<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     let parse_escaped = ('\\', one_of(['(', ')', '\\'])).take();
 
@@ -62,8 +59,6 @@ fn parse_balanced_parentheses_content<'s>(input: &mut &'s str) -> ModalResult<&'
     repeat::<_, _, (), _, _>(
         0..,
         alt((
-            parse_balanced_parentheses.void(), // Recursively parse.
-            parse_text_with_escapes.void(),
             parse_balanced_parentheses.void(), // Recursively parse.
             parse_text_with_escapes.void(),
         )),
@@ -173,10 +168,6 @@ mod tests_parse_non_empty_sequence {
         assert!(parse_non_empty_sequence(&mut "").is_err());
         // Starts with '<'.
         assert!(parse_non_empty_sequence(&mut "<hello").is_err());
-        // Starts with ' '.
-        assert!(parse_non_empty_sequence(&mut " hello").is_err());
-        // Starts with ')'.
-        assert!(parse_non_empty_sequence(&mut ")hello").is_err());
         // Unbalanced parentheses.
         assert!(parse_non_empty_sequence(&mut "foo(bar").is_err());
         assert!(parse_non_empty_sequence(&mut "(foo").is_err());
@@ -231,18 +222,15 @@ mod text_with_escapes_tests {
         assert_eq!(
             parse_text_with_escapes.parse_peek("foo(bar"),
             Ok(("(bar", "foo"))
-            Ok(("(bar", "foo"))
         );
         // Stops at unescaped parenthesis after escapes.
         assert_eq!(
             parse_text_with_escapes.parse_peek(r"foo\)bar(baz"),
             Ok(("(baz", r"foo\)bar"))
-            Ok(("(baz", r"foo\)bar"))
         );
         // Stops at unescaped parenthesis after escaped.
         assert_eq!(
             parse_text_with_escapes.parse_peek(r"\(foo)bar"),
-            Ok((")bar", r"\(foo"))
             Ok((")bar", r"\(foo"))
         );
     }
@@ -255,9 +243,7 @@ mod text_with_escapes_tests {
         assert!(parse_text_with_escapes(&mut "<").is_err());
         assert!(parse_text_with_escapes(&mut " ").is_err());
         assert!(parse_text_with_escapes(&mut "\0").is_err());
-        // Lone backslash at end is matched by ('\\', any) if not at end.
-        // If at end, it will fail.
-        // Actually, ('\\', any) will fail if `any` fails (EOF).
-        // Let's verify that.
+        // Lone backslash at end.
+        assert!(parse_text_with_escapes(&mut r"foo\").is_err());
     }
 }

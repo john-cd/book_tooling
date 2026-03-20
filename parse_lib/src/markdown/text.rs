@@ -1,9 +1,8 @@
 use winnow::ModalResult;
 use winnow::Parser;
-use winnow::stream::Offset;
-use winnow::stream::Stream;
-use winnow::token::any;
-use winnow::token::take_while;
+use winnow::error::StrContext::*;
+use winnow::error::StrContextValue::*;
+use winnow::token::take_till;
 
 use crate::ast::Element;
 
@@ -20,7 +19,8 @@ pub fn parse_plain_text<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
 
 /// Fallback parser that consumes exactly one character.
 pub fn parse_fallback_char<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
-    winnow::token::any.take()
+    winnow::token::any
+        .take()
         .map(|content| Element::Text(crate::TextData { content }))
         .parse_next(input)
 }

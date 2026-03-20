@@ -51,10 +51,8 @@ use winnow::Parser;
 use winnow::ascii::line_ending;
 use winnow::ascii::space0;
 use winnow::ascii::space1;
-use winnow::combinator::alt;
 use winnow::combinator::cut_err;
 use winnow::combinator::delimited;
-use winnow::combinator::eof;
 use winnow::combinator::opt;
 use winnow::combinator::preceded;
 use winnow::combinator::repeat;
@@ -62,7 +60,6 @@ use winnow::combinator::seq;
 use winnow::combinator::terminated;
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
-use winnow::stream::Stream;
 use winnow::token::take_while;
 
 use crate::HeadingData;
@@ -131,11 +128,11 @@ fn parse_heading_content<'s>(
 
     seq!(
         // The opening sequence of # characters must be followed by spaces or tabs.
-        _: opt(space1),
+        _: space1,
         content, // Content of the heading.
         _: opt_closing_hashes,
         opt(parse_attribute_block),
-        _: alt((line_ending, eof))
+        _: line_ending
     )
     .context(Label("heading content"))
     .context(Expected(Description(
@@ -146,26 +143,172 @@ fn parse_heading_content<'s>(
 
 /// Parses a Markdown ATX heading.
 pub fn parse_atx_heading<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
-    let start = input.checkpoint();
-    let mut hashes = parse_opening_hashes;
-    let mut content = parse_heading_content;
+    let sequence = (
+        parse_opening_hashes,
+        // Followed by the end of line or heading contents + optional attribute block.
+        cut_err(parse_heading_content),
+    );
 
-    match hashes.parse_next(input) {
-        Ok(level) => {
-            match content.parse_next(input) {
-                Ok((content, id)) => Ok(Element::Heading(HeadingData { level, content, id })),
-                Err(_) => {
-                    input.reset(&start);
-                    // Return a backtrack error instead of a cut error.
-                    Err(winnow::error::ErrMode::Backtrack(
-                        winnow::error::ContextError::default(),
-                    ))
-                }
-            }
-        }
-        Err(e) => {
-            input.reset(&start);
-            Err(e)
-        }
+    sequence
+        .map(|(level, (content, id))| Element::Heading(HeadingData { level, content, id }))
+        .parse_next(input)
+}
+
+// Example usage and tests:
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_opening_hashes() {
+        assert_eq!(
+            parse_opening_hashes.parse_peek("# hello"),
+            Ok((" hello", 1))
+        );
+        assert_eq!(
+            parse_opening_hashes.parse_peek("   ##  world"),
+            Ok(("  world", 2))
+        );
+        assert_eq!(
+            parse_opening_hashes.parse_peek("###### test"),
+            Ok((" test", 6))
+        );
+        assert!(
+            parse_opening_hashes
+                .parse_peek("####### too many hashes")
+                .is_err()
+        );
+        assert!(parse_opening_hashes.parse_peek("no hash").is_err());
+        assert!(
+            parse_opening_hashes
+                .parse_peek("    # too many spaces")
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn test_parse_attribute_block() {
+        assert_eq!(
+            parse_attribute_block.parse_peek("{#my-id}"),
+            Ok(("", "my-id"))
+        );
+        assert_eq!(
+            parse_attribute_block.parse_peek("{  #another-id  }  "),
+            Ok(("", "another-id"))
+        );
+        assert!(parse_attribute_block.parse_peek("{}").is_err());
+        assert!(parse_attribute_block.parse_peek("{  }").is_err());
+        assert!(parse_attribute_block.parse_peek("{.class}").is_err()); // Our current parser only extracts ID.
+        assert!(parse_attribute_block.parse_peek("{ #broken{ }").is_err()); // Nested braces.
+        assert!(parse_attribute_block.parse_peek("{ #broken< }").is_err()); // Invalid char.
+    }
+
+    #[test]
+    fn test_parse_atx_heading_simple() {
+        assert_eq!(
+            parse_atx_heading.parse_peek("# Hello, world!\n"),
+            Ok((
+                "",
+                Element::Heading(HeadingData {
+                    level: 1,
+                    content: Some("Hello, world!"),
+                    id: None
+                })
+            ))
+        );
+        assert_eq!(
+            parse_atx_heading.parse_peek("  ##  Another heading  \n"),
+            Ok((
+                "",
+                Element::Heading(HeadingData {
+                    level: 2,
+                    content: Some("Another heading"),
+                    id: None
+                })
+            ))
+        );
+        assert_eq!(
+            parse_atx_heading.parse_peek("   ### Third heading ### \n"),
+            Ok((
+                "",
+                Element::Heading(HeadingData {
+                    level: 3,
+                    content: Some("Third heading"),
+                    id: None
+                })
+            ))
+        );
+    }
+
+    #[test]
+    fn test_parse_atx_heading_with_id() {
+        assert_eq!(
+            parse_atx_heading.parse_peek("# My Heading {#my-heading}\n"),
+            Ok((
+                "",
+                Element::Heading(HeadingData {
+                    level: 1,
+                    content: Some("My Heading"),
+                    id: Some("my-heading")
+                })
+            ))
+        );
+        assert_eq!(
+            parse_atx_heading.parse_peek("## Heading with closing hashes ## {#an-id}\n"),
+            Ok((
+                "",
+                Element::Heading(HeadingData {
+                    level: 2,
+                    content: Some("Heading with closing hashes"),
+                    id: Some("an-id")
+                })
+            ))
+        );
+        assert!(
+            parse_atx_heading
+                .parse_peek("### No valid ID Here {#}\n")
+                .is_err()
+        );
+        assert_eq!(
+            parse_atx_heading.parse_peek("  ### Another with ident {#id-42}     \n"),
+            Ok((
+                "",
+                Element::Heading(HeadingData {
+                    level: 3,
+                    content: Some("Another with ident"),
+                    id: Some("id-42")
+                })
+            ))
+        );
+    }
+
+    #[test]
+    fn test_parse_atx_heading_edge_cases() {
+        // Only hashes.
+        assert_eq!(
+            parse_atx_heading.parse_peek("  # \n"),
+            Ok((
+                "",
+                Element::Heading(HeadingData {
+                    level: 1,
+                    content: None,
+                    id: None
+                })
+            ))
+        );
+        // Trailing spaces after closing hashes.
+        assert_eq!(
+            parse_atx_heading.parse_peek("##  Content  ##   \n"),
+            Ok((
+                "",
+                Element::Heading(HeadingData {
+                    level: 2,
+                    content: Some("Content"),
+                    id: None
+                })
+            ))
+        );
+        // No newline (EOF).
+        assert!(parse_atx_heading.parse_peek("### Hello").is_err());
     }
 }

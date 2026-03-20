@@ -1,4 +1,4 @@
-// TODO [test new templating](https://github.com/john-cd/rust_howto/issues/1431)
+// [test new templating](https://github.com/john-cd/rust_howto/issues/1431)
 
 #[cfg(test)]
 mod template_tests {

@@ -1,6 +1,9 @@
-use std::collections::HashSet;
 use std::borrow::Cow;
-use parse_lib::{Element, parse_document, reconstruct_markdown};
+use std::collections::HashSet;
+
+use parse_lib::Element;
+use parse_lib::parse_document;
+use parse_lib::reconstruct_markdown;
 
 /// Detect unused reference definitions in a document.
 pub fn detect_unused_reference_definitions(content: &str) -> HashSet<String> {

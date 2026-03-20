@@ -4,7 +4,7 @@ use regex::Captures;
 use regex::Regex;
 
 // Replacement closure.
-type Replacement = Box<dyn Fn(&Captures) -> String + Send + Sync>;
+type Replacement = Box<dyn Fn(&Captures) -> String>;
 
 /// A compiled Regex plus a replacement string or function.
 pub struct RegexAndReplacement {

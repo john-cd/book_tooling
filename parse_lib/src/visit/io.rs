@@ -23,7 +23,7 @@ impl<'d> Document<'d> {
         // and provides it to the closure.
         fmt2io::write(&mut io_writer, |writer| {
             let mut visitor = f(writer);
-            let _ = self.accept(&mut visitor);
+            self.accept(&mut visitor)?;
             Ok(())
         })?;
         // Surface any I/O errors:

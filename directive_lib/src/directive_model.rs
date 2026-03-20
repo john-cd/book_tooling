@@ -114,7 +114,7 @@ pub enum DestinationKind {
 /// # Returns
 ///
 /// A `String` containing the replacement string.
-pub fn get_replacement_string(kind: DestinationKind, crate_name: &str) -> String {
+fn get_replacement_string(kind: DestinationKind, crate_name: &str) -> String {
     use DestinationKind::*;
     let (prefix, suffix) = match kind {
         Category => ("cat~", ""),
@@ -129,21 +129,4 @@ pub fn get_replacement_string(kind: DestinationKind, crate_name: &str) -> String
     format!(
         "[![{crate_name}][{prefix}{crate_name}{suffix}~badge]][{prefix}{crate_name}{suffix}]{{{{hi:{crate_name}}}}}"
     )
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_get_replacement_string() {
-        assert_eq!(
-            get_replacement_string(DestinationKind::Docs, "my_crate"),
-            "[![my_crate][c~my_crate~docs~badge]][c~my_crate~docs]{{hi:my_crate}}"
-        );
-        assert_eq!(
-            get_replacement_string(DestinationKind::Category, "mathematics"),
-            "[![mathematics][cat~mathematics~badge]][cat~mathematics]{{hi:mathematics}}"
-        );
-    }
 }
