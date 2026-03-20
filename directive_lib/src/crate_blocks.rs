@@ -7,7 +7,7 @@ use core_lib::templates::DestinationKind;
 use core_lib::templates::render_badge;
 use regex::Regex;
 
-// [finish](https://github.com/john-cd/rust_howto/issues/1438)
+// TODO [finish](https://github.com/john-cd/rust_howto/issues/1438)
 
 /// {{cat parsing }} -> [parsing][cat~parsing]↗{{hi:parsing}}
 pub(super) fn crate_block_regexes() -> Vec<RegexAndReplacement> {
