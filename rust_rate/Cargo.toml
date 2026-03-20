@@ -14,5 +14,8 @@ publish.workspace = true
 license.workspace = true
 
 [dependencies]
-anyhow = "1.0.95"
-tracing = "0.1.41"
+anyhow.workspace = true
+regex.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

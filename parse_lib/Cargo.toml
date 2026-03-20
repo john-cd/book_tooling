@@ -14,11 +14,9 @@ publish.workspace = true
 license.workspace = true
 
 [dependencies]
-anyhow = "1.0.95"
-tracing = "0.1.41"
-url = "2.5.4"
-#directive_lib = { path = "../directive_lib" }
-winnow = "0.7.11"
-annotate-snippets = "0.12.1"
-fmt2io = "1.0.0"
-multimap = "0.10.0"
+annotate-snippets.workspace = true
+anyhow.workspace = true
+fmt2io.workspace = true
+multimap.workspace = true
+url.workspace = true
+winnow.workspace = true
