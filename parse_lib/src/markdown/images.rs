@@ -8,7 +8,6 @@ use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
 
 use crate::ast::*;
-use crate::markdown::refdefs::parse_optional_whitespace_with_one_newline;
 use crate::parse_parts::*;
 
 /// Parses an inline image: `![desc](url "title")`.
