@@ -39,8 +39,7 @@ fn parse_wikilink_inner<'s>(input: &mut &'s str) -> Result<(&'s str, Option<&'s 
     })
     .verify(|(target, display)| !target.is_empty() || display.is_some());
 
-    let simple_inner = take_until(0.., "]]")
-        .map(|target: &str| (target.trim(), None));
+    let simple_inner = take_until(0.., "]]").map(|target: &str| (target.trim(), None));
 
     alt((piped_inner, simple_inner)).parse_next(input)
 }
