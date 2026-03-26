@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 mod process_text_file;
 pub use process_text_file::*;
 

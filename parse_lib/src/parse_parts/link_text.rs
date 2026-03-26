@@ -9,7 +9,6 @@
 //! - The brackets in link text bind more tightly than markers for emphasis and strong emphasis. Thus, for example, `*[foo*](url)` is a link.
 
 use winnow::Parser;
-use winnow::ascii::take_escaped;
 use winnow::combinator::alt;
 use winnow::combinator::cut_err;
 use winnow::combinator::delimited;
@@ -17,6 +16,7 @@ use winnow::combinator::repeat;
 use winnow::error::ModalResult;
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
+use winnow::error::ErrMode;
 use winnow::token::one_of;
 use winnow::token::take_while;
 

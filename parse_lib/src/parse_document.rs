@@ -12,14 +12,8 @@ use winnow::error::StrContextValue::*;
 use winnow::token::take_till;
 
 use crate::ast::Element;
-<<<<<<< HEAD
-// TODO [finish URL parsing](https://github.com/john-cd/rust_howto/issues/1427)
-// use crate::urls::parse_naked_url;
-// use crate::directives::parse_directive;
-=======
 use crate::ast::TableData;
 use crate::ast::TaskItemData;
->>>>>>> jules-3582745748344015560-6d4fedb4
 use crate::markdown::*;
 use crate::parse_directives::parse_directive_element;
 use crate::parse_hidden::parse_hidden_html_div;
@@ -70,22 +64,26 @@ fn parse_elements<'a>(input: &mut &'a str) -> ModalResult<Vec<Element<'a>>> {
     repeat(
         0..,
         alt((
-            parse_hidden_html_div,
-            parse_fenced_code_block,
-            parse_code_span,
-            parse_directive_element,
-            parse_atx_heading,
-            parse_link_reference_definition,
-            parse_wikilink,
-            parse_reference_style_image,
-            parse_inline_image,
-            parse_reference_style_link,
-            parse_inline_link,
-            parse_autolink,
-            parse_task_item,
-            parse_table,
-            parse_plain_text,
-            parse_fallback_char,
+            alt((
+                parse_hidden_html_div,
+                parse_fenced_code_block,
+                parse_code_span,
+                parse_directive_element,
+                parse_atx_heading,
+                parse_link_reference_definition,
+                parse_wikilink,
+                parse_reference_style_image,
+            )),
+            alt((
+                parse_inline_image,
+                parse_reference_style_link,
+                parse_inline_link,
+                parse_autolink,
+                parse_task_item,
+                parse_table,
+                parse_plain_text,
+                parse_fallback_char,
+            )),
             fail.context(Label("text element"))
                 .context(Expected(Description("one of a hidden HTML div, fenced code block, code span, autolink, inline link, naked URL, plain text, or whitespace"))),
         )),

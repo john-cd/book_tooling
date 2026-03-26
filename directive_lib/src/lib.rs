@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 #![allow(unused)]
 
 mod directive_model;

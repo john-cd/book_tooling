@@ -12,7 +12,6 @@ use winnow::ModalResult;
 use winnow::Parser;
 use winnow::ascii::line_ending;
 use winnow::ascii::space0;
-use winnow::ascii::space1;
 use winnow::combinator::alt;
 use winnow::combinator::eof;
 use winnow::combinator::opt;
@@ -36,7 +35,7 @@ fn parse_indentation(input: &mut &str) -> ModalResult<()> {
 /// This is used for the whitespace around the colon and destination.
 ///
 /// Example: " \t\n " -> ()
-pub(crate) fn parse_optional_whitespace_with_one_newline(input: &mut &str) -> ModalResult<()> {
+pub fn parse_optional_whitespace_with_one_newline(input: &mut &str) -> ModalResult<()> {
     (
         space0,           // Zero or more spaces/tabs
         opt(line_ending), // Optional single line ending

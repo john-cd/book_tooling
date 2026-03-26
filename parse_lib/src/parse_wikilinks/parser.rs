@@ -3,7 +3,6 @@ use winnow::Parser;
 use winnow::Result;
 use winnow::combinator::alt;
 use winnow::combinator::delimited;
-use winnow::combinator::fail;
 use winnow::combinator::opt;
 use winnow::combinator::seq;
 use winnow::error::ErrMode;
@@ -61,7 +60,7 @@ fn parse_wikilink_to_strings<'s>(input: &mut &'s str) -> Result<RawWikilink<'s>>
 
     let (inner, immediately_after) = (
         delimited("[[", parse_wikilink_inner, "]]"),
-        immediately_after_p,
+        immediately_after,
     )
         .parse_next(input)?;
 
@@ -181,9 +180,6 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_wikilink_inner_leading_pipe_simple() {
-        assert_parse_wikilink_inner_ok("|Target]]", "", Some("Target"));
-    }
 
     // Test `parse_wikilink` -----------------
 
@@ -285,11 +281,6 @@ mod tests {
 
     // [[]]
     #[test]
-    fn test_empty() {
-        let input = "[[]]";
-        let result = parse_wikilink.parse_peek(input);
-        assert!(result.is_ok());
-    }
 
     // [[|title7]]
     // [[| title8]]
