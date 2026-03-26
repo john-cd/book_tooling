@@ -18,6 +18,8 @@ anyhow.workspace = true
 clap.workspace = true
 tracing-subscriber.workspace = true
 core_lib.workspace = true
+directive_lib.workspace = true
 
 
 [dev-dependencies]
+tempfile.workspace = true

@@ -3,7 +3,6 @@ use winnow::combinator::alt;
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
 use winnow::prelude::*;
-use winnow::token::take_while;
 
 use super::super::parse_parts::link_destination::parse_angle_brackets;
 use crate::ast::*;

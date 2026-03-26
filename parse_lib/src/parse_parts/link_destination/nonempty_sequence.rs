@@ -27,26 +27,13 @@ fn is_allowed_char(c: char) -> bool {
     !(c.is_ascii_control() || c == ' ' || c == '<' || c == '(' || c == ')' || c == '\\')
 }
 
-/// Parses a sequence of allowed chars.
-fn parse_allowed_chars<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    take_while(1.., is_allowed_char)
-        .context(Label("character"))
-        .context(Expected(Description(
-            "a character that is not a control char; a space; or < ( ) \\",
-        )))
-        .parse_next(input)
-}
-
 /// Parses text that may contain escaped parentheses, e.g., "\(" or "\)".
 ///
 /// It must consume at least one character.
 fn parse_text_with_escapes<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     repeat::<_, _, (), _, _>(
         1..,
-        alt((
-            take_while(1.., is_allowed_normal_char).void(),
-            ('\\', any).void(),
-        )),
+        alt((take_while(1.., is_allowed_char).void(), ('\\', any).void())),
     )
     .take()
     .context(Label("text"))

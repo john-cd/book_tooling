@@ -11,16 +11,12 @@ mod cli;
 mod converter;
 
 use std::borrow::Cow;
-use std::collections::BTreeMap;
-use std::collections::HashSet;
 use std::path::Path;
 
 use clap::Parser;
-use parse_lib::Document;
-use parse_lib::Element;
-use parse_lib::ReferenceStyleLinkData;
-use parse_lib::reconstruct_markdown;
-use url::Url;
+use parse_lib::parse_document;
+
+use crate::converter::LinkConverter;
 
 fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
@@ -71,73 +67,4 @@ fn convert_links(filepath: &Path) -> anyhow::Result<()> {
         },
     )?;
     Ok(())
-}
-
-fn transform_document(doc: Document) -> (Vec<Element>, BTreeMap<String, String>) {
-    let mut refdefs = BTreeMap::new();
-    let mut new_elements = Vec::new();
-    let mut used_labels = HashSet::new();
-
-    // First pass to collect existing reference labels to avoid collisions
-    for element in &doc.elements {
-        if let Element::ReferenceDefinition(data) = element {
-            used_labels.insert(data.label.to_string());
-        }
-    }
-
-    for element in doc.elements {
-        match element {
-            Element::InlineLink(data) => {
-                let label = generate_label(data.url, &used_labels);
-                used_labels.insert(label.clone());
-                refdefs.insert(label.clone(), data.url.to_string());
-                new_elements.push(Element::ReferenceStyleLink(ReferenceStyleLinkData {
-                    text: data.text,
-                    label: Box::leak(label.into_boxed_str()),
-                }));
-            }
-            Element::Autolink(data) => {
-                let label = generate_label(data.url, &used_labels);
-                used_labels.insert(label.clone());
-                refdefs.insert(label.clone(), data.url.to_string());
-                new_elements.push(Element::ReferenceStyleLink(ReferenceStyleLinkData {
-                    text: data.url,
-                    label: Box::leak(label.into_boxed_str()),
-                }));
-            }
-            Element::ReferenceDefinition(data) => {
-                // Keep existing refdefs but only if they are not being replaced.
-                // Actually, we keep them all for simplicity here.
-                new_elements.push(Element::ReferenceDefinition(data));
-            }
-            _ => {
-                new_elements.push(element);
-            }
-        }
-    }
-
-    (new_elements, refdefs)
-}
-
-fn generate_label(url_str: &str, used: &HashSet<String>) -> String {
-    if let Ok(url) = Url::parse(url_str) {
-        let mut label = if let Some(host) = url.host_str() {
-            host.to_string()
-        } else {
-            "link".to_string()
-        };
-
-        label = label.replace('.', "-");
-
-        if used.contains(&label) {
-            let mut i = 1;
-            while used.contains(&format!("{}-{}", label, i)) {
-                i += 1;
-            }
-            label = format!("{}-{}", label, i);
-        }
-        label
-    } else {
-        "link".to_string()
-    }
 }
