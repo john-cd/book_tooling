@@ -15,11 +15,11 @@ pub fn parse_plain_text<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
         ));
     }
 
-    let special = ['<', '[', '(', '`', '{', '!', '#'];
-
-    // Check if the first character is special.
     let first_char = input.chars().next().unwrap();
-    if special.contains(&first_char) {
+    if matches!(
+        first_char,
+        '<' | '[' | '(' | '`' | '{' | '!' | '#' | '-' | '|' | ']' | ')' | '}'
+    ) {
         // Just consume one special character as text.
         let start = input.checkpoint();
         let _: char = any.parse_next(input)?;
@@ -30,7 +30,13 @@ pub fn parse_plain_text<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     } else {
         // Consume until the next special character.
         // This is much faster than one-by-one.
-        let content = take_while(1.., |c: char| !special.contains(&c)).parse_next(input)?;
+        let content = take_while(1.., |c: char| {
+            !matches!(
+                c,
+                '<' | '[' | '(' | '`' | '{' | '!' | '#' | '-' | '|' | ']' | ')' | '}'
+            )
+        })
+        .parse_next(input)?;
         Ok(Element::Text(crate::TextData { content }))
     }
 }
