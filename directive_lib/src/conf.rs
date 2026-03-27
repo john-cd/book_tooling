@@ -38,10 +38,10 @@ pub struct Config {
     pub process_wikilinks: bool,
 
     /// Extensions to process. If `None`, uses default ("md").
-    pub included_extensions: Option<Vec<String>>,
+    pub included_extensions: Vec<String>,
 
     /// File names to exclude. If `None`, uses default ("refs.incl.md", "SUMMARY.md").
-    pub excluded_filenames: Option<Vec<String>>,
+    pub excluded_filenames: Vec<String>,
 }
 
 impl Default for Config {
@@ -51,8 +51,20 @@ impl Default for Config {
             process_example_directives: true,
             process_link_and_badge_directives: true,
             process_wikilinks: true,
-            included_extensions: None,
-            excluded_filenames: None,
+            included_extensions: vec!["md".to_string()],
+            excluded_filenames: vec![
+                "refs.incl.md".to_string(),
+                "SUMMARY.md".to_string(),
+            ],
         }
+    }
+}
+
+impl Config {
+    /// Load configuration from a TOML file.
+    pub fn from_file(path: &str) -> anyhow::Result<Self> {
+        let content = std::fs::read_to_string(path)?;
+        let config: Config = toml::from_str(&content)?;
+        Ok(config)
     }
 }

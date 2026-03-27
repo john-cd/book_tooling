@@ -19,5 +19,5 @@ cargo run -p rust_rate
 
 ## Documentation
 
-- [Requirements](requirements.md)
-- [Architecture](architecture.md)
+- [Requirements](../documentation/rust_rate_requirements.md)
+- [Architecture](../documentation/rust_rate_architecture.md)

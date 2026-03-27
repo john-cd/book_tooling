@@ -1,21 +1,19 @@
 //! Process {{#example some_example}} directives.
 
-use core_lib::RegexAndReplacement;
-use regex::Regex;
+use parse_lib::ast::DirectiveData;
 
 /// The {{#example some_example}} should be replaced by an {{#include ...}} directive
 /// that embeds the contents of the file `some_example.md` in the proper `crates` subfolder.
-pub(super) fn example_regexes() -> Vec<RegexAndReplacement> {
-    let re_string: String = r"\{\{\s*#\s*example\s*:?\s+([^}]+)\s*\}\}".into();
-    let re = Regex::new(&re_string).expect("Invalid regex");
+pub(super) fn render_example(directive: &DirectiveData<'_>) -> String {
+    render_example_inner(directive.content)
+}
 
-    vec![RegexAndReplacement {
-        re,
-        replacement: Some(Box::new(|caps| {
-            let name = caps.get(1).map(|m| m.as_str()).unwrap_or("").trim();
-            format!("{{{{#include examples/{}.md}}}}", name)
-        })),
-    }]
+fn render_example_inner(content: &str) -> String {
+    let name = content.trim();
+    if name.is_empty() {
+        return format!("{{{{#example{}}}}}", content);
+    }
+    format!("{{{{#include examples/{}.md}}}}", name)
 }
 
 // The following variations should be accepted:
@@ -33,15 +31,29 @@ pub(super) fn example_regexes() -> Vec<RegexAndReplacement> {
 mod tests {
     use super::*;
 
-    // TODO [finish tests](https://github.com/john-cd/rust_howto/issues/1434)
     #[test]
     fn test_replace_example() {
-        let text = "{{#example some_example}}";
         let expected = "{{#include examples/some_example.md}}";
-        let r = example_regexes();
-        let res = r[0]
-            .re
-            .replace_all(text, r[0].replacement.as_ref().unwrap());
-        assert_eq!(res, expected);
+        assert_eq!(render_example_inner(" some_example"), expected);
+    }
+
+    #[test]
+    fn test_replace_example_with_spaces() {
+        let expected = "{{#include examples/some_example_2.md}}";
+        assert_eq!(render_example_inner("  some_example_2 "), expected);
+    }
+
+    #[test]
+    fn test_no_replace_incomplete_example() {
+        let content = "";
+        let expected = "{{#example}}";
+        assert_eq!(render_example_inner(content), expected);
+    }
+
+    #[test]
+    fn test_no_replace_incomplete_example_with_spaces() {
+        let content = " ";
+        let expected = "{{#example }}";
+        assert_eq!(render_example_inner(content), expected);
     }
 }

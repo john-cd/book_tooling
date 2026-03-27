@@ -50,18 +50,16 @@ jobs:
       - name: Install Nextest
         run: cargo binstall --no-confirm --secure cargo-nextest
 
-      - name: Update Rust; Install nightly Rust
+      - name: Update Rust; install nightly Rust
         run: |
           rustup update stable
-          rustup default stable
           rustup toolchain install nightly
           rustup component add rustfmt --toolchain nightly
+          rustup default stable
+          rustup --version
           rustup show
 
-      - name: Output Rust version (debug)
-        run: rustup --version
-
-      - name: Format
+      - name: Check the formatting
         run: cargo +nightly fmt --all --check
 
       - name: Fetch

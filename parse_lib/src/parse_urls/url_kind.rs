@@ -43,22 +43,27 @@ pub enum UrlKind<'a> {
 pub fn url_kind(url_text: &str) -> Result<UrlKind<'_>, url::ParseError> {
     let url = Url::parse(url_text)?;
 
-    // Hack: `UrlKind` contains references to parts of the URL text,
-    // `url` somehow internally clones,
-    // therefore we can't return a reference to `Url::parse(url_text).path()` directly.
-    let mut path: &str = "";
-    if let Some(p) = url.path().strip_prefix('/') {
-        let start = url_text.find(p).unwrap_or_default();
-        // Get position / range of the path in the original string
-        // (`substr_range()` is still experimental).
-        path = &url_text[start..(start + p.len())];
-    }
+    // Extract the path directly from the original string to maintain lifetimes,
+    // rather than using the owned string inside `Url`.
+    let path = if let Some((_, rest)) = url_text.split_once("://") {
+        if let Some(idx) = rest.find('/') {
+            let mut p = &rest[(idx + 1)..];
+            if let Some(q_idx) = p.find(['?', '#']) {
+                p = &p[..q_idx];
+            }
+            p
+        } else {
+            ""
+        }
+    } else {
+        ""
+    };
 
     let segments: Vec<&str> = path.split('/').collect();
     let (first, second, fourth) = (
-        segments.first().filter(|s| !s.is_empty()),
-        segments.get(1).filter(|s| !s.is_empty()),
-        segments.get(3).filter(|s| !s.is_empty()),
+        segments.first().copied().filter(|s| !s.is_empty()),
+        segments.get(1).copied().filter(|s| !s.is_empty()),
+        segments.get(3).copied().filter(|s| !s.is_empty()),
     );
 
     let kind = match url.host_str() {

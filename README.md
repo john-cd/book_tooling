@@ -10,16 +10,11 @@ This workspace contains various crates designed to automate the management of Ma
 
 ### Libraries
 
-- **[`core_lib`](./core_lib)**: Shared utilities for file processing and directory walking.
-- **[`directive_lib`](./directive_lib)**: Logic for handling custom directives.
 - **[`parse_lib`](./parse_lib)**: A robust Markdown and directive parser.
 
 ### Tools
 
-- **[`process_directives`](./process_directives)**: CLI for expanding custom directives.
-- **[`inline_links`](./inline_links)**: CLI for converting inline links to reference-style links.
-- **[`link_checker`](./link_checker)**: CLI for verifying external links and managing reference definitions.
-- **[`rust_rate`](./rust_rate)**: Tool for crawling GitHub and analyzing Rust crate usage patterns.
+- **`book_tool`**: A unified CLI encompassing all the Markdown processing and utility tools into a single, cohesive binary.
 
 ## Getting Started
 
@@ -32,13 +27,13 @@ This workspace contains various crates designed to automate the management of Ma
 Clone the repository and build the workspace:
 
 ```bash
-cargo build --release
+cargo build --release --bin book_tool
 ```
 
 ## Documentation
 
-- [Requirements](./requirements.md)
-- [Architecture](./architecture.md)
+- [Requirements](./documentation/requirements.md)
+- [Architecture](./documentation/architecture.md)
 - [TODO](./TODO.md)
 
 ## License

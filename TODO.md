@@ -1,25 +1,15 @@
 # TODO
 
-## Suggested Improvements and Fixes
+- [ ] create detailed documentation of all supported directives in root README.md
+- [ ] detailed documentation of available CLI commands in root README.md
+- [ ] review codebase for duplicated code
+- [x] **Merge `directive_lib` into `book_tool`**: Move the implementation from the `directive_lib` crate into the `book_tool::directives` module.
+  - [ ] **Merge `core_lib` into `book_tool`**: Move the common utilities from `core_lib` into a new `book_tool::common` module.
+  - [ ] **Merge `rust_rate` crate into `book_tool`**: Move the implementation from the `rust_rate` crate into a `book_tool::rust_rate` module.
+- [ ] refactor the list item parsers in `parse_document.rs` to remove the duplicated indentation logic
+- [ ] add tests everywhere (Added tests for link parts and html renderer)
+- [ ] rewrite parse_lib\README.md
 
-### Parser Library (`parse_lib`)
+## LATER
 
-- [ ] Further stabilize Markdown parsing for complex nested structures.
-- [ ] Optimize the non-greedy plain text parser to improve performance on large files.
-- [ ] Finish URL parsing logic.
-
-### General
-
-- [ ] Improve error reporting with better context in all CLI tools.
-
-### Cargo.toml
-
-- [ ] Update `description` in `workspace.package`.
-- [ ] Update `documentation`, `homepage`, and `repository` URLs to correct values for this project.
-- [ ] Fill in `keywords` and `categories` for discoverability.
-
-### Codebase
-
-- [ ] Review and complete the implementation of `directive_lib`, `parse_lib` and `core_lib`, removing the placeholder TODOs.
-- [ ] In `core_lib`, consider using `Box<dyn Replacer>` instead of `Box<dyn Fn(&Captures) -> String>`.
-- [ ] In `core_lib`, evaluate if `utils/cow_map_ext.rs` is necessary and either integrate or remove it.
+- [ ] move code to a develop branch and recreate a clean main branch
