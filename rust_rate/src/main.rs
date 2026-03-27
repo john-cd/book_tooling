@@ -4,6 +4,7 @@ mod stats;
 
 use anyhow::Result;
 use crawler::GithubCrawler;
+use futures::future::join_all;
 use patterns::PatternAnalyzer;
 use stats::CrateStats;
 use tracing::info;
@@ -37,7 +38,7 @@ async fn main() -> Result<()> {
         }
     });
 
-    let results = futures::future::join_all(download_futures).await;
+    let results = join_all(download_futures).await;
 
     for content in results.into_iter().flatten() {
         stats.process_cargo_toml(&content);
