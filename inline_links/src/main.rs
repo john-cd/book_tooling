@@ -15,7 +15,6 @@ use std::path::Path;
 
 use clap::Parser;
 use parse_lib::parse_document;
-use tracing::{error, info};
 
 use crate::converter::LinkConverter;
 
@@ -69,5 +68,3 @@ fn convert_links(filepath: &Path) -> anyhow::Result<()> {
     )?;
     Ok(())
 }
-
-

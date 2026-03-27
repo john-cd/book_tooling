@@ -27,7 +27,7 @@ use crate::ast::*;
 /// - `target|]]` -> `("target", None)` (empty display text)
 fn parse_wikilink_inner<'s>(input: &mut &'s str) -> Result<(&'s str, Option<&'s str>)> {
     let piped_inner = seq!(
-        take_until(1.., "|"),
+        take_until(0.., "|"),
         _: "|",
         take_until(0.., "]]"),
     )
@@ -39,9 +39,7 @@ fn parse_wikilink_inner<'s>(input: &mut &'s str) -> Result<(&'s str, Option<&'s 
     })
     .verify(|(target, display)| !target.is_empty() || display.is_some());
 
-    let simple_inner = take_until(0.., "]]")
-        .map(|target: &str| (target.trim(), None))
-        .verify(|(target, _)| !target.is_empty());
+    let simple_inner = take_until(0.., "]]").map(|target: &str| (target.trim(), None));
 
     alt((piped_inner, simple_inner)).parse_next(input)
 }
@@ -62,6 +60,7 @@ fn parse_wikilink_to_strings<'s>(input: &mut &'s str) -> Result<RawWikilink<'s>>
         delimited("[[", parse_wikilink_inner, "]]"),
         immediately_after,
     )
+        .verify(|(inner, _)| !inner.0.is_empty() || inner.1.is_some())
         .parse_next(input)?;
 
     Ok((inner, immediately_after))

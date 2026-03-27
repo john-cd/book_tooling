@@ -12,6 +12,9 @@ use winnow::error::StrContextValue::*;
 use winnow::token::take_till;
 
 use crate::ast::Element;
+// TODO [finish URL parsing](https://github.com/john-cd/rust_howto/issues/1427)
+// use crate::urls::parse_naked_url;
+// use crate::directives::parse_directive;
 use crate::ast::TableData;
 use crate::ast::TaskItemData;
 use crate::markdown::*;
@@ -73,9 +76,9 @@ fn parse_elements<'a>(input: &mut &'a str) -> ModalResult<Vec<Element<'a>>> {
                 parse_link_reference_definition,
                 parse_wikilink,
                 parse_reference_style_image,
+                parse_inline_image,
             )),
             alt((
-                parse_inline_image,
                 parse_reference_style_link,
                 parse_inline_link,
                 parse_autolink,
@@ -83,9 +86,9 @@ fn parse_elements<'a>(input: &mut &'a str) -> ModalResult<Vec<Element<'a>>> {
                 parse_table,
                 parse_plain_text,
                 parse_fallback_char,
-            )),
-            fail.context(Label("text element"))
-                .context(Expected(Description("one of a hidden HTML div, fenced code block, code span, autolink, inline link, naked URL, plain text, or whitespace"))),
+                fail.context(Label("text element"))
+                    .context(Expected(Description("one of a hidden HTML div, fenced code block, code span, autolink, inline link, naked URL, plain text, or whitespace"))),
+            ))
         )),
     )
     .parse_next(input)
