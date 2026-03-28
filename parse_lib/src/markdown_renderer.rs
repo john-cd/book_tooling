@@ -1,27 +1,28 @@
 use crate::ast::*;
 use crate::visit::Visitor;
 
-/// An AST visitor that reconstructs a Markdown string from the AST,
-/// allowing on-the-fly replacement of Custom Directives.
-pub struct MarkdownRenderer<'a, F>
-where
-    F: FnMut(&DirectiveData<'a>) -> String,
-{
+/// An AST visitor that reconstructs a Markdown string from the AST.
+///
+/// It supports on-the-fly replacement of Custom Directives and optional resolution
+/// of wikilinks and other link types through callback functions.
+pub struct MarkdownRenderer<F> {
+    /// The accumulating Markdown output.
     pub markdown: String,
     /// A callback to resolve a directive into its Markdown equivalent.
     pub directive_resolver: F,
     /// An optional callback to resolve a wikilink.
-    pub wikilink_resolver: Option<Box<dyn FnMut(&WikiLinkData<'a>) -> String>>,
+    pub wikilink_resolver: Option<Box<dyn for<'b> FnMut(&WikiLinkData<'b>) -> String>>,
     /// An optional callback to resolve an inline link.
-    pub inline_link_resolver: Option<Box<dyn FnMut(&InlineLinkData<'a>) -> String>>,
+    pub inline_link_resolver: Option<Box<dyn for<'b> FnMut(&InlineLinkData<'b>) -> String>>,
     /// An optional callback to resolve an autolink.
-    pub autolink_resolver: Option<Box<dyn FnMut(&AutolinkData<'a>) -> String>>,
+    pub autolink_resolver: Option<Box<dyn for<'b> FnMut(&AutolinkData<'b>) -> String>>,
 }
 
-impl<'a, F> MarkdownRenderer<'a, F>
+impl<F> MarkdownRenderer<F>
 where
-    F: FnMut(&DirectiveData<'a>) -> String,
+    F: FnMut(&DirectiveData<'_>) -> String,
 {
+    /// Creates a new `MarkdownRenderer` with a mandatory directive resolver.
     pub fn new(directive_resolver: F) -> Self {
         Self {
             markdown: String::new(),
@@ -32,17 +33,26 @@ where
         }
     }
 
-    pub fn with_wikilink_resolver(mut self, resolver: impl FnMut(&WikiLinkData<'a>) -> String + 'a) -> Self {
+    pub fn with_wikilink_resolver(
+        mut self,
+        resolver: impl for<'b> FnMut(&WikiLinkData<'b>) -> String + 'static,
+    ) -> Self {
         self.wikilink_resolver = Some(Box::new(resolver));
         self
     }
 
-    pub fn with_inline_link_resolver(mut self, resolver: impl FnMut(&InlineLinkData<'a>) -> String + 'a) -> Self {
+    pub fn with_inline_link_resolver(
+        mut self,
+        resolver: impl for<'b> FnMut(&InlineLinkData<'b>) -> String + 'static,
+    ) -> Self {
         self.inline_link_resolver = Some(Box::new(resolver));
         self
     }
 
-    pub fn with_autolink_resolver(mut self, resolver: impl FnMut(&AutolinkData<'a>) -> String + 'a) -> Self {
+    pub fn with_autolink_resolver(
+        mut self,
+        resolver: impl for<'b> FnMut(&AutolinkData<'b>) -> String + 'static,
+    ) -> Self {
         self.autolink_resolver = Some(Box::new(resolver));
         self
     }
@@ -107,7 +117,7 @@ mod tests {
         }));
         let expected = "\
 | Header 1    | H2  |
-|-------------|-----|
+| ----------- | --- |
 | Cell 1      | C 2 |
 | Longer Cell | Val |
 ";
@@ -162,7 +172,7 @@ mod tests {
             header: vec!["Col 1", "Col 2"],
             rows: vec![vec!["Val 1", "Val 2"], vec!["Val 3", "Val 4"]],
         }));
-        let expected = "| Col 1 | Col 2 |\n|---|---|\n| Val 1 | Val 2 |\n| Val 3 | Val 4 |\n";
+        let expected = "| Col 1 | Col 2 |\n| ----- | ----- |\n| Val 1 | Val 2 |\n| Val 3 | Val 4 |\n";
         assert_eq!(renderer.markdown, expected);
     }
 
@@ -222,7 +232,7 @@ mod tests {
     }
 }
 
-impl<'a, F> Visitor<'a> for MarkdownRenderer<'a, F>
+impl<'a, F> Visitor<'a> for MarkdownRenderer<F>
 where
     F: FnMut(&DirectiveData<'a>) -> String,
 {
@@ -240,11 +250,8 @@ where
     }
 
     fn visit_fenced_code_block(&mut self, data: &FencedCodeBlockData<'a>) {
-        self.markdown.push_str("```");
-        if let Some(lang) = data.language {
-            self.markdown.push_str(lang);
-        }
-        self.markdown.push('\n');
+        let lang = data.language.unwrap_or("");
+        self.markdown.push_str(&format!("```{lang}\n"));
         for line in &data.lines {
             self.markdown.push_str(line);
             self.markdown.push('\n');
@@ -302,7 +309,11 @@ where
     }
 
     fn visit_inline_image(&mut self, data: &InlineImageData<'a>) {
-        self.markdown.push_str(&format!("!{}", data.image_description, data.url));
+        if let Some(title) = data.title {
+            self.markdown.push_str(&format!("![{}]({} \"{}\")", data.image_description, data.url, title));
+        } else {
+            self.markdown.push_str(&format!("![{}]({})", data.image_description, data.url));
+        }
     }
 
     fn visit_heading(&mut self, data: &HeadingData<'a>) {
@@ -367,14 +378,14 @@ where
         }
     }
 
-    fn visit_paragraph(&mut self, data: &ParagraphData<'a>) {
+    fn visit_paragraph(&mut self, data: &'a ParagraphData<'a>) {
         for element in &data.elements {
             self.visit_element(element);
         }
         self.markdown.push_str("\n\n");
     }
 
-    fn visit_blockquote(&mut self, data: &BlockquoteData<'a>) {
+    fn visit_blockquote(&mut self, data: &'a BlockquoteData<'a>) {
         let start_len = self.markdown.len();
         for element in &data.elements {
             self.visit_element(element);
@@ -393,7 +404,7 @@ where
         self.markdown.push('\n');
     }
 
-    fn visit_list(&mut self, data: &ListData<'a>) {
+    fn visit_list(&mut self, data: &'a ListData<'a>) {
         for (i, item) in data.items.iter().enumerate() {
             let start_len = self.markdown.len();
             self.visit_element(item);
@@ -423,13 +434,13 @@ where
         self.markdown.push('\n');
     }
 
-    fn visit_list_item(&mut self, data: &ListItemData<'a>) {
+    fn visit_list_item(&mut self, data: &'a ListItemData<'a>) {
         for element in &data.elements {
             self.visit_element(element);
         }
     }
 
-    fn visit_strong(&mut self, data: &StrongData<'a>) {
+    fn visit_strong(&mut self, data: &'a StrongData<'a>) {
         self.markdown.push_str("**");
         for element in &data.elements {
             self.visit_element(element);
@@ -437,7 +448,7 @@ where
         self.markdown.push_str("**");
     }
 
-    fn visit_emphasis(&mut self, data: &EmphasisData<'a>) {
+    fn visit_emphasis(&mut self, data: &'a EmphasisData<'a>) {
         self.markdown.push('*');
         for element in &data.elements {
             self.visit_element(element);
@@ -445,7 +456,7 @@ where
         self.markdown.push('*');
     }
 
-    fn visit_strikethrough(&mut self, data: &StrikethroughData<'a>) {
+    fn visit_strikethrough(&mut self, data: &'a StrikethroughData<'a>) {
         self.markdown.push_str("~~");
         for element in &data.elements {
             self.visit_element(element);

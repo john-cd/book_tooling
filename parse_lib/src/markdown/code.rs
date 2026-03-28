@@ -3,8 +3,6 @@ use winnow::Parser;
 use winnow::combinator::delimited;
 use winnow::token::take_until;
 
-use crate::CodeSpanData;
-use crate::FencedCodeBlockData;
 use crate::ast::*;
 
 /// Parses text enclosed in backticks (`).

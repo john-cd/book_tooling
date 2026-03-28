@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 use std::fmt::Write;
 
-use parse_lib::visit::PrettyPrinter;
+use parse_lib::visit::pretty_printer::PrettyPrinter;
 use parse_lib::visit::Visitor;
 use parse_lib::*;
 
@@ -56,84 +56,87 @@ impl LinkConverter {
 }
 
 impl<'v> Visitor<'v> for LinkConverter {
-    fn visit_autolink(&mut self, data: &'v AutolinkData) -> std::fmt::Result {
+    fn visit_autolink(&mut self, data: &'v AutolinkData<'v>) {
         // Skip GitHub issues as requested in requirements
         if data.url.contains("github.com") && data.url.contains("/issues/") {
-            return write!(self.output, "<{}>", data.url);
+            let _ = write!(self.output, "<{}>", data.url);
+            return;
         }
 
         let label = self.add_refdef(data.url, None);
-        write!(self.output, "[{}][{}]", data.url, label)
+        let _ = write!(self.output, "[{}][{}]", data.url, label);
     }
 
-    fn visit_inline_link(&mut self, data: &'v InlineLinkData) -> std::fmt::Result {
+    fn visit_inline_link(&mut self, data: &'v InlineLinkData<'v>) {
         // Skip GitHub issues
         if data.url.contains("github.com") && data.url.contains("/issues/") {
-            return write!(self.output, "[{}]({})", data.text, data.url);
+            let _ = write!(self.output, "[{}]({})", data.text, data.url);
+            return;
         }
 
         let label = self.add_refdef(data.url, Some(data.text));
-        write!(self.output, "[{}][{}]", data.text, label)
+        let _ = write!(self.output, "[{}][{}]", data.text, label);
     }
 
-    fn visit_reference_style_link(&mut self, data: &'v ReferenceStyleLinkData) -> std::fmt::Result {
-        write!(self.output, "[{}][{}]", data.text, data.label)
+    fn visit_reference_style_link(&mut self, data: &'v ReferenceStyleLinkData<'v>) {
+        let _ = write!(self.output, "[{}][{}]", data.text, data.label);
     }
 
-    fn visit_inline_image(&mut self, data: &'v InlineImageData) -> std::fmt::Result {
+    fn visit_inline_image(&mut self, data: &'v InlineImageData<'v>) {
         let label = self.add_refdef(data.url, Some(data.image_description));
-        write!(self.output, "![{}][{}]", data.image_description, label)
+        let _ = write!(self.output, "![{}][{}]", data.image_description, label);
     }
 
-    fn visit_reference_style_image(
-        &mut self,
-        data: &'v ReferenceStyleImageData,
-    ) -> std::fmt::Result {
-        write!(self.output, "![{}][{}]", data.image_description, data.label)
+    fn visit_reference_style_image(&mut self, data: &'v ReferenceStyleImageData<'v>) {
+        let _ = write!(self.output, "![{}][{}]", data.image_description, data.label);
     }
 
-    fn visit_reference_definition(
-        &mut self,
-        data: &'v ReferenceDefinitionData,
-    ) -> std::fmt::Result {
+    fn visit_reference_definition(&mut self, data: &'v ReferenceDefinitionData<'v>) {
         // Collect existing refdefs
         self.refdefs
             .insert(data.label.to_string(), data.url.to_string());
-        Ok(())
     }
 
-    fn visit_wiki_link(&mut self, data: &'v WikiLinkData) -> std::fmt::Result {
+    fn visit_wikilink(&mut self, data: &'v WikiLinkData<'v>) {
         let mut pp = PrettyPrinter::new(&mut self.output);
-        pp.visit_wiki_link(data)
+        pp.visit_wikilink(data)
     }
 
-    fn visit_code_span(&mut self, data: &'v CodeSpanData) -> std::fmt::Result {
-        write!(self.output, "`{}`", data.content)
+    fn visit_code_span(&mut self, data: &'v CodeSpanData<'v>) {
+        let _ = write!(self.output, "`{}`", data.content);
     }
 
-    fn visit_fenced_code_block(&mut self, data: &'v FencedCodeBlockData) -> std::fmt::Result {
-        write!(self.output, "```\n{}\n```", data.content)
+    fn visit_fenced_code_block(&mut self, data: &'v FencedCodeBlockData<'v>) {
+        let _ = write!(self.output, "```");
+        if let Some(lang) = data.language {
+            let _ = write!(self.output, "{}", lang);
+        }
+        let _ = writeln!(self.output);
+        for line in &data.lines {
+            let _ = writeln!(self.output, "{}", line);
+        }
+        let _ = writeln!(self.output, "```");
     }
 
-    fn visit_hidden_html_div(&mut self, data: &'v HiddenHtmlDivData) -> std::fmt::Result {
-        write!(
+    fn visit_hidden_html_div(&mut self, data: &'v HiddenHtmlDivData<'v>) {
+        let _ = write!(
             self.output,
             "<div class=\"hidden\">\n{}\n</div>",
             data.content
-        )
+        );
     }
 
-    fn visit_heading(&mut self, data: &'v HeadingData) -> std::fmt::Result {
+    fn visit_heading(&mut self, data: &'v HeadingData<'v>) {
         let mut pp = PrettyPrinter::new(&mut self.output);
-        pp.visit_heading(data)?;
-        writeln!(self.output)
+        pp.visit_heading(data);
     }
 
-    fn visit_text(&mut self, data: &'v TextData) -> std::fmt::Result {
-        write!(self.output, "{}", data.content)
+    fn visit_text(&mut self, data: &'v TextData<'v>) {
+        let _ = write!(self.output, "{}", data.content);
     }
 
-    fn visit_custom_directive(&mut self, data: &'v DirectiveData) -> std::fmt::Result {
-        write!(self.output, "{}", data)
+    fn visit_custom_directive(&mut self, data: &'v DirectiveData<'v>) {
+        let mut pp = PrettyPrinter::new(&mut self.output);
+        pp.visit_custom_directive(data);
     }
 }

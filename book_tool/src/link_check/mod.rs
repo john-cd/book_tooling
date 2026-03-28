@@ -1,36 +1,54 @@
 use anyhow::Result;
-use core_lib::walk_directory_and_process_files;
-use crate::verifier::LinkVerifier;
+use crate::common::walk::{Scope, walk_directory_and_process_files};
+use crate::links::AsyncLinkChecker;
 use parse_lib::{link_extractor::LinkExtractor, visit::Visitor};
 use std::collections::HashSet;
 use std::path::PathBuf;
+use url::Url;
 
-pub async fn execute(directories: Vec<PathBuf>) -> Result<()> {
-    let verifier = LinkVerifier::new();
+pub async fn execute(directories: Vec<PathBuf>, check_refdefs: bool, delete_unused: bool) -> Result<()> {
+    let checker = AsyncLinkChecker::new();
     let mut all_links = HashSet::new();
 
-    let scope = core_lib::Scope::default();
+    let scope = Scope::default();
 
     for dir in &directories {
         walk_directory_and_process_files(dir, &scope, |path| {
             let content = std::fs::read_to_string(path)?;
-            if let Ok(doc) = parse_lib::parse_document("doc", Some(path), &content) {
+            let filename = path.file_name().unwrap_or_default().to_string_lossy();
+            if let Ok(doc) = parse_lib::parse_document(&filename, Some(path), &content) {
+                if check_refdefs {
+                    let unused = crate::refdefs::find_unused_refdefs(&doc);
+                    if !unused.is_empty() {
+                        tracing::info!("Found {} unused refdefs in {}", unused.len(), path.display());
+                        if delete_unused {
+                            let new_content = crate::refdefs::delete_unused_refdefs(&doc, &unused);
+                            std::fs::write(path, new_content)?;
+                        }
+                    }
+                }
+
                 let mut extractor = LinkExtractor::new();
                 extractor.visit_document(&doc);
-                all_links.extend(extractor.external_links);
+                for link in extractor.external_links {
+                    if let Ok(url) = Url::parse(link) {
+                        if url.scheme() == "http" || url.scheme() == "https" {
+                            all_links.insert(url);
+                        }
+                    }
+                }
             }
             Ok(())
         })?;
     }
 
     println!("Found {} unique external links. Verifying...", all_links.len());
-    let results = verifier.verify_links(&all_links).await;
-
     let mut broken_links = 0;
-    for (url, is_valid) in results {
-        if !is_valid {
+    for url in all_links {
+        let result = checker.check_url(url.clone()).await;
+        if !result.success {
             broken_links += 1;
-            tracing::error!("BROKEN: {}", url);
+            tracing::error!("BROKEN: {} (Error: {:?})", url, result.error);
         } else {
             tracing::info!("OK: {}", url);
         }

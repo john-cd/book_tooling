@@ -11,7 +11,4 @@ pub mod inline_links;
 pub mod link_check;
 pub mod links;
 pub mod refdefs;
-pub mod rust_rate;
 pub mod search;
-pub mod verifier;
-pub mod walk_directory;

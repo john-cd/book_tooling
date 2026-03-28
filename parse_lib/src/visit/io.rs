@@ -7,7 +7,7 @@ use std::io::BufWriter;
 
 use fmt2io::Writer;
 
-use super::Visitor;
+use super::{Visitable, Visitor};
 use crate::ast::*;
 
 impl<'d> Document<'d> {
@@ -23,7 +23,7 @@ impl<'d> Document<'d> {
         // and provides it to the closure.
         fmt2io::write(&mut io_writer, |writer| {
             let mut visitor = f(writer);
-            let _ = self.accept(&mut visitor);
+            self.accept(&mut visitor);
             Ok(())
         })?;
         // Surface any I/O errors:
@@ -51,7 +51,7 @@ impl<'d> Document<'d> {
         let mut io_writer = BufWriter::with_capacity(capacity, inner_io_writer);
         fmt2io::write(&mut io_writer, |writer| {
             let mut visitor = f(writer);
-            self.accept(&mut visitor)?;
+            self.accept(&mut visitor);
             Ok(())
         })?;
         io_writer.flush()?;

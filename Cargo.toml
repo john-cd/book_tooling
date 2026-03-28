@@ -22,6 +22,8 @@ categories = [
     "development-tools",
     "text-processing",
 ]
+license = "MIT OR Apache-2.0"
+publish = false
 
 [workspace.dependencies]
 annotate-snippets = "0.12.13"

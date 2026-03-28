@@ -1,22 +1,24 @@
 use crate::ast::*;
 use crate::visit::Visitor;
 
-/// A visitor that finds and extracts custom directives in a Markdown document.
+/// A visitor that identifies and counts custom directives within a Markdown document.
+///
+/// It ignores directives located inside code spans or fenced code blocks.
 #[derive(Default)]
-pub struct DirectiveExtractor<'a> {
+pub struct DirectiveExtractor {
     // Store the extracted directive data or specific fields like the raw text.
     // This example simply keeps a count, but you can collect string slices here.
     pub directives_found: usize,
 }
 
-impl<'a> DirectiveExtractor<'a> {
+impl DirectiveExtractor {
     pub fn new() -> Self {
         Self::default()
     }
 }
 
-impl<'a> Visitor<'a> for DirectiveExtractor<'a> {
-    fn visit_custom_directive(&mut self, data: &DirectiveData<'a>) {
+impl<'a> Visitor<'a> for DirectiveExtractor {
+    fn visit_custom_directive(&mut self, _data: &'a DirectiveData<'a>) {
         self.directives_found += 1;
 
         // Example: If `DirectiveData` had a `raw_text` field, you could do:

@@ -27,7 +27,7 @@ use crate::ast::*;
 /// - `target|]]` -> `("target", None)` (empty display text)
 fn parse_wikilink_inner<'s>(input: &mut &'s str) -> Result<(&'s str, Option<&'s str>)> {
     let piped_inner = seq!(
-        take_until(0.., "|"),
+        take_while(1.., |c| c != '|' && c != ']' && c != '\n' && c != '\r').verify(|s: &str| !s.trim().is_empty()),
         _: "|",
         take_until(0.., "]]"),
     )
@@ -37,9 +37,11 @@ fn parse_wikilink_inner<'s>(input: &mut &'s str) -> Result<(&'s str, Option<&'s 
             Some(display.trim()).filter(|s| !s.is_empty()),
         )
     })
-    .verify(|(target, display)| !target.is_empty() || display.is_some());
+    .verify(|(target, _)| !target.is_empty());
 
-    let simple_inner = take_until(0.., "]]").map(|target: &str| (target.trim(), None));
+    let simple_inner = take_until(1.., "]]")
+        .verify(|target: &str| !target.trim().is_empty() && !target.contains('|'))
+        .map(|target: &str| (target.trim(), None));
 
     alt((piped_inner, simple_inner)).parse_next(input)
 }
@@ -161,7 +163,7 @@ mod tests {
 
     #[test]
     fn test_parse_wikilink_inner_empty_target_simple() {
-        assert_parse_wikilink_inner_ok("]]", "", None);
+        assert_parse_wikilink_inner_err("]]");
     }
 
     #[test]

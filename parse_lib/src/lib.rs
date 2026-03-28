@@ -1,5 +1,13 @@
-#![allow(missing_docs)]
-//! Parsers for Markdown and related elements.
+//! # parse_lib
+//!
+//! A high-performance, non-destructive Markdown parser and transformation library.
+//!
+//! This crate provides tools to parse Markdown into a rich AST, traverse and modify that AST
+//! using the Visitor pattern, and reconstruct Markdown or render it to HTML.
+//!
+//! It is specifically designed to handle custom directives (e.g., `{{#crate name}}`) and
+//! wikilinks (`[[page | display]]`) while maintaining faithful reconstruction of the original
+//! document formatting.
 
 // --- Core & Traits ---
 pub mod ast;

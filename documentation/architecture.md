@@ -1,26 +1,33 @@
 # Architecture
 
-The project is organized as a Rust workspace containing several crates, each with a specific responsibility.
+The project is organized as a Rust workspace optimized for high-performance Markdown processing and transformation.
 
 ## Workspace Crates
 
-### Core Libraries
+### Libraries
 
-- **`core_lib`**: Provides common utilities for file I/O, directory traversal, and text processing.
-- **`directive_lib`**: Defines the model for directives and provides logic for processing them.
-- **`parse_lib`**: A comprehensive Markdown parsing library using the `winnow` parser combinator crate. It handles standard Markdown elements and custom directives.
+- **`parse_lib`**: The central parsing engine.
+  - Built with `winnow` for maximum performance and zero-copy parsing.
+  - Provides a rich AST (Abstract Syntax Tree) representing both standard GFM Markdown and custom extensions (directives, wikilinks).
+  - Implements the Visitor pattern for non-destructive document transformation and analysis.
+  - Includes a `PrettyPrinter` for faithful reconstruction of Markdown from the AST.
 
-### Tools / Binaries
+### Tools
 
-- **`process_directives`**: A CLI tool that uses `directive_lib` to find and replace custom directives in Markdown files.
-- **`inline_links`**: A CLI tool that converts inline links and naked URLs into reference-style links.
-- **`link_checker`**: A CLI tool for verifying external links in Markdown files.
-- **`rust_rate`**: (Work in progress) A tool related to Rust project metrics or rating.
+- **`book_tool`**: A unified CLI that consolidates several previously separate tools.
+  - **Modules**:
+    - `directives`: Handles the expansion of custom template-like directives into standard Markdown.
+    - `links`: Provides high-level link checking (via `AsyncLinkChecker`) and transformation logic.
+    - `refdefs`: Manages Markdown reference-style link definitions, including detection and deletion of unused labels.
+    - `common`: Centralized utilities for atomic file updates, directory traversal, and shared templates.
+- **`rust_rate`**: A specialized tool for crawling GitHub and analyzing Rust crate ecosystems. It operates independently of the document processing pipeline.
 
-## Data Flow
+## Data Flow (Document Processing)
 
-1. **Input**: A directory path is provided to one of the CLI tools.
-2. **Traversal**: `core_lib` walks through the directory, filtering for Markdown files.
-3. **Parsing**: The tool uses `parse_lib` (or regex in some cases) to identify elements of interest (directives, links, etc.) within each file.
-4. **Transformation**: The tool applies the necessary transformations to the content.
-5. **Output**: `core_lib` handles the atomic update of the files on disk if changes were made.
+1. **Discovery**: `book_tool` uses `common::walk` to recursively find Markdown files within target directories.
+2. **Parsing**: `parse_lib::parse_document` transforms raw file content into an AST.
+3. **Transformation/Analysis**: One or more `Visitor` implementations traverse the AST.
+   - For conversion tasks (like `inline-links`), the visitor modifies the tree or builds a new representation.
+   - For analysis tasks (like `link-check`), the visitor extracts data for external validation.
+4. **Reconstruction**: If changes are made, a `PrettyPrinter` or specialized renderer converts the AST back into a UTF-8 string.
+5. **Persistence**: `common::process_text_file` performs an atomic write back to disk, ensuring file integrity.

@@ -37,7 +37,25 @@ impl AsyncLinkChecker {
         }
 
         debug!("Checking {}", url);
-        let result = match self.client.head(url.clone()).send().await {
+        // Try HEAD first, fall back to GET if HEAD fails or returns certain status codes
+        let mut result = self.do_check(&url, true).await;
+        if !result.success {
+            debug!("HEAD failed for {}, trying GET", url);
+            result = self.do_check(&url, false).await;
+        }
+
+        self.cache.insert(url, result.clone()).await;
+        result
+    }
+
+    async fn do_check(&self, url: &Url, use_head: bool) -> UrlCheck {
+        let request = if use_head {
+            self.client.head(url.clone())
+        } else {
+            self.client.get(url.clone())
+        };
+
+        match request.send().await {
             Ok(resp) => UrlCheck {
                 success: resp.status().is_success(),
                 status: Some(resp.status()),
@@ -48,9 +66,6 @@ impl AsyncLinkChecker {
                 status: None,
                 error: Some(e.to_string()),
             },
-        };
-
-        self.cache.insert(url, result.clone()).await;
-        result
+        }
     }
 }

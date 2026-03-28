@@ -2,12 +2,15 @@ use anyhow::Result;
 use parse_lib::visit::Visitor;
 use std::path::PathBuf;
 
+use crate::common::walk::{Scope, walk_directory_and_process_files};
+use crate::common::process_text_file;
+
 pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
-    let scope = core_lib::Scope::default();
+    let scope = Scope::default();
 
     for dir in &directories {
-        core_lib::walk_directory_and_process_files(dir, &scope, |path| {
-            core_lib::process_text_file(
+        walk_directory_and_process_files(dir, &scope, |path| {
+            process_text_file(
                 path,
                 |s| s.contains("http") || s.contains("["),
                 |content| {
@@ -22,7 +25,7 @@ pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
                                 existing_labels: &'a mut std::collections::HashSet<String>,
                             }
                             impl<'a, 'ast> Visitor<'ast> for RefDefCollector<'a> {
-                                fn visit_reference_definition(&mut self, data: &parse_lib::ast::ReferenceDefinitionData<'ast>) {
+                                fn visit_reference_definition(&mut self, data: &'ast parse_lib::ast::ReferenceDefinitionData<'ast>) {
                                     self.existing_url_to_label.insert(data.url.to_string(), data.label.to_string());
                                     self.existing_labels.insert(data.label.to_string());
                                 }
@@ -36,10 +39,7 @@ pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
                             let link_counter = std::rc::Rc::new(std::cell::RefCell::new(1));
 
                             let mut renderer = parse_lib::markdown_renderer::MarkdownRenderer::new(|directive| {
-                                // Standard fallback for directives so they aren't lost
-                                let prefix = if matches!(directive.name, "example" | "crate" | "include") { "#" } else { "" };
-                                let space = if directive.content.is_empty() { "" } else { " " };
-                                format!("{{{{{}{}{}{}}}}}", prefix, directive.name, space, directive.content)
+                                directive.to_string()
                             });
 
                             let inline_existing_url_to_label = std::rc::Rc::clone(&existing_url_to_label);
@@ -99,7 +99,7 @@ pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
                             });
 
                             renderer.visit_document(&doc);
-                            let mut final_output = renderer.markdown;
+                            let mut final_output = std::mem::take(&mut renderer.markdown);
                             drop(renderer);
 
                             let new_map = std::rc::Rc::try_unwrap(new_url_to_label).expect("Rc references still alive").into_inner();

@@ -23,6 +23,12 @@ enum Commands {
         /// Directories to check.
         #[arg(required = true)]
         directories: Vec<PathBuf>,
+        /// Also detect and optionally delete unused reference definitions.
+        #[arg(short, long)]
+        refdefs: bool,
+        /// Delete unused reference definitions if --refdefs is set.
+        #[arg(short, long)]
+        delete: bool,
     },
     /// Convert inline links to reference-style links in Markdown files.
     InlineLinks {
@@ -48,13 +54,6 @@ enum Commands {
         #[arg(short, long, required = true)]
         output: PathBuf,
     },
-    /// Fetch and analyze Rust crate metrics from GitHub, crates.io and lib.rs.
-    // TODO HUMAN review scope
-    RustRate {
-        /// The name of the crate to analyze.
-        #[arg(required = true)]
-        crate_name: String,
-    },
 }
 
 #[tokio::main]
@@ -67,8 +66,8 @@ async fn main() -> Result<()> {
         Commands::Directives { directories } => {
             book_tool::directives::execute(directories.clone())?;
         }
-        Commands::LinkCheck { directories } => {
-            book_tool::link_check::execute(directories.clone()).await?;
+        Commands::LinkCheck { directories, refdefs, delete } => {
+            book_tool::link_check::execute(directories.clone(), *refdefs, *delete).await?;
         }
         Commands::InlineLinks { directories } => {
             book_tool::inline_links::execute(directories.clone())?;
@@ -78,9 +77,6 @@ async fn main() -> Result<()> {
         }
         Commands::ExtractComments { directories, output } => {
             book_tool::extract_comments::execute(directories.clone(), output.clone())?;
-        }
-        Commands::RustRate { crate_name } => {
-            book_tool::rust_rate::execute(crate_name.clone()).await?;
         }
     }
 

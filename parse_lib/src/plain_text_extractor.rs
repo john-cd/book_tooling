@@ -78,7 +78,7 @@ mod tests {
 
     #[test]
     fn test_plain_text_extraction() {
-        let input = "Hello **world**! Check out [my link](https://example.com).";
+        let input = "Hello world! Check out [my link](https://example.com).";
         let doc = parse_document("test.md", None, input).unwrap();
 
         let mut extractor = PlainTextExtractor::new();

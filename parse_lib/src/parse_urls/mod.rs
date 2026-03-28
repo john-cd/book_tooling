@@ -1,10 +1,7 @@
 use winnow::ModalResult;
-use winnow::Result;
 use winnow::Parser;
 use winnow::combinator::alt;
 use winnow::combinator::delimited;
-use winnow::combinator::recognize;
-use winnow::error::ErrMode;
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
 use winnow::token::take_while;
@@ -25,7 +22,7 @@ fn is_valid_url_char(c: char) -> bool {
 }
 
 /// Parses one or more valid URL characters.
-pub(crate) fn parse_url_chars<'s>(input: &mut &'s str) -> Result<&'s str> {
+pub(crate) fn parse_url_chars<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     take_while(1.., is_valid_url_char)
         .verify(|s: &str| !s.is_empty())
         .context(Label("valid URL characters"))
@@ -37,13 +34,12 @@ pub(crate) fn parse_url_chars<'s>(input: &mut &'s str) -> Result<&'s str> {
 
 /// Parses a naked URL (e.g. `https://example.com`) directly from text.
 pub fn parse_naked_url<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
-    let url_text = recognize((
+    let url_text = (
         alt(("https://", "http://")),
         parse_url_chars,
-    ))
+    ).take()
     .context(Label("naked URL"))
-    .parse_next(input)
-    .map_err(ErrMode::Backtrack)?;
+    .parse_next(input)?;
 
     Ok(Element::Autolink(AutolinkData { url: url_text }))
 }
@@ -52,10 +48,10 @@ pub fn parse_naked_url<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
 pub fn parse_autolink<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     let url_text = delimited(
         "<",
-        recognize((
+        (
             alt(("https://", "http://")),
             take_while(0.., |c: char| c != '>' && c != '<' && !c.is_whitespace()),
-        )),
+        ).take(),
         ">",
     )
     .context(Label("autolink"))

@@ -7,11 +7,7 @@ use anyhow::Result;
 use parse_lib::visit::Visitor;
 use std::path::PathBuf;
 
-// TODO: The `core_lib` crate has been merged. Update these imports to point to the
-// correct new modules inside `crate::common`. The module names `walk` and `scope`
-// are best guesses based on the functions used below.
-use crate::common::scope::Scope;
-use crate::common::walk::walk_directory_and_process_files;
+use crate::common::walk::{Scope, walk_directory_and_process_files};
 
 /// Executes the comment extraction process.
 ///
@@ -32,7 +28,7 @@ pub fn execute(directories: Vec<PathBuf>, output: PathBuf) -> Result<()> {
                 extractor.visit_document(&doc);
 
                 for comment in extractor.comments {
-                    all_comments_output.push_str(&format!("File: {}\n<!--{}-->\n\n", path.display(), comment));
+                    all_comments_output += &format!("File: {}\n<!--{}-->\n\n", path.display(), comment);
                 }
             }
             Ok(())

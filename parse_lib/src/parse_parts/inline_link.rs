@@ -71,7 +71,7 @@ mod tests {
 
     #[test]
     fn test_parse_inline_link_simple() {
-        let mut input = "my link";
+        let mut input = "[my link](https://example.com)";
         assert_eq!(
             parse_inline_link.parse_next(&mut input),
             Ok(Element::InlineLink(InlineLinkData { text: "my link", url: "https://example.com", title: None }))
@@ -81,7 +81,7 @@ mod tests {
 
     #[test]
     fn test_parse_inline_link_with_title() {
-        let mut input = "my link";
+        let mut input = "[my link](https://example.com \"A Title\")";
         assert_eq!(
             parse_inline_link.parse_next(&mut input),
             Ok(Element::InlineLink(InlineLinkData { text: "my link", url: "https://example.com", title: Some("A Title") }))

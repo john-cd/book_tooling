@@ -2,12 +2,15 @@ use anyhow::Result;
 use parse_lib::{plain_text_extractor::PlainTextExtractor, visit::Visitor};
 use std::path::PathBuf;
 
+use crate::common::walk::{Scope, walk_directory_and_process_files};
+
 pub fn execute(query: String, directories: Vec<PathBuf>) -> Result<()> {
-    let scope = core_lib::Scope::default();
+    let scope = Scope::default();
     let query_lower = query.to_lowercase();
-    let mut found_matches = false;
+    let mut found_matches_global = false;
 
     for dir in &directories {
+        let mut found_matches = false;
         walk_directory_and_process_files(dir, &scope, |path| {
             let content = std::fs::read_to_string(path)?;
             let filename = path.file_name().unwrap_or_default().to_string_lossy();
@@ -29,9 +32,12 @@ pub fn execute(query: String, directories: Vec<PathBuf>) -> Result<()> {
             }
             Ok(())
         })?;
+        if found_matches {
+            found_matches_global = true;
+        }
     }
 
-    if !found_matches {
+    if !found_matches_global {
         println!("No matches found for '{}'.", query);
     }
     Ok(())

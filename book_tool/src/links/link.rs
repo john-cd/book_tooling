@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use parse_lib::visit::Visitor;
+use parse_lib::visit::{Visitable, Visitor};
 use parse_lib::*;
 use url::Url;
 
@@ -12,36 +12,29 @@ pub fn extract_urls(doc: &Document) -> HashSet<Url> {
     }
 
     impl<'v> Visitor<'v> for UrlCollector<'_> {
-        fn visit_autolink(&mut self, data: &'v AutolinkData) -> std::fmt::Result {
+        fn visit_autolink(&mut self, data: &'v AutolinkData<'v>) {
             if let Ok(url) = Url::parse(data.url) {
                 self.urls.insert(url);
             }
-            Ok(())
         }
-        fn visit_inline_link(&mut self, data: &'v InlineLinkData) -> std::fmt::Result {
+        fn visit_inline_link(&mut self, data: &'v InlineLinkData<'v>) {
             if let Ok(url) = Url::parse(data.url) {
                 self.urls.insert(url);
             }
-            Ok(())
         }
-        fn visit_inline_image(&mut self, data: &'v InlineImageData) -> std::fmt::Result {
+        fn visit_inline_image(&mut self, data: &'v InlineImageData<'v>) {
             if let Ok(url) = Url::parse(data.url) {
                 self.urls.insert(url);
             }
-            Ok(())
         }
-        fn visit_reference_definition(
-            &mut self,
-            data: &'v ReferenceDefinitionData,
-        ) -> std::fmt::Result {
+        fn visit_reference_definition(&mut self, data: &'v ReferenceDefinitionData<'v>) {
             if let Ok(url) = Url::parse(data.url) {
                 self.urls.insert(url);
             }
-            Ok(())
         }
     }
 
     let mut collector = UrlCollector { urls: &mut urls };
-    let _ = doc.accept(&mut collector);
+    doc.accept(&mut collector);
     urls
 }

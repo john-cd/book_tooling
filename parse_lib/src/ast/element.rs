@@ -6,17 +6,25 @@
 //! - Code spans and triple quoted text between ``` and ```.
 //! - Hidden sections: <div class="hidden"> </div>
 
+///! Data structures representing Markdown elements in the AST.
+
 use super::DirectiveData;
 
+/// Data for an autolink (e.g., `<https://example.com>` or `https://example.com`).
 #[derive(Debug, PartialEq, Eq)]
 pub struct AutolinkData<'a> {
-    pub url: &'a str, // The URL of the autolink.
+    /// The URL of the autolink.
+    pub url: &'a str,
 }
 
+/// Data for an inline link (e.g., `[text](url "title")`).
 #[derive(Debug, PartialEq, Eq)]
 pub struct InlineLinkData<'a> {
+    /// The visible text of the link.
     pub text: &'a str,
+    /// The destination URL.
     pub url: &'a str,
+    /// An optional title for the link.
     pub title: Option<&'a str>,
 }
 
@@ -46,10 +54,14 @@ pub struct ReferenceDefinitionData<'a> {
     pub title: Option<&'a str>,
 }
 
+/// Data for a wikilink (e.g., `[[target | display]]`).
 #[derive(Debug, PartialEq, Eq)]
 pub struct WikiLinkData<'a> {
-    pub target: &'a str, // Target page.
+    /// The target page or anchor.
+    pub target: &'a str,
+    /// An optional display text.
     pub display: Option<&'a str>,
+    /// Alphanumeric characters that appear immediately after the closing brackets.
     pub immediately_after: Option<&'a str>,
 }
 
@@ -135,6 +147,7 @@ pub struct StrikethroughData<'a> {
     pub elements: Vec<Element<'a>>,
 }
 
+/// Represents a single Markdown element in the AST.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Element<'a> {
     /// A standalone URL: `http://...` or `https://...`
@@ -218,4 +231,7 @@ pub enum Element<'a> {
 
     /// GFM Table.
     Table(TableData<'a>),
+
+    /// Horizontal Rule.
+    HorizontalRule,
 }

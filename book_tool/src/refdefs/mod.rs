@@ -4,8 +4,8 @@
 use std::collections::HashSet;
 use std::fmt::Write;
 
-use parse_lib::visit::PrettyPrinter;
-use parse_lib::visit::Visitor;
+use parse_lib::visit::pretty_printer::PrettyPrinter;
+use parse_lib::visit::{Visitor, Visitable};
 use parse_lib::*;
 
 /// Find labels that are defined but never used in links or images.
@@ -18,27 +18,24 @@ pub fn find_unused_refdefs(doc: &Document) -> HashSet<String> {
         defined: &'a mut HashSet<String>,
     }
 
-    impl<'v> Visitor<'v> for LabelCollector<'_> {
+    impl<'a> Visitor<'a> for LabelCollector<'_> {
         fn visit_reference_style_link(
             &mut self,
-            link: &'v ReferenceStyleLinkData,
-        ) -> std::fmt::Result {
+            link: &'a ReferenceStyleLinkData<'a>,
+        ) {
             self.used.insert(link.label.to_string());
-            Ok(())
         }
         fn visit_reference_style_image(
             &mut self,
-            img: &'v ReferenceStyleImageData,
-        ) -> std::fmt::Result {
+            img: &'a ReferenceStyleImageData<'a>,
+        ) {
             self.used.insert(img.label.to_string());
-            Ok(())
         }
         fn visit_reference_definition(
             &mut self,
-            refdef: &'v ReferenceDefinitionData,
-        ) -> std::fmt::Result {
+            refdef: &'a ReferenceDefinitionData<'a>,
+        ) {
             self.defined.insert(refdef.label.to_string());
-            Ok(())
         }
     }
 
@@ -46,7 +43,7 @@ pub fn find_unused_refdefs(doc: &Document) -> HashSet<String> {
         used: &mut used_labels,
         defined: &mut defined_labels,
     };
-    let _ = doc.accept(&mut collector);
+    doc.accept(&mut collector);
 
     defined_labels.difference(&used_labels).cloned().collect()
 }
@@ -60,58 +57,57 @@ pub fn delete_unused_refdefs(doc: &Document, unused_labels: &HashSet<String>) ->
         unused: &'a HashSet<String>,
     }
 
-    impl<'v, W: Write> Visitor<'v> for DeletingPrinter<'_, W> {
-        fn visit_autolink(&mut self, data: &'v AutolinkData) -> std::fmt::Result {
+    impl<'a, W: Write + 'a> Visitor<'a> for DeletingPrinter<'a, W> {
+        fn visit_autolink(&mut self, data: &'a AutolinkData<'a>) {
             self.pp.visit_autolink(data)
         }
-        fn visit_inline_link(&mut self, data: &'v InlineLinkData) -> std::fmt::Result {
+        fn visit_inline_link(&mut self, data: &'a InlineLinkData<'a>) {
             self.pp.visit_inline_link(data)
         }
         fn visit_reference_style_link(
             &mut self,
-            data: &'v ReferenceStyleLinkData,
-        ) -> std::fmt::Result {
+            data: &'a ReferenceStyleLinkData<'a>,
+        ) {
             self.pp.visit_reference_style_link(data)
         }
-        fn visit_inline_image(&mut self, data: &'v InlineImageData) -> std::fmt::Result {
+        fn visit_inline_image(&mut self, data: &'a InlineImageData<'a>) {
             self.pp.visit_inline_image(data)
         }
         fn visit_reference_style_image(
             &mut self,
-            data: &'v ReferenceStyleImageData,
-        ) -> std::fmt::Result {
+            data: &'a ReferenceStyleImageData<'a>,
+        ) {
             self.pp.visit_reference_style_image(data)
         }
-        fn visit_wiki_link(&mut self, data: &'v WikiLinkData) -> std::fmt::Result {
-            self.pp.visit_wiki_link(data)
+        fn visit_wikilink(&mut self, data: &'a WikiLinkData<'a>) {
+            self.pp.visit_wikilink(data)
         }
-        fn visit_code_span(&mut self, data: &'v CodeSpanData) -> std::fmt::Result {
+        fn visit_code_span(&mut self, data: &'a CodeSpanData<'a>) {
             self.pp.visit_code_span(data)
         }
-        fn visit_fenced_code_block(&mut self, data: &'v FencedCodeBlockData) -> std::fmt::Result {
+        fn visit_fenced_code_block(&mut self, data: &'a FencedCodeBlockData<'a>) {
             self.pp.visit_fenced_code_block(data)
         }
-        fn visit_hidden_html_div(&mut self, data: &'v HiddenHtmlDivData) -> std::fmt::Result {
+        fn visit_hidden_html_div(&mut self, data: &'a HiddenHtmlDivData<'a>) {
             self.pp.visit_hidden_html_div(data)
         }
-        fn visit_heading(&mut self, data: &'v HeadingData) -> std::fmt::Result {
+        fn visit_heading(&mut self, data: &'a HeadingData<'a>) {
             self.pp.visit_heading(data)
         }
-        fn visit_text(&mut self, data: &'v TextData) -> std::fmt::Result {
+        fn visit_text(&mut self, data: &'a TextData<'a>) {
             self.pp.visit_text(data)
         }
-        fn visit_custom_directive(&mut self, data: &'v DirectiveData) -> std::fmt::Result {
+        fn visit_custom_directive(&mut self, data: &'a DirectiveData<'a>) {
             self.pp.visit_custom_directive(data)
         }
 
         fn visit_reference_definition(
             &mut self,
-            refdef: &'v ReferenceDefinitionData,
-        ) -> std::fmt::Result {
+            refdef: &'a ReferenceDefinitionData<'a>,
+        ) {
             if self.unused.contains(refdef.label) {
                 // To avoid leaving blank lines, we might need a more sophisticated printer,
                 // but for now this removes the definition.
-                Ok(())
             } else {
                 self.pp.visit_reference_definition(refdef)
             }
@@ -122,7 +118,7 @@ pub fn delete_unused_refdefs(doc: &Document, unused_labels: &HashSet<String>) ->
         pp: PrettyPrinter::new(&mut output),
         unused: unused_labels,
     };
-    let _ = doc.accept(&mut printer);
+    doc.accept(&mut printer);
     output
 }
 
