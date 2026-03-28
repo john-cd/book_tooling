@@ -6,5 +6,6 @@
 .git/
 .github/
 .vscode/
+bin/
 target/
 *.log

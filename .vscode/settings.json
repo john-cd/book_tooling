@@ -11,5 +11,6 @@
     "rust-analyzer.imports.preferPrelude": true,
     "bookmarks.keepBookmarksOnLineDelete": false,
     "bookmarks.saveBookmarksInProject": true,
+    "rust-analyzer.initializeStopped": true,
     "telemetry.telemetryLevel": "off"
 }

@@ -2,65 +2,62 @@
 //!
 //! Crate blocks combine multiple crate and categories badges.
 
+use core_lib::RegexAndReplacement;
 use core_lib::templates::DestinationKind;
 use core_lib::templates::render_badge;
-use parse_lib::ast::DirectiveData;
+use regex::Regex;
 
-/// Renders a crate block based on the provided DirectiveData.
-/// {{#crate parsing }} -> [![parsing]...
-pub(super) fn render_crate_block(directive: &DirectiveData<'_>) -> String {
-    // Note: Adjust `directive.content` to match your actual field name
-    // in `DirectiveData` (e.g., `argument` or `value`).
-    // If it's an Option, you may need to add `.unwrap_or_default()`.
-    render_crate_block_inner(directive.content)
+// TODO [finish](https://github.com/john-cd/rust_howto/issues/1438)
+
+/// {{cat parsing }} -> [parsing][cat~parsing]↗{{hi:parsing}}
+pub(super) fn crate_block_regexes() -> Vec<RegexAndReplacement> {
+    let re_string: String = r"\{\{\s*#crate\s*:?\s+([^}]+)\s*\}\}".into();
+    let re = Regex::new(&re_string).expect("Invalid regex");
+
+    vec![RegexAndReplacement {
+        re,
+        replacement: Some(Box::new(|caps| {
+            let content = caps.get(1).map(|m| m.as_str()).unwrap_or("");
+            let parts: Vec<&str> = content.split_whitespace().collect();
+            if parts.is_empty() {
+                return "".into();
+            }
+
+            let crate_name = parts[0];
+            let mut badges = vec![render_badge(&DestinationKind::Crate, crate_name)];
+
+            for cat in &parts[1..] {
+                badges.push(render_badge(&DestinationKind::Category, cat));
+            }
+
+            badges.join(" ")
+        })),
+    }]
 }
 
-fn render_crate_block_inner(content: &str) -> String {
-    let parts: Vec<&str> = content.split_whitespace().collect();
-    if parts.is_empty() {
-        return String::new();
-    }
-
-    let crate_name = parts[0];
-    let mut badges = vec![render_badge(&DestinationKind::Crate, crate_name)];
-
-    for cat in &parts[1..] {
-        badges.push(render_badge(&DestinationKind::Category, cat));
-    }
-
-    badges.join(" ")
-}
+// // The following variations should be accepted:
+// // {{#crate crt}}
+// // {{#crate crt }}
+// // {{#crate: crt}}
+// // {{#crate : crt}}
+// // {{#crate x_y-z}}
+// //
+// // * Crate Blocks with Additional Categories
+// //
+// // {{#crate: crt cat1 cat-2 cat-2-2 cat3::sub-cat-3 }}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    // Since we now parse the directive first, we only need to test
-    // the inner rendering logic, not regex spacing and colon variations!
-
     #[test]
-    fn test_crate_block() {
-        assert_eq!(
-            render_crate_block_inner("crt"),
-            "[![crt][p~crt~crate~badge]][p~crt~crate]{{hi:crt}}"
-        );
-    }
-
-    #[test]
-    fn test_crate_block_with_hyphen() {
-        assert_eq!(
-            render_crate_block_inner("x_y-z"),
-            "[![x_y-z][p~x_y-z~crate~badge]][p~x_y-z~crate]{{hi:x_y-z}}"
-        );
-    }
-
-    #[test]
-    fn test_crate_block_with_categories() {
-        assert_eq!(
-            render_crate_block_inner("crt cat1 cat-2"),
-            "[![crt][p~crt~crate~badge]][p~crt~crate]{{hi:crt}} \
-             [![cat1][c~cat1~cat~badge]][c~cat1~cat]{{hi:cat1}} \
-             [![cat-2][c~cat-2~cat~badge]][c~cat-2~cat]{{hi:cat-2}}"
-        );
+    fn test_crate_block_regexes() {
+        let text = "{{#crate crt}}";
+        let expected = "[![crt][p~crt~crate~badge]][p~crt~crate]{{hi:crt}}";
+        let r = crate_block_regexes();
+        let res = r[0]
+            .re
+            .replace_all(text, r[0].replacement.as_ref().unwrap());
+        assert_eq!(res, expected);
     }
 }

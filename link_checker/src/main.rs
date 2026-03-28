@@ -38,7 +38,7 @@ async fn main() -> anyhow::Result<()> {
             continue;
         }
         let dir = directory.as_path().canonicalize()?;
-        info!("Walking {}", dir.display());
+        println!("Processing {}", dir.display());
 
         let checker = Arc::clone(&link_checker);
         let config = conf.clone();
@@ -57,6 +57,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+
 fn check_links_in_file(
     filepath: &Path,
     conf: &conf::Config,
@@ -72,7 +73,7 @@ fn check_links_in_file(
                 Ok(d) => d,
                 Err(e) => {
                     error!("Failed to parse {}: {}", filepath.display(), e);
-                    return Cow::Owned(content.to_string());
+                    return Cow::Borrowed(content);
                 }
             };
 
@@ -116,10 +117,7 @@ fn check_links_in_file(
                 }
             }
 
-            match current_content {
-                Cow::Owned(s) => Cow::Owned(s),
-                Cow::Borrowed(s) => Cow::Owned(s.to_string()),
-            }
+            current_content
         },
     )?;
 

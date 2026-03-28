@@ -60,40 +60,12 @@ pub struct CodeSpanData<'a> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct FencedCodeBlockData<'a> {
-    pub language: Option<&'a str>,
-    /// Stored as a collection of line slices to support zero-copy nested multi-line blocks.
-    pub lines: Vec<&'a str>,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct ParagraphData<'a> {
-    pub elements: Vec<Element<'a>>,
+    pub content: &'a str,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct HiddenHtmlDivData<'a> {
     pub content: &'a str,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct HtmlCommentData<'a> {
-    pub lines: Vec<&'a str>,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct BlockquoteData<'a> {
-    pub elements: Vec<Element<'a>>,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct ListData<'a> {
-    pub ordered: bool,
-    pub items: Vec<Element<'a>>, // Elements here should strictly be `ListItem`s
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct ListItemData<'a> {
-    pub elements: Vec<Element<'a>>, // Can contain paragraphs, nested lists, etc.
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -118,21 +90,6 @@ pub struct TaskItemData<'a> {
 pub struct TableData<'a> {
     pub header: Vec<&'a str>,
     pub rows: Vec<Vec<&'a str>>,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct StrongData<'a> {
-    pub elements: Vec<Element<'a>>,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct EmphasisData<'a> {
-    pub elements: Vec<Element<'a>>,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct StrikethroughData<'a> {
-    pub elements: Vec<Element<'a>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -178,9 +135,6 @@ pub enum Element<'a> {
     /// <https://rust-lang.github.io/mdBook/format/mdbook.html#html-classes-provided-by-mdbook>
     HiddenHtmlDiv(HiddenHtmlDivData<'a>),
 
-    /// An HTML comment: `<!-- ... -->`.
-    HtmlComment(HtmlCommentData<'a>),
-
     /// A Markdown ATX heading: `# Some Text {#an-anchor}`.
     /// <https://spec.commonmark.org/0.31.2/#atx-headings>
     /// <https://rust-lang.github.io/mdBook/format/markdown.html#heading-attributes>
@@ -188,27 +142,6 @@ pub enum Element<'a> {
 
     /// Plain text that doesn't match other elements.
     Text(TextData<'a>),
-
-    /// A standard paragraph acting as a container for consecutive lines of text.
-    Paragraph(ParagraphData<'a>),
-
-    /// A blockquote containing recursively parsed elements.
-    Blockquote(BlockquoteData<'a>),
-
-    /// A standard Markdown list (ordered or unordered).
-    List(ListData<'a>),
-
-    /// An item inside a Markdown list.
-    ListItem(ListItemData<'a>),
-
-    /// Strong text (bold), usually enclosed in ** or __.
-    Strong(StrongData<'a>),
-
-    /// Emphasized text (italic), usually enclosed in * or _.
-    Emphasis(EmphasisData<'a>),
-
-    /// Strikethrough text, usually enclosed in ~~.
-    Strikethrough(StrikethroughData<'a>),
 
     /// Custom directive, e.g., `{{#crate my_crate}}`.
     CustomDirective(DirectiveData<'a>),

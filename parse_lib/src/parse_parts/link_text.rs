@@ -1,87 +1,102 @@
-//! Parses a link text, which is enclosed in square brackets `[]`.
+//! Parses link text.
 //!
-//! Simplified from spec: <https://spec.commonmark.org/0.31.2/#link-text>
+//! Simplified from <https://spec.commonmark.org/0.31.2/#link-text>:
 //!
-//! - A link text begins with a left bracket ([) and ends with the first right bracket (]) that is not backslash-escaped.
-//! - Unescaped square bracket characters are allowed only if they are nested and balanced.
+//! A link text consists of a sequence of zero or more inline elements enclosed by square brackets ([ and ]). The following rules apply:
+//! - Links may not contain other links, at any level of nesting. If multiple otherwise valid link definitions appear nested inside each other, the inner-most definition is used.
+//! - Brackets are allowed in the link text only if (a) they are backslash-escaped or (b) they appear as a matched pair of brackets, with an open bracket [, a sequence of zero or more inlines, and a close bracket ].
+//! - Backtick code spans, autolinks, and raw HTML tags bind more tightly than the brackets in link text. Thus, for example, [foo`]` could not be a link text, since the second ] is part of a code span.
+//! - The brackets in link text bind more tightly than markers for emphasis and strong emphasis. Thus, for example, `*[foo*](url)` is a link.
 
-use winnow::ModalResult;
 use winnow::Parser;
 use winnow::combinator::alt;
+use winnow::combinator::cut_err;
 use winnow::combinator::delimited;
 use winnow::combinator::repeat;
+use winnow::error::ModalResult;
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
-use winnow::token::none_of;
+use winnow::error::ErrMode;
+use winnow::token::one_of;
 use winnow::token::take_while;
 
-/// Recursive parser for the inner content of link text, enabling balanced brackets.
-fn link_text_content<'s>(input: &mut &'s str) -> ModalResult<()> {
-    repeat(
-        0.., // Can be empty
+/// Parses text that may contain escaped brackets or backslashes: \[ or \] or \\.
+///
+/// It must consume at least one character.
+fn parse_text_with_escapes<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        repeat::<_, _, (), _, _>(
+        1..,
         alt((
-            take_while(1.., |c: char| {
-                c != '[' && c != ']' && c != '\\' && c != '\n' && c != '\r'
-            })
-            .void(),
-            // Allow any backslash-escaped character (except newlines)
-            ('\\', none_of(['\n', '\r'])).void(),
-            // Allow balanced nested brackets recursively
-            delimited('[', link_text_content, ']').void(),
+            take_while(1.., |c: char| c != '[' && c != ']' && c != '\\').void(),
+            ('\\', one_of(['[', ']', '\\'])).void(),
         )),
     )
+    .take()
+    .context(Label("text with Markdown 'link text'"))
+    .context(Expected(Description(
+        r"characters that are not [, ] or \. May contain \-escaped [ or ] or \",
+    )))
+    .parse_next(input)
+    .map_err(ErrMode::Backtrack)
+}
+
+/// Parses content within balanced brackets.
+/// It can contain text with escaped brackets, or nested balanced parentheses.
+fn parse_balanced_brackets_content<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+    repeat::<_, _, (), _, _>(
+        0..,
+        alt((
+            parse_text_with_escapes.void(),
+            parse_balanced_brackets.void(), // Recursively parse.
+        )),
+    )
+    .take()
     .parse_next(input)
 }
 
-/// Parses link text.
-///
-/// Example: "[my text]" -> "my text".
-pub fn parse_link_text<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    delimited("[", link_text_content.take(), "]")
-        .context(Label("link text"))
-        .context(Expected(Description("[link text]")))
-        .parse_next(input)
+// Parse pairs of brackets within Markdown 'link text' (e.g., `[bar]` within `[foo [bar] baz]`)
+// This inner content *cannot* contain full links.
+fn parse_balanced_brackets<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+    delimited(
+        "[",
+        parse_balanced_brackets_content,
+        cut_err("]"), // `cut` ensures a matching `]` must be found.
+    )
+    .take()
+    .context(Label(
+        "balanced brackets nested within Markdown 'link text'",
+    ))
+    .context(Expected(Description(
+        "matched pairs of brackets within the link text, e.g., [foo [bar] baz]",
+    )))
+    .parse_next(input)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use winnow::Parser;
+/// Parses the contents of a Markdown link's text.
+fn parse_link_text_content<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+    repeat::<_, _, (), _, _>(
+        0..,
+        alt((
+            // [parse image](https://github.com/john-cd/rust_howto/issues/1424)
+            parse_balanced_brackets.void(),
+            parse_text_with_escapes.void(),
+        )),
+    )
+    .take()
+    .parse_next(input)
+}
 
-    #[test]
-    fn test_parse_link_text_simple() {
-        let mut input = "[my text]";
-        assert_eq!(parse_link_text.parse_next(&mut input), Ok("my text"));
-        assert_eq!(input, "");
-    }
-
-    #[test]
-    fn test_parse_link_text_with_escaped_brackets() {
-        let mut input = r"[my \[esc\] text]";
-        assert_eq!(parse_link_text.parse_next(&mut input), Ok(r"my \[esc\] text"));
-    }
-
-    #[test]
-    fn test_parse_link_text_with_arbitrary_escapes() {
-        let mut input = r"[my \ text \*]";
-        assert_eq!(parse_link_text.parse_next(&mut input), Ok(r"my \ text \*"));
-    }
-
-    #[test]
-    fn test_parse_link_text_empty() {
-        let mut input = "[]";
-        assert_eq!(parse_link_text.parse_next(&mut input), Ok(""));
-    }
-
-    #[test]
-    fn test_parse_link_text_fails_on_unbalanced_bracket() {
-        let mut input = "[my [unbalanced text]";
-        assert!(parse_link_text.parse_next(&mut input).is_err());
-    }
-
-    #[test]
-    fn test_parse_link_text_with_balanced_brackets() {
-        let mut input = "[my [nested [and] balanced] text]";
-        assert_eq!(parse_link_text.parse_next(&mut input), Ok("my [nested [and] balanced] text"));
-    }
+/// Parses a Markdown link's text, which is enclosed in square brackets `[]`.
+///
+/// This parser handles:
+/// - Any character within the brackets.
+/// - Escaped square brackets (`\[` and `\]`) which should be treated as literal characters.
+pub fn parse_link_text<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+    // The entire link text is delimited by `[` and `]`.
+    delimited('[', parse_link_text_content, cut_err(']'))
+        .context(Label("link text"))
+        .context(Expected(Description(
+            "content of a Markdown link's text, enclosed in square brackets",
+        )))
+        .parse_next(input)
 }

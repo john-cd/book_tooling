@@ -38,31 +38,91 @@
 //! {{!cat mathematics}} -> [![cat~mathematics][cat~mathematics~badge]][cat~mathematics]{{hi:Mathematics}}
 //! {{!cat no-std}} -> [![cat~no-std][cat~no-std~badge]][cat~no-std]{{hi:No standard library}}
 
+#[cfg(test)]
+mod category_links_badges_tests;
+
+use core_lib::RegexAndReplacement;
 use core_lib::templates::DestinationKind;
 use core_lib::templates::render_badge;
 use core_lib::templates::render_link;
-use parse_lib::ast::DirectiveData;
+use regex::Captures;
+use regex::Regex;
 
-/// Renders a link or badge directive.
-pub(super) fn render_link_or_badge(directive: &DirectiveData<'_>) -> String {
-    let is_badge = directive.name.starts_with('!');
-    let kind_str = if is_badge { &directive.name[1..] } else { directive.name };
-    let content = directive.content.trim();
+use super::Directive;
 
+/// Build the Regex for link or badge directives (both for categories and crates).
+pub(super) fn link_or_badge_regexes() -> Vec<RegexAndReplacement> {
+    let re_string: String =
+        r"\{\{\s*(!?)\s*(cat|docs|github|lib\.rs|crates\.io|web|crate)\s*:?\s+([^}]+)\s*\}\}"
+            .into();
+    let re = Regex::new(&re_string).expect("Invalid regex");
+
+    vec![RegexAndReplacement {
+        re,
+        replacement: Some(Box::new(|caps| {
+            let is_badge = caps.get(1).map(|m| m.as_str()) == Some("!");
+            let kind_str = caps.get(2).map(|m| m.as_str()).unwrap_or("");
+            let name = caps.get(3).map(|m| m.as_str()).unwrap_or("");
+
+            let kind = match kind_str {
+                "cat" => DestinationKind::Category,
+                "crate" => DestinationKind::Crate,
+                "docs" => DestinationKind::Docs,
+                "github" => DestinationKind::GithubRepo,
+                "lib.rs" => DestinationKind::LibRs,
+                "crates.io" => DestinationKind::CratesIo,
+                "web" => DestinationKind::Web,
+                _ => return "".into(),
+            };
+
+            if is_badge {
+                render_badge(&kind, name.trim())
+            } else {
+                render_link(&kind, name.trim())
+            }
+        })),
+    }]
+}
+
+/// Extract directive from the Regex captures.
+pub fn extract_directive<'a>(caps: &'a Captures<'a>) -> Directive<'a> {
+    // let whole_matching_string = caps.get(0).map_or("", |m| m.as_str()).to_string();
+    let is_badge = caps.get(1).map(|m| m.as_str()) == Some("!");
+    let kind_str = caps
+        .get(2)
+        .map(|m| m.as_str())
+        .expect("There is always a string.");
+    let name = caps
+        .get(3)
+        .map(|m| m.as_str())
+        .expect("There is always a string.");
+
+    use super::DestinationKind::*;
     let kind = match kind_str {
-        "cat" => DestinationKind::Category,
-        "crate" => DestinationKind::Crate,
-        "docs" => DestinationKind::Docs,
-        "github" => DestinationKind::GithubRepo,
-        "lib.rs" => DestinationKind::LibRs,
-        "crates.io" => DestinationKind::CratesIo,
-        "web" => DestinationKind::Web,
-        _ => return String::new(),
+        "cat" => Category,
+        "crate" => Crate,
+        "docs" => Docs,
+        "github" => GithubRepo,
+        "lib.rs" => LibRs,
+        "crates.io" => CratesIo,
+        "web" => Web,
+        _ => unreachable!(),
     };
 
     if is_badge {
-        render_badge(&kind, content)
+        Directive::Badge {
+            kind,
+            name: name.trim(),
+        }
     } else {
-        render_link(&kind, content)
+        Directive::Link {
+            kind,
+            name: name.trim(),
+        }
     }
 }
+
+// TODO [impl From?](https://github.com/john-cd/rust_howto/issues/1436)
+// impl From<&str> for Directive<'_> {
+//    fn from(i: &str) -> Self {}
+// }

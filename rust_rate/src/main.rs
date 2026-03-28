@@ -5,7 +5,6 @@ mod stats;
 
 use anyhow::Result;
 use crawler::GithubCrawler;
-use futures::future::join_all;
 use patterns::PatternAnalyzer;
 use stats::CrateStats;
 use tracing::info;
@@ -31,25 +30,18 @@ async fn main() -> Result<()> {
         }
     };
 
-    let download_futures = items.iter().take(5).map(|item| {
-        let crawler = &crawler;
-        async move {
-            info!("Processing {} in {}", item.path, item.repository.full_name);
-            crawler.download_content(&item.url).await
-        }
-    });
+    for item in items.iter().take(5) {
+        info!("Processing {} in {}", item.path, item.repository.full_name);
+        if let Ok(content) = crawler.download_content(&item.url).await {
+            stats.process_cargo_toml(&content);
 
-    let results = join_all(download_futures).await;
-
-    for content in results.into_iter().flatten() {
-        stats.process_cargo_toml(&content);
-
-        // If we found a repository, let's try to find a .rs file in it for pattern analysis
-        // This is a simplified example: in a real tool, we would crawl the repo structure.
-        // For now, let's just analyze the Cargo.toml if it were a .rs file just to demonstrate.
-        let patterns = analyzer.analyze_source(&content, "anyhow");
-        for p in patterns {
-            info!("  Found pattern: {}", p);
+            // If we found a repository, let's try to find a .rs file in it for pattern analysis
+            // This is a simplified example: in a real tool, we would crawl the repo structure.
+            // For now, let's just analyze the Cargo.toml if it were a .rs file just to demonstrate.
+            let patterns = analyzer.analyze_source(&content, "anyhow");
+            for p in patterns {
+                info!("  Found pattern: {}", p);
+            }
         }
     }
 

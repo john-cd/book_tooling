@@ -1,24 +1,33 @@
 # TODO
 
-- [ ] P0 finish major refactor: get rid of directive_lib, link_checker
-  - [ ] Merge `directive_lib` into `book_tool`**: Move the implementation from the `directive_lib` crate into the `book_tool::directives` module. do not leave orphan code behind
-  - [ ] Move `process_text_file.rs` to `crate::common`.
-  - [ ] Remove `walk_directory/mod.rs` and update all imports to use `crate::common` instead.
-  - [ ] Update `inline_links`, `link_check`, and `search` modules to use `crate::common` instead of `core_lib`.
-  - [ ] Move `refdefs/fs.rs` file system utilities into `crate::common`.
-  - [ ] move all parsing functionality into parse_lib
-  - [ ] keep `rust_rate` separate from `book_tool`**. make it its own CLI
-  - [ ] review link_checker\src\main.rs and move where needed if needed
-  - [ ] do not leave orphan code behind. add it as modules and notes (possible use / lack of use / duplication) for human review
-- [ ] P1 review codebase for duplicated code
-  - [ ] refactor the list item parsers in `parse_document.rs` to remove the duplicated indentation logic
-  - [ ] Consolidate link verification logic: `verifier/mod.rs`, `inline_links/verifier/mod.rs`, and `links/asynchro.rs` contain duplicate or overlapping link checking code.
-- [ ] P2 add tests everywhere (Added tests for link parts and html renderer)
-- [ ] P2 rewrite parse_lib\README.md
-- [ ] P2 create detailed documentation of all supported directives in root README.md
-- [ ] P2 detailed documentation of available CLI commands in root README.md
-- [ ] update documentation/
+## Suggested Improvements and Fixes
 
-## LATER
+### Core Library (`core_lib`)
 
-- [ ] move code to a develop branch and recreate a clean main branch
+- [x] Add more comprehensive tests for the template system.
+- [x] Implement a more robust `process_text_file` that handles atomic writes more gracefully.
+
+### Parser Library (`parse_lib`)
+
+- [x] Add support for escaped brackets in `parse_link_label`.
+- [ ] Further stabilize Markdown parsing for complex nested structures.
+- [ ] Optimize the non-greedy plain text parser to improve performance on large files.
+
+### Link Checker (`link_checker`)
+
+- [x] Implement detection and removal of unused reference definitions.
+- [x] Add support for concurrent link validation using multiple tasks.
+- [x] Implement a cache for validated URLs to avoid redundant network requests across runs.
+- [x] Add a configuration option to follow redirects or not.
+
+### Inline Link Converter (`inline_links`)
+
+- [x] Improve label generation to avoid all special characters, not just dots.
+- [x] Add support for reconstructing all AST elements in the transformed output.
+- [x] Implement a mechanism to handle conflicts between generated labels and existing ones more intelligently.
+
+### General
+
+- [ ] Improve error reporting with better context in all CLI tools.
+- [x] Add documentation for the new template system.
+- [x] Standardize logging across all crates using `tracing`.
