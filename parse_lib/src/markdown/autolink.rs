@@ -14,7 +14,7 @@ use crate::parse_urls::parse_naked_url;
 pub fn parse_autolink<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     alt((
         parse_angle_brackets.map(|url| Element::Autolink(AutolinkData { url })),
-        parse_naked_url.map(|(url, _kind)| Element::Autolink(AutolinkData { url })),
+        parse_naked_url,
     ))
     .context(Label("autolink"))
     .context(Expected(Description(

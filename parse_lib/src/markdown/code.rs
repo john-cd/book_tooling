@@ -3,8 +3,6 @@ use winnow::Parser;
 use winnow::combinator::delimited;
 use winnow::token::take_until;
 
-use crate::CodeSpanData;
-use crate::FencedCodeBlockData;
 use crate::ast::*;
 
 /// Parses text enclosed in backticks (`).
@@ -22,13 +20,31 @@ pub fn parse_code_span<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
 /// Parses text enclosed in triple backticks (```).
 /// Simplified from <https://spec.commonmark.org/0.31.2/#fenced-code-blocks>
 pub fn parse_fenced_code_block<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
-    delimited(
+    let content = delimited(
         "```",                  // Opening triple backticks.
         take_until(0.., "```"), // Content.
         "```",                  // Closing triple backticks.
     )
-    .map(|content| Element::FencedCodeBlock(FencedCodeBlockData { content }))
-    .parse_next(input)
+    .parse_next(input)?;
+
+    let mut lines_iter = content.split('\n');
+    let first_line = lines_iter.next().unwrap_or("").trim_end_matches('\r');
+    let lang_str = first_line.trim();
+    let language = if lang_str.is_empty() { None } else { Some(lang_str) };
+
+    let mut lines = Vec::new();
+    for line in lines_iter {
+        lines.push(line.trim_end_matches('\r'));
+    }
+
+    if lines.last().is_some_and(|l| l.is_empty()) {
+        lines.pop();
+    }
+
+    Ok(Element::FencedCodeBlock(FencedCodeBlockData {
+        language,
+        lines,
+    }))
 }
 
 #[cfg(test)]
@@ -95,9 +111,10 @@ mod tests {
 
     #[test]
     fn test_parse_fenced_code_block_basic() {
-        let input = "```fn main() {\n    println!(\"Hello\");\n}```";
+        let input = "```rust\nfn main() {\n    println!(\"Hello\");\n}\n```";
         let expected = Element::FencedCodeBlock(FencedCodeBlockData {
-            content: "fn main() {\n    println!(\"Hello\");\n}",
+            language: Some("rust"),
+            lines: vec!["fn main() {", "    println!(\"Hello\");", "}"],
         });
         assert_eq!(
             parse_fenced_code_block.parse_peek(input),
@@ -111,7 +128,7 @@ mod tests {
             parse_fenced_code_block.parse_peek("``````"),
             Ok((
                 "",
-                Element::FencedCodeBlock(FencedCodeBlockData { content: "" })
+                Element::FencedCodeBlock(FencedCodeBlockData { language: None, lines: vec![] })
             ))
         );
     }
@@ -120,7 +137,8 @@ mod tests {
     fn test_parse_fenced_code_block_with_trailing_text() {
         let input = "```rust,editable\nprintln!(\"hi\");\n``` more text";
         let expected = Element::FencedCodeBlock(FencedCodeBlockData {
-            content: "rust,editable\nprintln!(\"hi\");\n",
+            language: Some("rust,editable"),
+            lines: vec!["println!(\"hi\");"],
         });
         assert_eq!(
             parse_fenced_code_block.parse_peek(input),
@@ -142,10 +160,10 @@ mod tests {
     fn test_parse_fenced_code_block_inner_triple_backticks() {
         // `take_until` stops at the *first* closing delimiter.
         assert_eq!(
-            parse_fenced_code_block.parse_peek("```foo ``` bar```"),
+            parse_fenced_code_block.parse_peek("```\nfoo \n``` bar```"),
             Ok((
                 " bar```",
-                Element::FencedCodeBlock(FencedCodeBlockData { content: "foo " })
+                Element::FencedCodeBlock(FencedCodeBlockData { language: None, lines: vec!["foo "] })
             ))
         );
     }
@@ -162,9 +180,10 @@ mod tests {
 
     #[test]
     fn test_parse_fenced_code_block_contains_single_backticks() {
-        let input = "```code with `single` backticks```";
+        let input = "```\ncode with `single` backticks\n```";
         let expected = Element::FencedCodeBlock(FencedCodeBlockData {
-            content: "code with `single` backticks",
+            language: None,
+            lines: vec!["code with `single` backticks"],
         });
         assert_eq!(
             parse_fenced_code_block.parse_peek(input),

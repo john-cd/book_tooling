@@ -1,5 +1,3 @@
-use std::fmt::Result;
-
 use super::Visitor;
 use crate::ast::*;
 
@@ -19,28 +17,25 @@ impl Default for Debugger {
     }
 }
 
-impl Visitor<'_> for Debugger {
-    fn visit_autolink(&mut self, autolink: &AutolinkData) -> Result {
+impl<'a> Visitor<'a> for Debugger {
+    fn visit_autolink(&mut self, autolink: &AutolinkData<'a>) {
         let url = &autolink.url;
         println!("Autolink: <{url}>");
-        Ok(())
     }
 
-    fn visit_inline_link(&mut self, link: &InlineLinkData) -> Result {
+    fn visit_inline_link(&mut self, link: &InlineLinkData<'a>) {
         if let Some(title) = link.title {
             println!("Inline link: [{}]({} \"{title}\")", link.text, link.url);
         } else {
             println!("Inline link: [{}]({})", link.text, link.url);
         }
-        Ok(())
     }
 
-    fn visit_reference_style_link(&mut self, link: &ReferenceStyleLinkData) -> Result {
+    fn visit_reference_style_link(&mut self, link: &ReferenceStyleLinkData<'a>) {
         println!("Reference style link: [{}][{}]", link.text, link.label);
-        Ok(())
     }
 
-    fn visit_inline_image(&mut self, img: &InlineImageData) -> Result {
+    fn visit_inline_image(&mut self, img: &InlineImageData<'a>) {
         if let Some(title) = img.title {
             println!(
                 "Inline image: ![{}]({} \"{title}\")",
@@ -49,18 +44,16 @@ impl Visitor<'_> for Debugger {
         } else {
             println!("Inline image: ![{}]({})", img.image_description, img.url);
         }
-        Ok(())
     }
 
-    fn visit_reference_style_image(&mut self, img: &ReferenceStyleImageData) -> Result {
+    fn visit_reference_style_image(&mut self, img: &ReferenceStyleImageData<'a>) {
         println!(
             "Reference style image: ![{}][{}]",
             img.image_description, img.label
         );
-        Ok(())
     }
 
-    fn visit_reference_definition(&mut self, refdef: &ReferenceDefinitionData) -> Result {
+    fn visit_reference_definition(&mut self, refdef: &ReferenceDefinitionData<'a>) {
         if let Some(title) = refdef.title {
             println!(
                 "Reference definition: [{}]: {} \"{title}\"",
@@ -69,54 +62,46 @@ impl Visitor<'_> for Debugger {
         } else {
             println!("Reference definition: [{}]: {}", refdef.label, refdef.url);
         }
-        Ok(())
     }
 
-    fn visit_wiki_link(&mut self, link: &WikiLinkData) -> Result {
+    fn visit_wikilink(&mut self, link: &WikiLinkData<'a>) {
         let display_text = link.display.unwrap_or(link.target);
         let after_text = link.immediately_after.unwrap_or("");
         println!(
             "Wiki link: [[{} | {display_text}]]{after_text}",
             link.target
         );
-        Ok(())
     }
 
-    fn visit_code_span(&mut self, code_span: &CodeSpanData) -> Result {
+    fn visit_code_span(&mut self, code_span: &CodeSpanData<'a>) {
         println!("Code span: `{}`", code_span.content);
-        Ok(())
     }
 
-    fn visit_fenced_code_block(&mut self, fenced_code_block: &FencedCodeBlockData) -> Result {
-        println!("Fenced code block:\n{}", fenced_code_block.content);
-        Ok(())
+    fn visit_fenced_code_block(&mut self, fenced_code_block: &FencedCodeBlockData<'a>) {
+        println!("Fenced code block with {} lines.", fenced_code_block.lines.len());
     }
 
-    fn visit_hidden_html_div(&mut self, div: &HiddenHtmlDivData) -> Result {
+    fn visit_hidden_html_div(&mut self, div: &HiddenHtmlDivData<'a>) {
         println!(
             "Hidden HTML div: <div class=\"hidden\">{}</div>",
             div.content
         );
-        Ok(())
     }
 
-    fn visit_heading(&mut self, heading: &HeadingData) -> Result {
+    fn visit_heading(&mut self, heading: &HeadingData<'a>) {
         let id_text = heading.id.map_or(String::new(), |id| format!(" {{#{id}}}"));
         if let Some(content) = heading.content {
             println!("Heading {}: {content}{id_text}", heading.level);
         } else {
             println!("Heading {}: (no content){id_text}", heading.level);
         }
-        Ok(())
     }
 
-    fn visit_text(&mut self, text: &TextData) -> Result {
+    fn visit_text(&mut self, text: &TextData<'a>) {
         println!("Text: {}", text.content);
-        Ok(())
     }
 
-    fn visit_custom_directive(&mut self, directive: &DirectiveData) -> Result {
+    fn visit_custom_directive(&mut self, directive: &DirectiveData<'a>) {
         println!("Custom directive: {directive:?}");
-        Ok(())
     }
 }

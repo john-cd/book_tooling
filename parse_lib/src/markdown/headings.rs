@@ -22,7 +22,6 @@ use winnow::error::StrContextValue::*;
 use winnow::stream::Stream;
 use winnow::token::take_while;
 
-use crate::HeadingData;
 use crate::ast::*;
 
 // Identation followed by opening sequence of 1–6 unescaped # characters
