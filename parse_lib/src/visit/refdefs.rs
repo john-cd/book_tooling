@@ -1,6 +1,5 @@
-use std::fmt::Result;
-
 use crate::ast::*;
+use super::Visitable;
 
 /// A visitor that collects reference definitions.
 struct RefDefVisitor<'v>(RefDefManager<'v>);
@@ -11,16 +10,18 @@ impl RefDefVisitor<'_> {
     }
 }
 
-impl<'v> super::Visitor<'v> for RefDefVisitor<'v> {
-    fn visit_reference_definition(&mut self, refdef: &'v ReferenceDefinitionData) -> Result {
+impl<'a> super::Visitor<'a> for RefDefVisitor<'a> {
+    fn visit_reference_definition(&mut self, refdef: &'a ReferenceDefinitionData<'a>) {
         self.0.refdefs.push(refdef);
-        Ok(())
     }
 }
 
-/// A newtype that store a list of reference definitions
-/// and provide useful methods.
+/// Manages a collection of Markdown reference definitions.
+///
+/// It provides methods to identify duplicate labels, duplicate URLs,
+/// and to obtain a deduplicated list of definitions.
 pub struct RefDefManager<'v> {
+    /// The collection of reference definitions.
     pub refdefs: Vec<&'v ReferenceDefinitionData<'v>>,
 }
 
@@ -69,6 +70,6 @@ where
     'a: 'd,
 {
     let mut vis = RefDefVisitor::new();
-    let _ = docs.accept(&mut vis);
+    docs.accept(&mut vis);
     Ok(vis.0)
 }

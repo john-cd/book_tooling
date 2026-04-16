@@ -1,43 +1,39 @@
 [workspace]
-resolver = "3"
+resolver = "3" # 3 is valid
 members = [
-    "core_lib",
-    "directive_lib",
-    "inline_links",
-    "link_checker",
+    "book_tool",
     "parse_lib",
-    "process_directives",
-    "rust_rate",
+    "rust_rate"
 ]
 
 # Default values for packages in the workspace
 [workspace.package]
-version = "0.1.2"
+version = "0.1.3"
 authors = ["John CD"]
 edition = "2024"
 rust-version = "1.86"
-description = " TODO "
-documentation = "https://docs.rs/rust_howto/"
-homepage = "https://john-cd.com/rust_howto/"
-repository = "https://github.com/john-cd/rust_howto/wip/"
-# TODO
-keywords = []
-# TODO
-categories = []
-publish = false
+description = "A collection of Rust-based tools for processing Markdown files, particularly for books and documentation projects."
+documentation = "https://docs.rs/book_tooling/"
+homepage = "https://github.com/john-cd/book_tooling"
+repository = "https://github.com/john-cd/book_tooling"
+keywords = ["markdown", "book", "tooling", "cli", "rust"]
+categories = [
+    "command-line-utilities",
+    "development-tools",
+    "text-processing",
+]
 license = "MIT OR Apache-2.0"
+publish = false
 
 [workspace.dependencies]
 annotate-snippets = "0.12.13"
 anyhow = "1.0.102"
 clap = { version = "4.6.0", features = ["derive"] }
-core_lib = { path = "./core_lib" }
-directive_lib = { path = "./directive_lib" }
 fmt2io = "1.0.0"
 futures = "0.3.32"
 futures-util = "0.3.32"
 memmap2 = "0.9.10"
-moka = { version = "0.12.14", features = ["future"] }
+moka = { version = "0.12.15", features = ["future"] }
 multimap = "0.10.1"
 parse_lib = { path = "./parse_lib" }
 rayon = "1.11.0"
@@ -47,7 +43,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 tempfile = "3.27.0"
 tokio = { version = "1.50.0", features = ["rt-multi-thread", "macros"] }
-toml = "0.9.8"
+toml = "1.1.0"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 url = "2.5.8"
