@@ -8,7 +8,7 @@ mod code;
 mod headings;
 mod images;
 mod links;
-mod refdefs;
+pub mod refdefs;
 mod text;
 
 pub use autolink::*;

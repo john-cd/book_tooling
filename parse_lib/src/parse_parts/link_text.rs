@@ -13,10 +13,10 @@ use winnow::combinator::alt;
 use winnow::combinator::cut_err;
 use winnow::combinator::delimited;
 use winnow::combinator::repeat;
-use winnow::error::ErrMode;
 use winnow::error::ModalResult;
 use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
+use winnow::error::ErrMode;
 use winnow::token::one_of;
 use winnow::token::take_while;
 
@@ -24,7 +24,7 @@ use winnow::token::take_while;
 ///
 /// It must consume at least one character.
 fn parse_text_with_escapes<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    repeat::<_, _, (), _, _>(
+        repeat::<_, _, (), _, _>(
         1..,
         alt((
             take_while(1.., |c: char| c != '[' && c != ']' && c != '\\').void(),

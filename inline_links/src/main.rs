@@ -15,6 +15,7 @@ use std::path::Path;
 
 use clap::Parser;
 use parse_lib::parse_document;
+use tracing::{error, info};
 
 use crate::converter::LinkConverter;
 
@@ -25,10 +26,10 @@ fn main() -> anyhow::Result<()> {
     let scope = core_lib::Scope::default();
     for directory in &args.directories {
         let dir = directory.as_path().canonicalize()?;
-        println!("Processing {}", dir.display());
+        info!("Processing {}", dir.display());
         core_lib::walk_directory_and_process_files(&dir, &scope, convert_links)?;
     }
-    println!("DONE");
+    info!("DONE");
     Ok(())
 }
 
@@ -42,14 +43,14 @@ fn convert_links(filepath: &Path) -> anyhow::Result<()> {
             let doc = match parse_document(&filename, Some(filepath), content) {
                 Ok(d) => d,
                 Err(e) => {
-                    eprintln!("Failed to parse {}: {}", filepath.display(), e);
+                    error!("Failed to parse {}: {}", filepath.display(), e);
                     return Cow::Borrowed(content);
                 }
             };
 
             let mut converter = LinkConverter::new();
             if let Err(e) = doc.accept(&mut converter) {
-                eprintln!("Failed to transform {}: {}", filepath.display(), e);
+                error!("Failed to transform {}: {}", filepath.display(), e);
                 return Cow::Borrowed(content);
             }
 
