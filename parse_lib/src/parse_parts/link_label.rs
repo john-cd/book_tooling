@@ -35,14 +35,15 @@ pub fn parse_link_label<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
         )),
     )
     .take()
-    .verify(|s: &str| !s.trim().is_empty() && s.chars().count() <= 999);
+    .verify(|s: &str| !s.trim().is_empty() && s.len() <= 999);
 
-    delimited("[", label_content, "]")
+    let mut parser = delimited("[", label_content, "]")
         .context(Label("link label"))
         .context(Expected(Description(
             "[my label]. Max 999 chars. No newline allowed.",
-        )))
-        .parse_next(input)
+        )));
+
+    parser.parse_next(input)
 }
 
 #[cfg(test)]
