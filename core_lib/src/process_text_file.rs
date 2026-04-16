@@ -1,11 +1,9 @@
 use std::borrow::Cow;
 use std::fs::File;
-use std::io::Read;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::Path;
 
 use anyhow::Result;
-use tempfile::NamedTempFile;
 
 /// Atomically process a text file.
 ///
@@ -22,7 +20,6 @@ where
     Trans: FnOnce(&str) -> Cow<'_, str>,
 {
     let filepath = filepath.as_ref();
-
     // Read the file into memory.
     let mut file = File::open(filepath)?;
     let size = file.metadata()?.len() as usize;
@@ -32,12 +29,17 @@ where
 
     if !original.is_empty() && should_process(&original) {
         let updated: Cow<'_, str> = transform(&original);
-
+        // TODO
+        // if  updated.is_empty() {
+        //
+        //     return Ok(());
+        // }
         if updated != original {
-            let parent = filepath.parent().unwrap_or_else(|| Path::new("."));
-            let mut temp_file = NamedTempFile::new_in(parent)?;
+            let temp_filepath = filepath.with_extension("tmp");
+            let mut temp_file = File::create(&temp_filepath)?;
             temp_file.write_all(updated.as_bytes())?;
-            temp_file.persist(filepath)?;
+            // Renames a file or directory to a new name, replacing the original file if it already exists.
+            std::fs::rename(&temp_filepath, filepath)?;
         }
     }
     Ok(())
@@ -46,7 +48,6 @@ where
 #[cfg(test)]
 mod tests {
     use std::fs;
-
     use tempfile::tempdir;
 
     use super::*;

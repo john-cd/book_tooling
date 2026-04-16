@@ -859,6 +859,7 @@ dependencies = [
  "clap",
  "core_lib",
  "parse_lib",
+ "tracing",
  "tracing-subscriber",
  "url",
 ]

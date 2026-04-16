@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 //! Parsers for Markdown and related elements.
 //!
 //! The parsers do not cover all corner cases of the CommonMark spec, just what we need.
