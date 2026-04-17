@@ -5,8 +5,8 @@ use std::path::PathBuf;
 use anyhow::Result;
 use parse_lib::visit::Visitor;
 
-use crate::common::walk::Scope;
-use crate::common::walk::walk_parsed_markdown_files;
+use crate::common::Scope;
+use crate::common::walk_parsed_markdown_files;
 
 /// Scans the provided directories and writes all discovered HTML comments to `output`.
 ///

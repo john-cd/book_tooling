@@ -3,9 +3,9 @@
 use parse_lib::ast::DestinationKind as AstDestinationKind;
 use parse_lib::ast::DirectiveData;
 
-use crate::common::templates::DestinationKind;
-use crate::common::templates::render_badge;
-use crate::common::templates::render_link;
+use crate::common::DestinationKind;
+use crate::common::render_badge;
+use crate::common::render_link;
 
 /// Renders a link or badge directive.
 pub(super) fn render_link_or_badge(directive: &DirectiveData<'_>) -> String {

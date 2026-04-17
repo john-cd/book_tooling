@@ -6,8 +6,8 @@ use anyhow::Result;
 use parse_lib::plain_text_extractor::PlainTextExtractor;
 use parse_lib::visit::Visitor;
 
-use crate::common::walk::Scope;
-use crate::common::walk::walk_parsed_markdown_files;
+use crate::common::Scope;
+use crate::common::walk_parsed_markdown_files;
 
 /// Searches Markdown files using plain-text extraction and prints contextual snippets.
 ///

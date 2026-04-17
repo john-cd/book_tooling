@@ -4,7 +4,7 @@ mod crate_blocks;
 use crate_blocks::*;
 
 /// Directive-processing configuration types.
-pub mod conf;
+mod conf;
 pub use conf::*;
 
 mod links_or_badges;
@@ -16,9 +16,9 @@ use std::path::PathBuf;
 use anyhow::Result;
 use examples::*;
 
+use crate::common::Scope;
 use crate::common::process_parsed_markdown_file;
-use crate::common::walk::Scope;
-use crate::common::walk::walk_directories_and_process_files;
+use crate::common::walk_directories_and_process_files;
 
 /// Processes directives in all configured Markdown files under the given directories.
 ///

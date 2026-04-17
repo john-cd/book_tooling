@@ -1,13 +1,17 @@
 //! AST visitor traits and helper visitors for traversing Markdown documents.
 
 /// Debug-print visitor implementations.
-pub mod debugger;
+mod debugger;
 /// I/O-oriented helpers for visitor-based workflows.
-pub mod io;
+mod io;
 /// Markdown reconstruction visitor implementations.
-pub mod pretty_printer;
+mod pretty_printer;
 /// Reference-definition analysis visitors.
-pub mod refdefs;
+mod refdefs;
+
+pub use debugger::*;
+pub use pretty_printer::*;
+pub use refdefs::*;
 
 use crate::Document;
 use crate::Documents;

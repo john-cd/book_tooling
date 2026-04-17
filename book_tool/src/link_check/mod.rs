@@ -11,8 +11,8 @@ use parse_lib::ast::ReferenceDefinitionData;
 use parse_lib::visit::Visitor;
 use url::Url;
 
-use crate::common::walk::Scope;
-use crate::common::walk::walk_parsed_markdown_files;
+use crate::common::Scope;
+use crate::common::walk_parsed_markdown_files;
 use crate::links::AsyncLinkChecker;
 
 fn collect_active_external_links(

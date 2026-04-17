@@ -1,11 +1,11 @@
 //! Low-level link conversion, extraction, and verification helpers.
 
 /// Asynchronous URL verification utilities.
-pub mod asynchro;
+mod asynchro;
 /// Inline-link conversion utilities.
-pub mod convert;
+mod convert;
 /// AST-based URL extraction helpers.
-pub mod link;
+mod link;
 
 pub use asynchro::*;
 pub use convert::*;

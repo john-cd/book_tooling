@@ -8,9 +8,12 @@ use anyhow::Context;
 use anyhow::Result;
 
 /// Markdown rendering helpers shared by directive processing and other workflows.
-pub mod templates;
+mod templates;
 /// Directory traversal helpers shared by file-oriented commands.
-pub mod walk;
+mod walk;
+
+pub use templates::*;
+pub use walk::*;
 
 /// Reads a UTF-8 text file, optionally transforms it, and writes changes back atomically.
 ///
