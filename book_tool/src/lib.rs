@@ -4,7 +4,6 @@
 //! The folder + mod.rs module structure has been kept intact.
 
 pub mod common;
-pub mod converter;
 pub mod directives;
 pub mod extract_comments;
 pub mod inline_links;
