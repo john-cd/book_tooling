@@ -47,3 +47,33 @@ where
 
     Ok(())
 }
+
+/// Reads a UTF-8 Markdown file, parses it, and writes a transformed version atomically.
+///
+/// Parse failures are delegated to `on_parse_error` and leave the original file unchanged.
+pub fn process_parsed_markdown_file<P, C, T, E>(
+    path: P,
+    should_process: C,
+    transform: T,
+    on_parse_error: E,
+) -> Result<()>
+where
+    P: AsRef<Path>,
+    C: Fn(&str) -> bool,
+    T: for<'input> FnOnce(&Path, &parse_lib::Document<'input>) -> Cow<'input, str>,
+    E: FnOnce(&Path, &anyhow::Error),
+{
+    let path = path.as_ref();
+
+    process_text_file(
+        path,
+        should_process,
+        |content| match parse_lib::parse_document("file", None, content) {
+            Ok(doc) => transform(path, &doc),
+            Err(error) => {
+                on_parse_error(path, &error);
+                Cow::Borrowed(content)
+            }
+        },
+    )
+}

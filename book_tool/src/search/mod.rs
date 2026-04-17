@@ -7,7 +7,7 @@ use parse_lib::plain_text_extractor::PlainTextExtractor;
 use parse_lib::visit::Visitor;
 
 use crate::common::walk::Scope;
-use crate::common::walk::walk_directory_and_process_files;
+use crate::common::walk::walk_parsed_markdown_files;
 
 /// Searches Markdown files using plain-text extraction and prints contextual snippets.
 ///
@@ -20,12 +20,12 @@ pub fn execute(query: String, directories: Vec<PathBuf>) -> Result<()> {
 
     for dir in &directories {
         let mut found_matches = false;
-        walk_directory_and_process_files(dir, &scope, |path| {
-            let content = std::fs::read_to_string(path)?;
-            let filename = path.file_name().unwrap_or_default().to_string_lossy();
-            if let Ok(doc) = parse_lib::parse_document(&filename, Some(path), &content) {
+        walk_parsed_markdown_files(
+            [dir],
+            &scope,
+            |path, doc| {
                 let mut extractor = PlainTextExtractor::new();
-                extractor.visit_document(&doc);
+                extractor.visit_document(doc);
 
                 let plain_text = extractor.text.to_lowercase();
                 if let Some(index) = plain_text.find(&query_lower) {
@@ -38,9 +38,12 @@ pub fn execute(query: String, directories: Vec<PathBuf>) -> Result<()> {
 
                     println!("📄 {}: ...{}...", path.display(), snippet.trim());
                 }
-            }
-            Ok(())
-        })?;
+
+                Ok(())
+            },
+            |_path, _error| {},
+        )?;
+
         if found_matches {
             found_matches_global = true;
         }

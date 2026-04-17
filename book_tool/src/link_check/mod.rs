@@ -12,7 +12,7 @@ use parse_lib::visit::Visitor;
 use url::Url;
 
 use crate::common::walk::Scope;
-use crate::common::walk::walk_directory_and_process_files;
+use crate::common::walk::walk_parsed_markdown_files;
 use crate::links::AsyncLinkChecker;
 
 fn collect_active_external_links(
@@ -81,33 +81,33 @@ pub async fn execute(
 
     let scope = Scope::default();
 
-    for dir in &directories {
-        walk_directory_and_process_files(dir, &scope, |path| {
-            let content = std::fs::read_to_string(path)?;
-            let filename = path.file_name().unwrap_or_default().to_string_lossy();
-            if let Ok(doc) = parse_lib::parse_document(&filename, Some(path), &content) {
-                let unused = check_refdefs.then(|| crate::refdefs::find_unused_refdefs(&doc));
+    walk_parsed_markdown_files(
+        &directories,
+        &scope,
+        |path, doc| {
+            let unused = check_refdefs.then(|| crate::refdefs::find_unused_refdefs(doc));
 
-                if check_refdefs {
-                    let unused = unused.as_ref().expect("unused refdefs should be available");
-                    if !unused.is_empty() {
-                        tracing::info!(
-                            "Found {} unused refdefs in {}",
-                            unused.len(),
-                            path.display()
-                        );
-                        if delete_unused {
-                            let new_content = crate::refdefs::delete_unused_refdefs(&doc, unused);
-                            std::fs::write(path, new_content)?;
-                        }
+            if check_refdefs {
+                let unused = unused.as_ref().expect("unused refdefs should be available");
+                if !unused.is_empty() {
+                    tracing::info!(
+                        "Found {} unused refdefs in {}",
+                        unused.len(),
+                        path.display()
+                    );
+                    if delete_unused {
+                        let new_content = crate::refdefs::delete_unused_refdefs(doc, unused);
+                        std::fs::write(path, new_content)?;
                     }
                 }
-
-                all_links.extend(collect_active_external_links(&doc, unused.as_ref()));
             }
+
+            all_links.extend(collect_active_external_links(doc, unused.as_ref()));
+
             Ok(())
-        })?;
-    }
+        },
+        |_path, _error| {},
+    )?;
 
     println!(
         "Found {} unique external links. Verifying...",

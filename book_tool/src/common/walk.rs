@@ -64,3 +64,49 @@ where
 
     Ok(())
 }
+
+/// Walks multiple directories and processes all files matching the provided scope.
+pub fn walk_directories_and_process_files<I, F>(
+    directories: I,
+    scope: &Scope,
+    mut f: F,
+) -> Result<()>
+where
+    I: IntoIterator,
+    I::Item: AsRef<Path>,
+    F: FnMut(&Path) -> Result<()> + Sync + Send,
+{
+    for directory in directories {
+        walk_directory_and_process_files(directory.as_ref(), scope, &mut f)?;
+    }
+
+    Ok(())
+}
+
+/// Walks Markdown files, parses them, and invokes `on_document` for each successfully parsed AST.
+///
+/// Parse failures are delegated to `on_parse_error` and do not stop the directory walk.
+pub fn walk_parsed_markdown_files<I, F, E>(
+    directories: I,
+    scope: &Scope,
+    mut on_document: F,
+    mut on_parse_error: E,
+) -> Result<()>
+where
+    I: IntoIterator,
+    I::Item: AsRef<Path>,
+    F: for<'input> FnMut(&Path, &parse_lib::Document<'input>) -> Result<()> + Sync + Send,
+    E: FnMut(&Path, &anyhow::Error) + Sync + Send,
+{
+    walk_directories_and_process_files(directories, scope, |path| {
+        let content = std::fs::read_to_string(path)?;
+
+        match parse_lib::parse_document("file", None, &content) {
+            Ok(doc) => on_document(path, &doc),
+            Err(error) => {
+                on_parse_error(path, &error);
+                Ok(())
+            }
+        }
+    })
+}
