@@ -1,24 +1,22 @@
 # TODO
 
-- [ ] P0 finish major refactor: get rid of directive_lib, link_checker
-  - [ ] Merge `directive_lib` into `book_tool`**: Move the implementation from the `directive_lib` crate into the `book_tool::directives` module. do not leave orphan code behind
-  - [ ] Move `process_text_file.rs` to `crate::common`.
-  - [ ] Remove `walk_directory/mod.rs` and update all imports to use `crate::common` instead.
-  - [ ] Update `inline_links`, `link_check`, and `search` modules to use `crate::common` instead of `core_lib`.
-  - [ ] Move `refdefs/fs.rs` file system utilities into `crate::common`.
-  - [ ] move all parsing functionality into parse_lib
-  - [ ] keep `rust_rate` separate from `book_tool`**. make it its own CLI
-  - [ ] review link_checker\src\main.rs and move where needed if needed
-  - [ ] do not leave orphan code behind. add it as modules and notes (possible use / lack of use / duplication) for human review
-- [ ] P1 review codebase for duplicated code
-  - [x] refactor the list item parsers in `parse_document.rs` to remove the duplicated indentation logic
-  - [ ] Consolidate link verification logic: `verifier/mod.rs`, `inline_links/verifier/mod.rs`, and `links/asynchro.rs` contain duplicate or overlapping link checking code.
-- [x] P2 add tests everywhere (Added tests for link parts and html renderer)
-- [ ] P2 rewrite parse_lib\README.md
-- [ ] P2 create detailed documentation of all supported directives in root README.md
-- [ ] P2 detailed documentation of available CLI commands in root README.md
-- [ ] update documentation/
+- [ ] P0 define one parser boundary in `parse_lib`
+- [ ] P0 stop mixing `markdown::*` and `parse_parts::*` entry points in `parse_document.rs`; pick one public surface and keep the lower-level helpers internal.
+- [ ] P0 keep exactly one link-conversion implementation
+- [ ] P0 if link conversion should be reusable beyond the CLI command, extract it from `book_tool::inline_links` into a shared module instead of letting orphan converters reappear.
+- [ ] P0 consolidate link verification around `book_tool::links`
+- [ ] P0 fold any retry, rate-limit, and batching behavior into the active checker instead of keeping alternate verifier implementations.
+- [ ] P1 make `link_check` actually concurrent
+- [ ] P1 `AsyncLinkChecker` is async, but `link_check::execute` still awaits URLs one at a time; batch checks so network I/O is parallelized.
+- [ ] P1 reduce repeated file-processing orchestration in CLI commands
+- [ ] P1 `directives`, `inline_links`, `link_check`, and `extract_comments` all rebuild similar walk/read/parse/write flow; extract the common command pipeline where it improves clarity.
+- [ ] P1 add a lightweight repo hygiene check for orphan source files
+- [ ] P1 refactors have left uncompiled `src/**/*.rs` files behind before; add a check or documented review step so the filesystem and module tree stay aligned.
+- [ ] P2 expand CLI-level integration coverage
+- [ ] P2 add end-to-end tests for `inline-links`, `link-check --refdefs --delete`, and directive expansion over temporary fixture directories.
+- [ ] P2 refresh docs for the current workspace shape
+- [ ] P2 update `README.md`, `documentation/architecture.md`, and `parse_lib/README.md` to match the consolidated crates and command behavior.
 
 ## LATER
 
-- [ ] move code to a develop branch and recreate a clean main branch
+- [ ] revisit branch strategy once the refactor backlog is smaller
