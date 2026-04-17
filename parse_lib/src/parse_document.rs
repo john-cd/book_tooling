@@ -85,7 +85,7 @@ fn parse_inline_sequence<'a>(input: &mut &'a str) -> ModalResult<Vec<Element<'a>
 }
 
 /// Skip empty lines in a slice of lines.
-fn parse_empty_lines<'a, 'b>(input: &mut &'b [&'a str]) -> ModalResult<()> {
+fn parse_empty_lines(input: &mut &[&str]) -> ModalResult<()> {
     winnow::token::take_while(1.., |line: &str| line.trim().is_empty())
         .void()
         .parse_next(input)
@@ -177,19 +177,17 @@ fn parse_fenced_code_block_from_lines<'a, 'b>(
     }))
 }
 
-fn parse_indented_code_block_from_lines<'a, 'b>(
-    input: &mut &'b [&'a str],
-) -> ModalResult<Element<'a>> {
+fn parse_indented_code_block_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Element<'a>> {
     let backup = *input;
     let mut content_lines = Vec::new();
     let mut last_non_empty = 0;
 
     for (i, line) in backup.iter().enumerate() {
-        if line.starts_with("    ") {
-            content_lines.push(&line[4..]);
+        if let Some(stripped) = line.strip_prefix("    ") {
+            content_lines.push(stripped);
             last_non_empty = i + 1;
-        } else if line.starts_with('\t') {
-            content_lines.push(&line[1..]);
+        } else if let Some(stripped) = line.strip_prefix('\t') {
+            content_lines.push(stripped);
             last_non_empty = i + 1;
         } else if line.trim().is_empty() {
             content_lines.push("");
@@ -211,7 +209,7 @@ fn parse_indented_code_block_from_lines<'a, 'b>(
     }))
 }
 
-fn parse_html_comment_from_lines<'a, 'b>(input: &mut &'b [&'a str]) -> ModalResult<Element<'a>> {
+fn parse_html_comment_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Element<'a>> {
     let backup = *input;
     let mut content_lines = Vec::new();
     let mut found_end = false;
@@ -301,9 +299,7 @@ where
     }))
 }
 
-fn parse_unordered_list_item_from_lines<'a, 'b>(
-    input: &mut &'b [&'a str],
-) -> ModalResult<Element<'a>> {
+fn parse_unordered_list_item_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Element<'a>> {
     parse_list_item_from_lines_generic(input, |trimmed| {
         if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
             Some(2)
@@ -313,7 +309,7 @@ fn parse_unordered_list_item_from_lines<'a, 'b>(
     })
 }
 
-fn parse_unordered_list_from_lines<'a, 'b>(input: &mut &'b [&'a str]) -> ModalResult<Element<'a>> {
+fn parse_unordered_list_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Element<'a>> {
     let items = repeat(1.., parse_unordered_list_item_from_lines).parse_next(input)?;
     Ok(Element::List(ListData {
         ordered: false,
@@ -321,9 +317,7 @@ fn parse_unordered_list_from_lines<'a, 'b>(input: &mut &'b [&'a str]) -> ModalRe
     }))
 }
 
-fn parse_ordered_list_item_from_lines<'a, 'b>(
-    input: &mut &'b [&'a str],
-) -> ModalResult<Element<'a>> {
+fn parse_ordered_list_item_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Element<'a>> {
     parse_list_item_from_lines_generic(input, |trimmed| {
         let marker_len = trimmed.chars().take_while(|c| c.is_ascii_digit()).count();
         if marker_len > 0
@@ -336,7 +330,7 @@ fn parse_ordered_list_item_from_lines<'a, 'b>(
     })
 }
 
-fn parse_ordered_list_from_lines<'a, 'b>(input: &mut &'b [&'a str]) -> ModalResult<Element<'a>> {
+fn parse_ordered_list_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Element<'a>> {
     let items = repeat(1.., parse_ordered_list_item_from_lines).parse_next(input)?;
     Ok(Element::List(ListData {
         ordered: true,
@@ -514,13 +508,13 @@ fn parse_indented_code_block<'a>(input: &mut &'a str) -> ModalResult<Element<'a>
 
     for line_with_ending in backup.split_inclusive('\n') {
         let line = line_with_ending.trim_end_matches(['\n', '\r']);
-        if line.starts_with("    ") {
-            content_lines.push(&line[4..]);
+        if let Some(stripped) = line.strip_prefix("    ") {
+            content_lines.push(stripped);
             current_bytes += line_with_ending.len();
             last_non_empty = content_lines.len();
             bytes_to_consume = current_bytes;
-        } else if line.starts_with('\t') {
-            content_lines.push(&line[1..]);
+        } else if let Some(stripped) = line.strip_prefix('\t') {
+            content_lines.push(stripped);
             current_bytes += line_with_ending.len();
             last_non_empty = content_lines.len();
             bytes_to_consume = current_bytes;
@@ -578,7 +572,7 @@ where
 {
     let inner_str = inner_parser
         .parse_next(input)
-        .map_err(|e| winnow::error::ErrMode::Backtrack(e))?;
+        .map_err(winnow::error::ErrMode::Backtrack)?;
     let mut inner_ref = inner_str;
     let elements = parse_inline_sequence
         .parse_next(&mut inner_ref)

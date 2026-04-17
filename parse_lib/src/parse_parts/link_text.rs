@@ -16,7 +16,7 @@ use winnow::token::none_of;
 use winnow::token::take_while;
 
 /// Recursive parser for the inner content of link text, enabling balanced brackets.
-fn link_text_content<'s>(input: &mut &'s str) -> ModalResult<()> {
+fn link_text_content(input: &mut &str) -> ModalResult<()> {
     repeat(
         0.., // Can be empty
         alt((

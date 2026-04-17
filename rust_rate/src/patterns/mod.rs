@@ -6,6 +6,12 @@ pub struct PatternAnalyzer {
     patterns: HashMap<String, Regex>,
 }
 
+impl Default for PatternAnalyzer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PatternAnalyzer {
     pub fn new() -> Self {
         let mut patterns = HashMap::new();
