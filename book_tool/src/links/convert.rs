@@ -63,8 +63,6 @@ pub fn convert_inline_links_to_reference_definitions(
     let mut markdown = std::mem::take(&mut renderer.markdown);
     drop(renderer);
 
-    let registry = std::rc::Rc::try_unwrap(registry)
-        .expect("inline-link conversion state should not outlive rendering");
     let stats = registry.finish(&mut markdown);
 
     tracing::debug!(
@@ -91,7 +89,6 @@ impl<'a, 'ast> Visitor<'ast> for ExistingRefDefCollector<'a> {
     }
 }
 
-#[derive(Debug)]
 struct LabelRegistry {
     existing_url_to_label: HashMap<String, String>,
     labels_in_use: RefCell<HashSet<String>>,
@@ -191,7 +188,7 @@ impl LabelRegistry {
         }
     }
 
-    fn finish(self, markdown: &mut String) -> InlineLinkConversionStats {
+    fn finish(&self, markdown: &mut String) -> InlineLinkConversionStats {
         let mut stats = InlineLinkConversionStats {
             existing_reference_definitions: self.existing_url_to_label.len(),
             reused_reference_definitions: self.reused_reference_definitions.get(),
@@ -199,12 +196,12 @@ impl LabelRegistry {
             preserved_issue_links: self.preserved_issue_links.get(),
         };
 
-        let new_url_to_label = self.new_url_to_label.into_inner();
+        let new_url_to_label = self.new_url_to_label.borrow();
         if !new_url_to_label.is_empty() {
             markdown.push('\n');
 
             let mut sorted_refdefs: Vec<_> = new_url_to_label
-                .into_iter()
+                .iter()
                 .map(|(url, label)| (label.parse::<usize>().unwrap_or(0), label, url))
                 .collect();
             sorted_refdefs.sort_by_key(|entry| entry.0);

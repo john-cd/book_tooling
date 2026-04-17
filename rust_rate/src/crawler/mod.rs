@@ -39,7 +39,7 @@ impl GithubCrawler {
     /// Creates a crawler using an optional GitHub personal access token.
     ///
     /// Passing a token increases the GitHub API rate limit available to the crawler.
-    pub fn new(token: Option<String>) -> Self {
+    pub fn new(token: Option<String>) -> Result<Self> {
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert(
             reqwest::header::USER_AGENT,
@@ -49,14 +49,18 @@ impl GithubCrawler {
             if !t.is_empty() {
                 headers.insert(
                     reqwest::header::AUTHORIZATION,
-                    reqwest::header::HeaderValue::from_str(&format!("token {}", t)).unwrap(),
+                    reqwest::header::HeaderValue::from_str(&format!("token {}", t))
+                        .context("Failed to build GitHub authorization header")?,
                 );
             }
         }
 
-        let client = Client::builder().default_headers(headers).build().unwrap();
+        let client = Client::builder()
+            .default_headers(headers)
+            .build()
+            .context("Failed to build GitHub crawler HTTP client")?;
 
-        Self { client }
+        Ok(Self { client })
     }
 
     fn build_search_url(&self, query: &str) -> String {
@@ -128,7 +132,7 @@ mod tests {
 
     #[test]
     fn test_build_search_url_encoding() {
-        let crawler = GithubCrawler::new(None);
+        let crawler = GithubCrawler::new(None).expect("create crawler");
         let query = "anyhow&sort=stars";
         let url = crawler.build_search_url(query);
         // Currently, it just interpolates, so it will contain the raw '&' and '='
@@ -138,6 +142,15 @@ mod tests {
                 || url.contains("q=anyhow%26sort%3Dstars%20filename:Cargo.toml"),
             "URL should have encoded query parameters. Got: {}",
             url
+        );
+    }
+
+    #[test]
+    fn test_new_rejects_invalid_token() {
+        let result = GithubCrawler::new(Some("bad\nvalue".to_string()));
+        assert!(
+            result.is_err(),
+            "crawler should reject invalid header values"
         );
     }
 }
