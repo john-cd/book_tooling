@@ -65,7 +65,9 @@ mod tests {
     #[test]
     fn test_markdown_renderer_text() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
-        renderer.visit_element(&Element::Text(TextData { content: "Hello, world!" }));
+        renderer.visit_element(&Element::Text(TextData {
+            content: "Hello, world!",
+        }));
         assert_eq!(renderer.markdown, "Hello, world!");
     }
 
@@ -93,8 +95,8 @@ mod tests {
 
     #[test]
     fn test_markdown_renderer_wikilink_resolver() {
-        let mut renderer = MarkdownRenderer::new(|_| String::new())
-            .with_wikilink_resolver(|data| {
+        let mut renderer =
+            MarkdownRenderer::new(|_| String::new()).with_wikilink_resolver(|data| {
                 let display = data.display.unwrap_or(data.target);
                 let target = data.target.replace(' ', "-");
                 format!("[{}][{}]", display, target)
@@ -132,7 +134,10 @@ mod tests {
             language: Some("rust"),
             lines: vec!["fn main() {", "    println!(\"Hello\");", "}"],
         }));
-        assert_eq!(renderer.markdown, "```rust\nfn main() {\n    println!(\"Hello\");\n}\n```\n");
+        assert_eq!(
+            renderer.markdown,
+            "```rust\nfn main() {\n    println!(\"Hello\");\n}\n```\n"
+        );
     }
 
     #[test]
@@ -157,11 +162,17 @@ mod tests {
     #[test]
     fn test_markdown_renderer_task_item() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
-        renderer.visit_element(&Element::TaskItem(TaskItemData { completed: true, content: "Done task" }));
+        renderer.visit_element(&Element::TaskItem(TaskItemData {
+            completed: true,
+            content: "Done task",
+        }));
         assert_eq!(renderer.markdown, "- [x] Done task\n");
 
         let mut renderer_uncompleted = MarkdownRenderer::new(|_| String::new());
-        renderer_uncompleted.visit_element(&Element::TaskItem(TaskItemData { completed: false, content: "Todo task" }));
+        renderer_uncompleted.visit_element(&Element::TaskItem(TaskItemData {
+            completed: false,
+            content: "Todo task",
+        }));
         assert_eq!(renderer_uncompleted.markdown, "- [ ] Todo task\n");
     }
 
@@ -172,7 +183,8 @@ mod tests {
             header: vec!["Col 1", "Col 2"],
             rows: vec![vec!["Val 1", "Val 2"], vec!["Val 3", "Val 4"]],
         }));
-        let expected = "| Col 1 | Col 2 |\n| ----- | ----- |\n| Val 1 | Val 2 |\n| Val 3 | Val 4 |\n";
+        let expected =
+            "| Col 1 | Col 2 |\n| ----- | ----- |\n| Val 1 | Val 2 |\n| Val 3 | Val 4 |\n";
         assert_eq!(renderer.markdown, expected);
     }
 
@@ -188,14 +200,16 @@ mod tests {
     #[test]
     fn test_markdown_renderer_blockquote() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
-        renderer.visit_element(&Element::Blockquote(BlockquoteData { elements: vec![
-            Element::Paragraph(ParagraphData {
-                elements: vec![Element::Text(TextData { content: "Line 1" })],
-            }),
-            Element::Paragraph(ParagraphData {
-                elements: vec![Element::Text(TextData { content: "Line 2" })],
-            }),
-        ]}));
+        renderer.visit_element(&Element::Blockquote(BlockquoteData {
+            elements: vec![
+                Element::Paragraph(ParagraphData {
+                    elements: vec![Element::Text(TextData { content: "Line 1" })],
+                }),
+                Element::Paragraph(ParagraphData {
+                    elements: vec![Element::Text(TextData { content: "Line 2" })],
+                }),
+            ],
+        }));
 
         // Correctly prefixes each paragraph, preserving the blank line between them!
         assert_eq!(renderer.markdown, "> Line 1\n>\n> Line 2\n\n");
@@ -206,7 +220,9 @@ mod tests {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
         renderer.visit_element(&Element::Strong(StrongData {
             elements: vec![
-                Element::Text(TextData { content: "bold and " }),
+                Element::Text(TextData {
+                    content: "bold and ",
+                }),
                 Element::Emphasis(EmphasisData {
                     elements: vec![Element::Text(TextData { content: "italic" })],
                 }),
@@ -245,7 +261,8 @@ where
             let replacement = resolver(data);
             self.markdown.push_str(&replacement);
         } else {
-            self.markdown.push_str(&format!("[{}]({})", data.text, data.url));
+            self.markdown
+                .push_str(&format!("[{}]({})", data.text, data.url));
         }
     }
 
@@ -292,16 +309,19 @@ where
         if data.text == data.label {
             self.markdown.push_str(&format!("[{}]", data.text));
         } else {
-            self.markdown.push_str(&format!("[{}][{}]", data.text, data.label));
+            self.markdown
+                .push_str(&format!("[{}][{}]", data.text, data.label));
         }
     }
 
     fn visit_reference_style_image(&mut self, data: &ReferenceStyleImageData<'a>) {
-        self.markdown.push_str(&format!("![{}][{}]", data.image_description, data.label));
+        self.markdown
+            .push_str(&format!("![{}][{}]", data.image_description, data.label));
     }
 
     fn visit_reference_definition(&mut self, data: &ReferenceDefinitionData<'a>) {
-        self.markdown.push_str(&format!("[{}]: {}", data.label, data.url));
+        self.markdown
+            .push_str(&format!("[{}]: {}", data.label, data.url));
         if let Some(title) = data.title {
             self.markdown.push_str(&format!(" \"{}\"", title));
         }
@@ -310,9 +330,13 @@ where
 
     fn visit_inline_image(&mut self, data: &InlineImageData<'a>) {
         if let Some(title) = data.title {
-            self.markdown.push_str(&format!("![{}]({} \"{}\")", data.image_description, data.url, title));
+            self.markdown.push_str(&format!(
+                "![{}]({} \"{}\")",
+                data.image_description, data.url, title
+            ));
         } else {
-            self.markdown.push_str(&format!("![{}]({})", data.image_description, data.url));
+            self.markdown
+                .push_str(&format!("![{}]({})", data.image_description, data.url));
         }
     }
 
@@ -332,7 +356,8 @@ where
 
     fn visit_task_item(&mut self, data: &TaskItemData<'a>) {
         let check = if data.completed { "x" } else { " " };
-        self.markdown.push_str(&format!("- [{}] {}\n", check, data.content));
+        self.markdown
+            .push_str(&format!("- [{}] {}\n", check, data.content));
     }
 
     fn visit_table(&mut self, data: &TableData<'a>) {
@@ -356,14 +381,16 @@ where
         // Render Header
         self.markdown.push('|');
         for (i, cell) in data.header.iter().enumerate() {
-            self.markdown.push_str(&format!(" {:<width$} |", cell, width = max_widths[i]));
+            self.markdown
+                .push_str(&format!(" {:<width$} |", cell, width = max_widths[i]));
         }
         self.markdown.push('\n');
 
         // Render Separator
         self.markdown.push('|');
         for width in &max_widths {
-            self.markdown.push_str(&format!(" {:-<width$} |", "", width = *width));
+            self.markdown
+                .push_str(&format!(" {:-<width$} |", "", width = *width));
         }
         self.markdown.push('\n');
 
@@ -372,7 +399,8 @@ where
             self.markdown.push('|');
             for i in 0..num_columns {
                 let cell = row.get(i).unwrap_or(&"");
-                self.markdown.push_str(&format!(" {:<width$} |", cell, width = max_widths[i]));
+                self.markdown
+                    .push_str(&format!(" {:<width$} |", cell, width = max_widths[i]));
             }
             self.markdown.push('\n');
         }
@@ -471,7 +499,9 @@ where
     fn visit_html_comment(&mut self, data: &HtmlCommentData<'a>) {
         self.markdown.push_str("<!--");
         for (i, line) in data.lines.iter().enumerate() {
-            if i > 0 { self.markdown.push('\n'); }
+            if i > 0 {
+                self.markdown.push('\n');
+            }
             self.markdown.push_str(line);
         }
         self.markdown.push_str("-->");

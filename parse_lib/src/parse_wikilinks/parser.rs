@@ -289,9 +289,20 @@ mod tests {
     // [[| title10 ]]
     #[test]
     fn fails_on_no_target() {
-        let inputs = ["[[|title7]]", "[[| title8]]", "[[|title9 ]]", "[[| title10 ]]", "[[  | title10 ]]", "[[  |]]"];
+        let inputs = [
+            "[[|title7]]",
+            "[[| title8]]",
+            "[[|title9 ]]",
+            "[[| title10 ]]",
+            "[[  | title10 ]]",
+            "[[  |]]",
+        ];
         for input in inputs {
-            assert!(parse_wikilink.parse_peek(input).is_err(), "Expected failure for empty target: {}", input);
+            assert!(
+                parse_wikilink.parse_peek(input).is_err(),
+                "Expected failure for empty target: {}",
+                input
+            );
         }
     }
 

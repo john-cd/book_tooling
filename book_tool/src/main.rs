@@ -1,6 +1,8 @@
-use anyhow::Result;
-use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+
+use anyhow::Result;
+use clap::Parser;
+use clap::Subcommand;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -58,7 +60,9 @@ enum Commands {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt().with_env_filter(tracing_subscriber::EnvFilter::from_default_env()).init();
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
 
     let cli = Cli::parse();
 
@@ -66,7 +70,11 @@ async fn main() -> Result<()> {
         Commands::Directives { directories } => {
             book_tool::directives::execute(directories.clone())?;
         }
-        Commands::LinkCheck { directories, refdefs, delete } => {
+        Commands::LinkCheck {
+            directories,
+            refdefs,
+            delete,
+        } => {
             book_tool::link_check::execute(directories.clone(), *refdefs, *delete).await?;
         }
         Commands::InlineLinks { directories } => {
@@ -75,7 +83,10 @@ async fn main() -> Result<()> {
         Commands::Search { query, directories } => {
             book_tool::search::execute(query.clone(), directories.clone())?;
         }
-        Commands::ExtractComments { directories, output } => {
+        Commands::ExtractComments {
+            directories,
+            output,
+        } => {
             book_tool::extract_comments::execute(directories.clone(), output.clone())?;
         }
     }

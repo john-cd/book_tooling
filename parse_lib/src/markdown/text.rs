@@ -10,9 +10,12 @@ pub fn parse_plain_text<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     // Consume until the next special character.
     // take_till with 1.. ensures we consume at least one non-special character.
     // This takes advantage of highly optimized SIMD operations in winnow.
-    let content = take_till(1.., [
-        '<', '[', '(', '`', '{', '!', '#', '-', '|', ']', ')', '}', '*', '_', '~', '\\'
-    ])
+    let content = take_till(
+        1..,
+        [
+            '<', '[', '(', '`', '{', '!', '#', '-', '|', ']', ')', '}', '*', '_', '~', '\\',
+        ],
+    )
     .parse_next(input)?;
 
     // Special check for * or _ or ~ if they are part of a formatting tag

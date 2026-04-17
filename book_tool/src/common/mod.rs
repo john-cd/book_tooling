@@ -1,8 +1,9 @@
 use std::io::Write;
 use std::path::Path;
-use anyhow::{Context, Result};
+
+use anyhow::Context;
+use anyhow::Result;
 pub mod templates;
-pub mod fs;
 pub mod walk;
 use std::borrow::Cow;
 
@@ -25,10 +26,12 @@ where
     if transformed != content {
         let temp_path = path.with_extension("tmp");
         {
-            let mut file = std::fs::File::create(&temp_path)
-                .with_context(|| format!("Failed to create temporary file: {}", temp_path.display()))?;
-            file.write_all(transformed.as_bytes())
-                .with_context(|| format!("Failed to write to temporary file: {}", temp_path.display()))?;
+            let mut file = std::fs::File::create(&temp_path).with_context(|| {
+                format!("Failed to create temporary file: {}", temp_path.display())
+            })?;
+            file.write_all(transformed.as_bytes()).with_context(|| {
+                format!("Failed to write to temporary file: {}", temp_path.display())
+            })?;
         }
         std::fs::rename(&temp_path, path)
             .with_context(|| format!("Failed to rename temporary file to: {}", path.display()))?;

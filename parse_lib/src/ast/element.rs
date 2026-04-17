@@ -7,7 +7,6 @@
 //! - Hidden sections: <div class="hidden"> </div>
 
 ///! Data structures representing Markdown elements in the AST.
-
 use super::DirectiveData;
 
 /// Data for an autolink (e.g., `<https://example.com>` or `https://example.com`).

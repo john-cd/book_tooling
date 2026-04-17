@@ -1,12 +1,20 @@
-use anyhow::Result;
-use crate::common::walk::{Scope, walk_directory_and_process_files};
-use crate::links::AsyncLinkChecker;
-use parse_lib::{link_extractor::LinkExtractor, visit::Visitor};
 use std::collections::HashSet;
 use std::path::PathBuf;
+
+use anyhow::Result;
+use parse_lib::link_extractor::LinkExtractor;
+use parse_lib::visit::Visitor;
 use url::Url;
 
-pub async fn execute(directories: Vec<PathBuf>, check_refdefs: bool, delete_unused: bool) -> Result<()> {
+use crate::common::walk::Scope;
+use crate::common::walk::walk_directory_and_process_files;
+use crate::links::AsyncLinkChecker;
+
+pub async fn execute(
+    directories: Vec<PathBuf>,
+    check_refdefs: bool,
+    delete_unused: bool,
+) -> Result<()> {
     let checker = AsyncLinkChecker::new();
     let mut all_links = HashSet::new();
 
@@ -20,7 +28,11 @@ pub async fn execute(directories: Vec<PathBuf>, check_refdefs: bool, delete_unus
                 if check_refdefs {
                     let unused = crate::refdefs::find_unused_refdefs(&doc);
                     if !unused.is_empty() {
-                        tracing::info!("Found {} unused refdefs in {}", unused.len(), path.display());
+                        tracing::info!(
+                            "Found {} unused refdefs in {}",
+                            unused.len(),
+                            path.display()
+                        );
                         if delete_unused {
                             let new_content = crate::refdefs::delete_unused_refdefs(&doc, &unused);
                             std::fs::write(path, new_content)?;
@@ -42,7 +54,10 @@ pub async fn execute(directories: Vec<PathBuf>, check_refdefs: bool, delete_unus
         })?;
     }
 
-    println!("Found {} unique external links. Verifying...", all_links.len());
+    println!(
+        "Found {} unique external links. Verifying...",
+        all_links.len()
+    );
     let mut broken_links = 0;
     for url in all_links {
         let result = checker.check_url(url.clone()).await;

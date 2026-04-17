@@ -124,7 +124,9 @@ impl<'a> Visitor<'a> for HtmlRenderer {
     fn visit_html_comment(&mut self, data: &HtmlCommentData<'a>) {
         self.html.push_str("<!--");
         for (i, line) in data.lines.iter().enumerate() {
-            if i > 0 { self.html.push('\n'); }
+            if i > 0 {
+                self.html.push('\n');
+            }
             self.html.push_str(line);
         }
         self.html.push_str("-->");
@@ -191,14 +193,19 @@ mod tests {
 
         dest.clear();
         escape_html_to_string("<script>alert('XSS & \"stuff\"')</script>", &mut dest);
-        assert_eq!(dest, "&lt;script&gt;alert(&#39;XSS &amp; &quot;stuff&quot;&#39;)&lt;/script&gt;");
+        assert_eq!(
+            dest,
+            "&lt;script&gt;alert(&#39;XSS &amp; &quot;stuff&quot;&#39;)&lt;/script&gt;"
+        );
     }
 
     #[test]
     fn test_html_renderer_escaping() {
         let mut renderer = HtmlRenderer::new();
 
-        let text_node = Element::Text(TextData { content: "Me, Myself & I <3 Rust" });
+        let text_node = Element::Text(TextData {
+            content: "Me, Myself & I <3 Rust",
+        });
         renderer.visit_element(&text_node);
         assert_eq!(renderer.html, "Me, Myself &amp; I &lt;3 Rust");
 
@@ -209,7 +216,10 @@ mod tests {
             title: None,
         });
         renderer.visit_element(&link_node);
-        assert_eq!(renderer.html, "<a href=\"https://example.com?a=1&amp;b=2\">Click &lt;here&gt;</a>");
+        assert_eq!(
+            renderer.html,
+            "<a href=\"https://example.com?a=1&amp;b=2\">Click &lt;here&gt;</a>"
+        );
     }
 
     #[test]
@@ -295,7 +305,10 @@ mod tests {
             language: Some("rust"),
             lines: vec!["fn main() {}", "println!(\"hello <world>\");"],
         }));
-        assert_eq!(renderer.html, "<pre><code class=\"language-rust\">fn main() {}\nprintln!(&quot;hello &lt;world&gt;&quot;);\n</code></pre>\n");
+        assert_eq!(
+            renderer.html,
+            "<pre><code class=\"language-rust\">fn main() {}\nprintln!(&quot;hello &lt;world&gt;&quot;);\n</code></pre>\n"
+        );
 
         renderer.html.clear();
         renderer.visit_element(&Element::FencedCodeBlock(FencedCodeBlockData {

@@ -45,8 +45,9 @@ pub fn parse_link_text<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use winnow::Parser;
+
+    use super::*;
 
     #[test]
     fn test_parse_link_text_simple() {
@@ -58,7 +59,10 @@ mod tests {
     #[test]
     fn test_parse_link_text_with_escaped_brackets() {
         let mut input = r"[my \[esc\] text]";
-        assert_eq!(parse_link_text.parse_next(&mut input), Ok(r"my \[esc\] text"));
+        assert_eq!(
+            parse_link_text.parse_next(&mut input),
+            Ok(r"my \[esc\] text")
+        );
     }
 
     #[test]
@@ -82,6 +86,9 @@ mod tests {
     #[test]
     fn test_parse_link_text_with_balanced_brackets() {
         let mut input = "[my [nested [and] balanced] text]";
-        assert_eq!(parse_link_text.parse_next(&mut input), Ok("my [nested [and] balanced] text"));
+        assert_eq!(
+            parse_link_text.parse_next(&mut input),
+            Ok("my [nested [and] balanced] text")
+        );
     }
 }

@@ -47,8 +47,9 @@ pub fn parse_link_label<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use winnow::Parser;
+
+    use super::*;
 
     #[test]
     fn test_parse_link_label_simple() {
@@ -60,13 +61,19 @@ mod tests {
     #[test]
     fn test_parse_link_label_with_arbitrary_escapes() {
         let mut input = r"[my \ label \*]";
-        assert_eq!(parse_link_label.parse_next(&mut input), Ok(r"my \ label \*"));
+        assert_eq!(
+            parse_link_label.parse_next(&mut input),
+            Ok(r"my \ label \*")
+        );
     }
 
     #[test]
     fn test_parse_link_label_with_escaped_brackets() {
         let mut input = r"[my \[esc\] label]";
-        assert_eq!(parse_link_label.parse_next(&mut input), Ok(r"my \[esc\] label"));
+        assert_eq!(
+            parse_link_label.parse_next(&mut input),
+            Ok(r"my \[esc\] label")
+        );
     }
 
     #[test]
@@ -106,6 +113,9 @@ mod tests {
         let max_string = "a".repeat(999);
         let input_string = format!("[{}]", max_string);
         let mut input_ref = input_string.as_str();
-        assert_eq!(parse_link_label.parse_next(&mut input_ref), Ok(max_string.as_str()));
+        assert_eq!(
+            parse_link_label.parse_next(&mut input_ref),
+            Ok(max_string.as_str())
+        );
     }
 }

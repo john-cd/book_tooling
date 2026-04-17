@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
-use parse_lib::visit::{Visitable, Visitor};
+use parse_lib::visit::Visitable;
+use parse_lib::visit::Visitor;
 use parse_lib::*;
 use url::Url;
 
