@@ -4,19 +4,21 @@ use std::path::Path;
 
 use anyhow::Result;
 
-/// A test case for file-modifying code:
+/// A test case for file-modifying code.
 #[derive(Debug)]
 pub struct TestCase {
+    /// Relative path of the file to create inside the temporary directory.
     pub file_name_and_ext: &'static str,
+    /// Optional original file contents to seed before running the test.
     pub original_contents: Option<&'static str>,
+    /// Optional expected file contents after the function under test runs.
     pub expected_final_contents: Option<&'static str>,
 }
 
-/// Given test cases, create files in a temporary directory,
-/// add contents, run a file-modifying function to test, and
-/// check the final contents vs what was expected.
+/// Runs a file-oriented test workflow in a temporary directory.
 ///
-/// `func_to_test` accepts the temporary directory path in argument.
+/// Each [`TestCase`] is created inside the temporary directory before `func_to_test`
+/// is invoked. After the function runs, the helper validates the resulting file contents.
 pub fn test_with<F>(test_cases: &[TestCase], func_to_test: F) -> Result<()>
 where
     F: Fn(&Path) -> Result<()>,

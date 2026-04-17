@@ -1,6 +1,9 @@
+//! Expands custom directives and wikilinks in Markdown files.
+
 mod crate_blocks;
 use crate_blocks::*;
 
+/// Directive-processing configuration types.
 pub mod conf;
 pub use conf::*;
 
@@ -17,6 +20,10 @@ use crate::common::process_text_file;
 use crate::common::walk::Scope;
 use crate::common::walk::walk_directory_and_process_files;
 
+/// Processes directives in all configured Markdown files under the given directories.
+///
+/// The command loads `config.toml` from the current working directory when present,
+/// and otherwise falls back to [`Config::default`]. Files are rewritten in place.
 pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
     // It assumes a `config.toml` in the current directory.
     let conf = Config::from_file("config.toml").unwrap_or_else(|_| {
@@ -30,7 +37,9 @@ pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
     Ok(())
 }
 
-/// Process all directives in all files within the specified directories.
+/// Processes directives in all matching files within the specified directories.
+///
+/// The provided [`Config`] controls which directive families and file filters are active.
 pub fn process_all_directives<I>(directories: I, conf: &Config) -> anyhow::Result<()>
 where
     I: IntoIterator<Item = std::path::PathBuf>,

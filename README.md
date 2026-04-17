@@ -22,36 +22,99 @@ This workspace provides a suite of tools to automate the management and enrichme
   - **ExtractComments**: Aggregates HTML comments for auditing and review.
 - **`rust_rate`**: A standalone tool for crawling GitHub and analyzing Rust crate usage statistics and patterns.
 
+## Module Map
+
+### `book_tool` Modules
+
+- `common`: shared file rewriting, directory walking, and template rendering helpers.
+- `directives`: directive and wikilink expansion workflows plus `Config`.
+- `extract_comments`: HTML comment aggregation workflow.
+- `inline_links`: inline-link to reference-definition conversion workflow.
+- `link_check`: external link verification and refdef cleanup workflow.
+- `links`: lower-level URL extraction and async verification helpers.
+- `refdefs`: unused reference-definition analysis and deletion helpers.
+- `search`: plain-text search workflow over parsed Markdown.
+
+### `parse_lib` Modules
+
+- `ast`: `Document`, `Documents`, `Element`, directive enums, and related data payloads.
+- `visit`: `Visitor`, `Visitable`, and helper visitors such as `PrettyPrinter` and `Debugger`.
+- `directive_extractor`, `html_comment_extractor`, `link_extractor`, `plain_text_extractor`: reusable analysis visitors.
+- `html_renderer`, `markdown_renderer`: AST-to-output renderers.
+- `markdown`, `parse_directives`, `parse_hidden`, `parse_urls`, `parse_wikilinks`, `parse_document`: parser entry points.
+
+### `rust_rate` Modules
+
+- `crawler`: GitHub API client and response types.
+- `patterns`: source-pattern analysis helpers.
+- `stats`: Cargo manifest aggregation helpers.
+- `rust_rate`: crates.io summary workflow.
+- `templates`: Markdown badge/link rendering helpers.
+- `utils`: shared test helpers.
+
+## Public APIs
+
+### `book_tool` APIs
+
+- Commands are exposed as module-level `execute(...)` functions for `directives`, `extract_comments`, `inline_links`, `link_check`, and `search`.
+- Shared utilities include `common::process_text_file`, `common::walk::Scope`, `common::walk::walk_directory_and_process_files`, `links::extract_urls`, `links::AsyncLinkChecker`, `refdefs::find_unused_refdefs`, and `refdefs::delete_unused_refdefs`.
+
+### `parse_lib` APIs
+
+- Core entry point: `parse_lib::parse_document(...) -> anyhow::Result<Document<'_>>`.
+- Core model: `Document`, `Documents`, `Element`, `DirectiveData`, `DestinationKind`, `IndexAnchorKind`, and the `*Data` payload structs in `ast`.
+- Traversal surface: `visit::Visitor`, `visit::Visitable`, `visit::pretty_printer::PrettyPrinter`, `visit::debugger::Debugger`, and `visit::refdefs::RefDefManager`.
+- Reusable visitors: `DirectiveExtractor`, `HtmlCommentExtractor`, `LinkExtractor`, `PlainTextExtractor`.
+- Renderers: `HtmlRenderer`, `MarkdownRenderer`, and the resolver callback types used by `MarkdownRenderer`.
+- Public parser helpers: functions re-exported from `markdown`, plus `parse_directive_element`, `parse_hidden_html_div`, `parse_naked_url`, `parse_autolink`, `parse_wikilink`, and `url_kind`.
+
+### `rust_rate` APIs
+
+- Crawling surface: `GithubCrawler`, `GithubSearchResponse`, `GithubItem`, and `GithubRepo`.
+- Analysis surface: `PatternAnalyzer` and `CrateStats`.
+- Workflow surface: `rust_rate::execute(crate_name)`.
+- Formatting/test helpers: `templates::{DestinationKind, render_badge, render_link}` and `utils::{TestCase, test_with}`.
+
 ## `book_tool` Usage
 
 `book_tool` provides several subcommands for different tasks.
 
 ### Process Directives
+
 Replaces custom directives with their expanded Markdown/HTML content.
+
 ```bash
 book_tool directives ./src
 ```
 
 ### Check Links
+
 Verifies external links and optionally cleans up unused reference definitions.
+
 ```bash
 book_tool link-check ./src --refdefs --delete
 ```
 
 ### Convert Inline Links
+
 Transforms `[text](url)` and `https://url.com` into reference-style links.
+
 ```bash
 book_tool inline-links ./src
 ```
 
 ### Search
+
 Searches for text in the document's plain-text content.
+
 ```bash
 book_tool search "some query" ./src
 ```
 
 ### Extract Comments
+
 Extracts all `<!-- comment -->` blocks into a single output file.
+
 ```bash
 book_tool extract-comments ./src --output comments.md
 ```
@@ -68,10 +131,13 @@ book_tool extract-comments ./src --output comments.md
 ## Getting Started
 
 ### Installation
+
 Clone the repository and build the workspace:
+
 ```bash
 cargo build --release
 ```
+
 The binaries will be available in `target/release/book_tool` and `target/release/rust_rate`.
 
 ## Documentation

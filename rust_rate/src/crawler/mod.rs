@@ -5,20 +5,28 @@ use serde::Deserialize;
 use tracing::debug;
 use tracing::info;
 
+/// GitHub code search API response payload.
 #[derive(Debug, Deserialize)]
 pub struct GithubSearchResponse {
+    /// Matching search items returned by the GitHub API.
     pub items: Vec<GithubItem>,
 }
 
+/// One GitHub code-search result item.
 #[derive(Debug, Deserialize)]
 pub struct GithubItem {
+    /// Repository that owns the matching file.
     pub repository: GithubRepo,
+    /// Path of the matching file inside the repository.
     pub path: String,
+    /// API URL that can be used to retrieve the file contents.
     pub url: String,
 }
 
+/// Minimal repository metadata embedded in GitHub search results.
 #[derive(Debug, Deserialize)]
 pub struct GithubRepo {
+    /// Repository name in `owner/name` form.
     pub full_name: String,
 }
 
@@ -28,6 +36,9 @@ pub struct GithubCrawler {
 }
 
 impl GithubCrawler {
+    /// Creates a crawler using an optional GitHub personal access token.
+    ///
+    /// Passing a token increases the GitHub API rate limit available to the crawler.
     pub fn new(token: Option<String>) -> Self {
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert(
@@ -67,7 +78,7 @@ impl GithubCrawler {
         )
     }
 
-    /// Search for Cargo.toml files on GitHub.
+    /// Searches GitHub code results for matching `Cargo.toml` files.
     pub async fn search_cargo_tomls(&self, query: &str) -> Result<Vec<GithubItem>> {
         let url = self.build_search_url(query);
         info!("Searching GitHub: {}", url);
@@ -91,7 +102,7 @@ impl GithubCrawler {
         Ok(search_response.items)
     }
 
-    /// Download raw content from a GitHub URL.
+    /// Downloads raw file content from a GitHub API content URL.
     pub async fn download_content(&self, url: &str) -> Result<String> {
         debug!("Downloading content from: {}", url);
         // GitHub search API returns a URL to the API endpoint, we need to request with proper headers.

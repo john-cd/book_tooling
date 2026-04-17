@@ -1,3 +1,5 @@
+//! Converts inline links and autolinks into reference-style links.
+
 use std::path::PathBuf;
 
 use anyhow::Result;
@@ -7,6 +9,10 @@ use crate::common::process_text_file;
 use crate::common::walk::Scope;
 use crate::common::walk::walk_directory_and_process_files;
 
+/// Rewrites matching Markdown files in place so inline links become reference-style links.
+///
+/// Existing reference definitions are preserved and reused. New definitions are appended
+/// to the end of each updated file.
 pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
     let scope = Scope::default();
 

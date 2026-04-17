@@ -31,10 +31,12 @@ pub fn escape_html_to_string(input: &str, dest: &mut String) {
 /// An AST visitor that compiles the document into an HTML string.
 #[derive(Default)]
 pub struct HtmlRenderer {
+    /// Accumulated HTML output.
     pub html: String,
 }
 
 impl HtmlRenderer {
+    /// Creates an empty HTML renderer.
     pub fn new() -> Self {
         Self::default()
     }

@@ -3,9 +3,10 @@ use std::default::Default;
 use serde::Deserialize;
 use serde::Serialize;
 
-// Configuration struct.
-// When deserializing, any missing fields are filled in from the struct's
-// implementation of `Default`.
+/// Configuration for directive processing.
+///
+/// When deserializing, missing fields are filled from [`Default`]. The same
+/// shape is accepted from `config.toml` through [`Config::from_file`].
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct Config {
@@ -58,7 +59,7 @@ impl Default for Config {
 }
 
 impl Config {
-    /// Load configuration from a TOML file.
+    /// Loads directive-processing configuration from a TOML file.
     pub fn from_file(path: &str) -> anyhow::Result<Self> {
         let content = std::fs::read_to_string(path)?;
         let config: Config = toml::from_str(&content)?;

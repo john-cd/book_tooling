@@ -1,7 +1,9 @@
 use super::Document;
 
+/// A collection of parsed Markdown documents.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Documents<'s> {
+    /// Documents in traversal or input order.
     pub documents: Vec<Document<'s>>,
 }
 

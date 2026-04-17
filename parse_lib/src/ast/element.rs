@@ -28,28 +28,42 @@ pub struct InlineLinkData<'a> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Data for a reference-style link such as `[text][label]`.
 pub struct ReferenceStyleLinkData<'a> {
+    /// Visible link text.
     pub text: &'a str,
+    /// Reference definition label.
     pub label: &'a str,
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Data for an inline image such as `![alt](url "title")`.
 pub struct InlineImageData<'a> {
+    /// Image alt text.
     pub image_description: &'a str,
+    /// Image destination URL.
     pub url: &'a str,
+    /// Optional image title.
     pub title: Option<&'a str>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Data for a reference-style image such as `![alt][label]`.
 pub struct ReferenceStyleImageData<'a> {
+    /// Image alt text.
     pub image_description: &'a str,
+    /// Reference definition label.
     pub label: &'a str,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+/// Data for a reference definition such as `[label]: https://example.com`.
 pub struct ReferenceDefinitionData<'a> {
+    /// Label defined by the reference definition.
     pub label: &'a str,
+    /// URL assigned to the label.
     pub url: &'a str,
+    /// Optional reference-definition title.
     pub title: Option<&'a str>,
 }
 
@@ -65,83 +79,112 @@ pub struct WikiLinkData<'a> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Data for an inline code span.
 pub struct CodeSpanData<'a> {
+    /// Literal code-span contents without the surrounding backticks.
     pub content: &'a str,
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Data for a fenced code block.
 pub struct FencedCodeBlockData<'a> {
+    /// Optional language fence info string.
     pub language: Option<&'a str>,
     /// Stored as a collection of line slices to support zero-copy nested multi-line blocks.
     pub lines: Vec<&'a str>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Data for a paragraph element.
 pub struct ParagraphData<'a> {
+    /// Child inline and nested elements contained in the paragraph.
     pub elements: Vec<Element<'a>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Raw contents of a hidden HTML `div` block.
 pub struct HiddenHtmlDivData<'a> {
+    /// Inner contents between the opening and closing `<div>` tags.
     pub content: &'a str,
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Raw lines that make up an HTML comment.
 pub struct HtmlCommentData<'a> {
+    /// Comment contents split by lines, without the surrounding markers.
     pub lines: Vec<&'a str>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Data for a blockquote container.
 pub struct BlockquoteData<'a> {
+    /// Child elements contained by the blockquote.
     pub elements: Vec<Element<'a>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Data for an ordered or unordered list.
 pub struct ListData<'a> {
+    /// Whether the list was parsed as ordered.
     pub ordered: bool,
     pub items: Vec<Element<'a>>, // Elements here should strictly be `ListItem`s
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Data for a list item.
 pub struct ListItemData<'a> {
     pub elements: Vec<Element<'a>>, // Can contain paragraphs, nested lists, etc.
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Data for a Markdown heading.
 pub struct HeadingData<'a> {
+    /// Heading depth from 1 to 6.
     pub level: u8,
+    /// Optional text content parsed from the heading line.
     pub content: Option<&'a str>,
+    /// Optional explicit anchor id, such as `{#section}`.
     pub id: Option<&'a str>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Plain text that did not match a more specific inline element parser.
 pub struct TextData<'a> {
     pub content: &'a str,
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Data for a GitHub-Flavored Markdown task list item.
 pub struct TaskItemData<'a> {
+    /// Whether the task item is marked complete.
     pub completed: bool,
+    /// Task item text content.
     pub content: &'a str,
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Data for a GitHub-Flavored Markdown table.
 pub struct TableData<'a> {
+    /// Header row values.
     pub header: Vec<&'a str>,
+    /// Data rows in display order.
     pub rows: Vec<Vec<&'a str>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Data for a strong-emphasis inline container.
 pub struct StrongData<'a> {
     pub elements: Vec<Element<'a>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Data for an emphasis inline container.
 pub struct EmphasisData<'a> {
     pub elements: Vec<Element<'a>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// Data for a strikethrough inline container.
 pub struct StrikethroughData<'a> {
     pub elements: Vec<Element<'a>>,
 }
