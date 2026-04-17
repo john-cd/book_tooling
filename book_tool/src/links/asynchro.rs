@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use anyhow::Context;
 use moka::future::Cache;
 use reqwest::Client;
 use tokio::task::JoinSet;
@@ -25,24 +26,18 @@ pub struct AsyncLinkChecker {
     cache: Cache<Url, UrlCheck>,
 }
 
-impl Default for AsyncLinkChecker {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl AsyncLinkChecker {
     /// Creates a new checker with a shared Reqwest client and a small URL cache.
-    pub fn new() -> Self {
+    pub fn new() -> anyhow::Result<Self> {
         let client = Client::builder()
             .timeout(Duration::from_secs(10))
             .user_agent("book-tooling-link-checker")
             .build()
-            .unwrap();
+            .context("Failed to build HTTP client for link checking")?;
 
         let cache = Cache::new(1000);
 
-        Self { client, cache }
+        Ok(Self { client, cache })
     }
 
     /// Verifies a single URL, using the cache when possible.

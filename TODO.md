@@ -1,7 +1,5 @@
 # TODO
 
-- [ ] P1 remove remaining panic-on-error paths from reusable runtime code
-- [ ] P1 `book_tool::links::AsyncLinkChecker::new`, `book_tool::links::convert`, and `rust_rate::crawler::GithubCrawler::new` still rely on `unwrap`/`expect`; return errors or encode the invariants without panicking.
 - [ ] P1 make `link-check --delete` require `--refdefs`. the CLI currently accepts `--delete` without `--refdefs` and then silently skips refdef cleanup; tighten clap validation and add a regression test.
 - [ ] P1 make directive config loading failures observable
 - [ ] P1 `directives::execute` falls back to defaults for malformed or unreadable `config.toml`; log the real error. invalid config should fail fast.

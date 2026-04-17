@@ -14,9 +14,9 @@ async fn main() -> Result<()> {
 
     // Retrieve GitHub token from environment variable if available
     let token = std::env::var("GITHUB_TOKEN").ok();
-    let crawler = GithubCrawler::new(token);
+    let crawler = GithubCrawler::new(token)?;
     let mut stats = CrateStats::new();
-    let analyzer = PatternAnalyzer::new();
+    let analyzer = PatternAnalyzer::new()?;
 
     // Call execute to demonstrate integration and fix dead code
     if let Err(e) = execute("anyhow".to_string()).await {
@@ -48,9 +48,13 @@ async fn main() -> Result<()> {
         // If we found a repository, let's try to find a .rs file in it for pattern analysis
         // This is a simplified example: in a real tool, we would crawl the repo structure.
         // For now, let's just analyze the Cargo.toml if it were a .rs file just to demonstrate.
-        let patterns = analyzer.analyze_source(&content, "anyhow");
-        for p in patterns {
-            info!("  Found pattern: {}", p);
+        match analyzer.analyze_source(&content, "anyhow") {
+            Ok(patterns) => {
+                for p in patterns {
+                    info!("  Found pattern: {}", p);
+                }
+            }
+            Err(error) => warn!("Pattern analysis failed: {}", error),
         }
     }
 

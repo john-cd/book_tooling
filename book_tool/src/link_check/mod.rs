@@ -83,7 +83,7 @@ pub async fn execute(
         "Starting external link verification workflow"
     );
 
-    let checker = AsyncLinkChecker::new();
+    let checker = AsyncLinkChecker::new()?;
     let mut all_links = HashSet::new();
 
     let scope = Scope::default();
@@ -94,18 +94,15 @@ pub async fn execute(
         |path, doc| {
             let unused = check_refdefs.then(|| crate::refdefs::find_unused_refdefs(doc));
 
-            if check_refdefs {
-                let unused = unused.as_ref().expect("unused refdefs should be available");
-                if !unused.is_empty() {
-                    tracing::info!(
-                        "Found {} unused refdefs in {}",
-                        unused.len(),
-                        path.display()
-                    );
-                    if delete_unused {
-                        let new_content = crate::refdefs::delete_unused_refdefs(doc, unused);
-                        std::fs::write(path, new_content)?;
-                    }
+            if let Some(unused) = unused.as_ref().filter(|unused| !unused.is_empty()) {
+                tracing::info!(
+                    "Found {} unused refdefs in {}",
+                    unused.len(),
+                    path.display()
+                );
+                if delete_unused {
+                    let new_content = crate::refdefs::delete_unused_refdefs(doc, unused);
+                    std::fs::write(path, new_content)?;
                 }
             }
 
