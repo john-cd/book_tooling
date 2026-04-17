@@ -13,10 +13,22 @@ pub async fn execute(crate_name: String) -> Result<()> {
     if response.status().is_success() {
         let data: serde_json::Value = response.json().await?;
         if let Some(crate_data) = data.get("crate") {
-            let downloads = crate_data.get("downloads").and_then(|v| v.as_u64()).unwrap_or(0);
-            let recent_downloads = crate_data.get("recent_downloads").and_then(|v| v.as_u64()).unwrap_or(0);
-            let repository = crate_data.get("repository").and_then(|v| v.as_str()).unwrap_or("N/A");
-            let description = crate_data.get("description").and_then(|v| v.as_str()).unwrap_or("N/A");
+            let downloads = crate_data
+                .get("downloads")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0);
+            let recent_downloads = crate_data
+                .get("recent_downloads")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0);
+            let repository = crate_data
+                .get("repository")
+                .and_then(|v| v.as_str())
+                .unwrap_or("N/A");
+            let description = crate_data
+                .get("description")
+                .and_then(|v| v.as_str())
+                .unwrap_or("N/A");
 
             println!("Crate: {}", crate_name);
             println!("Description: {}", description);
