@@ -25,6 +25,13 @@ alias cka := checkall
   cargo check --workspace --all-targets --locked --all-features
 # `--all-targets` is equivalent to specifying `--lib --bins --tests --benches --examples`.
 
+alias osa := orphansources
+
+# Check that every Rust source file under src/ belongs to a compiled module tree.
+@orphansources:
+  echo "Check for orphan Rust source files in $(pwd)"
+  python3 scripts/check_orphan_sources.py || python scripts/check_orphan_sources.py
+
 alias ba := buildall
 
 # Build all packages (all features)

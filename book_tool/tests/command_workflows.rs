@@ -90,15 +90,6 @@ fn status_response(status_line: &str, headers: &[&str]) -> String {
     for header in headers {
         response.push_str(header);
         response.push_str("\r\n");
-        fn status_response(status_line: &str, headers: &[&str]) -> String {
-            let mut response = format!("HTTP/1.1 {status_line}\r\n");
-            for header in headers {
-                response.push_str(header);
-                response.push_str("\r\n");
-            }
-            response.push_str("Content-Length: 0\r\nConnection: close\r\n\r\n");
-            response
-        }
     }
     response.push_str("Content-Length: 0\r\nConnection: close\r\n\r\n");
     response

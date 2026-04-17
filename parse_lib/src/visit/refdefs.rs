@@ -72,3 +72,51 @@ where
     docs.accept(&mut vis);
     Ok(vis.0)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parse_document;
+
+    #[test]
+    fn reports_duplicate_labels_and_urls_independently() {
+        let doc = parse_document(
+            "test.md",
+            None,
+            "[alpha]: https://one.example\n[alpha]: https://two.example\n[beta]: https://one.example\n",
+        )
+        .expect("parse test markdown");
+        let docs = Documents::new(vec![doc]);
+        let mut manager = refdefs(&docs).expect("collect reference definitions");
+
+        assert_eq!(manager.dupe_labels(), vec!["alpha"]);
+        assert_eq!(manager.dupe_urls(), vec!["https://one.example"]);
+    }
+
+    #[test]
+    fn get_sorted_dedupe_refdefs_removes_only_exact_duplicates() {
+        let doc = parse_document(
+            "test.md",
+            None,
+            "[alpha]: https://one.example\n[alpha]: https://one.example\n[alpha]: https://two.example\n[beta]: https://one.example\n",
+        )
+        .expect("parse test markdown");
+        let docs = Documents::new(vec![doc]);
+        let manager = refdefs(&docs).expect("collect reference definitions");
+
+        let deduped: Vec<(&str, &str)> = manager
+            .get_sorted_dedupe_refdefs()
+            .into_iter()
+            .map(|refdef| (refdef.label, refdef.url))
+            .collect();
+
+        assert_eq!(
+            deduped,
+            vec![
+                ("alpha", "https://one.example"),
+                ("alpha", "https://two.example"),
+                ("beta", "https://one.example"),
+            ]
+        );
+    }
+}
