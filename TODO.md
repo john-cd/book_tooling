@@ -2,8 +2,6 @@
 
 - [ ] P0 keep exactly one link-conversion implementation
 - [ ] P0 if link conversion should be reusable beyond the CLI command, extract it from `book_tool::inline_links` into a shared module instead of letting orphan converters reappear.
-- [ ] P1 reduce repeated file-processing orchestration in CLI commands
-- [ ] P1 `directives`, `inline_links`, `link_check`, and `extract_comments` all rebuild similar walk/read/parse/write flow; extract the common command pipeline where it improves clarity.
 - [ ] P1 add a lightweight repo hygiene check for orphan source files
 - [ ] P1 refactors have left uncompiled `src/**/*.rs` files behind before; add a check or documented review step so the filesystem and module tree stay aligned.
 
