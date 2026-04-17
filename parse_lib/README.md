@@ -44,3 +44,27 @@ for element in &doc.elements {
 - Task Lists
 - Tables (GFM style)
 - Horizontal Rules
+
+## Public Modules
+
+- `ast`: core document and element types.
+- `visit`: traversal traits plus helper visitors.
+- `directive_extractor`, `html_comment_extractor`, `link_extractor`, `plain_text_extractor`: reusable analysis visitors.
+- `html_renderer`, `markdown_renderer`: output renderers.
+- `markdown`, `parse_directives`, `parse_hidden`, `parse_urls`, `parse_wikilinks`, `parse_document`: parser entry points.
+
+## Public API Highlights
+
+- `parse_document(name, path, input)`: parse a full Markdown document into `Document`.
+- `Document`, `Documents`, `Element`, and the `*Data` structs: the AST surface used throughout the workspace.
+- `DirectiveData`, `DestinationKind`, `IndexAnchorKind`: helper enums for directives and anchors.
+- `Visitor` and `Visitable`: traversal traits for implementing custom analysis or rendering.
+- `DirectiveExtractor`, `HtmlCommentExtractor`, `LinkExtractor`, `PlainTextExtractor`: ready-made analysis visitors.
+- `HtmlRenderer`, `MarkdownRenderer`: render AST back into HTML or Markdown.
+- `markdown::*`, `parse_directive_element`, `parse_hidden_html_div`, `parse_naked_url`, `parse_autolink`, `parse_wikilink`, and `url_kind`: parser helpers for individual syntax families.
+
+## Module Notes
+
+- The public `markdown` module is the supported surface for standalone Markdown element parsers.
+- Lower-level parsing helpers remain internal unless they are intentionally re-exported.
+- Most AST nodes borrow from the original input, so the source string must outlive the parsed `Document`.

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use regex::Regex;
 
+/// Detects simple crate-specific usage patterns in Rust source files.
 pub struct PatternAnalyzer {
     patterns: HashMap<String, Regex>,
 }
@@ -13,6 +14,7 @@ impl Default for PatternAnalyzer {
 }
 
 impl PatternAnalyzer {
+    /// Builds a pattern analyzer with a small built-in library of regular expressions.
     pub fn new() -> Self {
         let mut patterns = HashMap::new();
         // Example patterns for common crates
@@ -32,7 +34,7 @@ impl PatternAnalyzer {
         Self { patterns }
     }
 
-    /// Analyze a Rust source file for patterns.
+    /// Analyzes a Rust source file for crate-specific patterns and import statements.
     pub fn analyze_source(&self, content: &str, crate_name: &str) -> Vec<String> {
         let mut results = Vec::new();
         if let Some(re) = self.patterns.get(crate_name) {

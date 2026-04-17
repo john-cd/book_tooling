@@ -4,10 +4,12 @@ use crate::visit::Visitor;
 /// A visitor that extracts all HTML comments from a Markdown document.
 #[derive(Default)]
 pub struct HtmlCommentExtractor {
+    /// Collected HTML comment bodies in encounter order.
     pub comments: Vec<String>,
 }
 
 impl HtmlCommentExtractor {
+    /// Creates an empty HTML comment extractor.
     pub fn new() -> Self {
         Self::default()
     }

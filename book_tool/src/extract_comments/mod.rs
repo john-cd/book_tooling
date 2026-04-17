@@ -1,7 +1,4 @@
-//! Module for extracting HTML comments from Markdown files.
-//!
-// Note on old code: This module was moved to `book_tool`.
-// Uses `core_lib` and `parse_lib` for iterating files and extracting HTML comments.
+//! Extracts HTML comments from Markdown files into an audit file.
 
 use std::path::PathBuf;
 
@@ -11,12 +8,9 @@ use parse_lib::visit::Visitor;
 use crate::common::walk::Scope;
 use crate::common::walk::walk_directory_and_process_files;
 
-/// Executes the comment extraction process.
+/// Scans the provided directories and writes all discovered HTML comments to `output`.
 ///
-/// # Arguments
-///
-/// * `directories` - A list of directory paths to scan.
-/// * `output` - The file path where extracted comments should be written.
+/// Output is grouped by source file and overwrites the destination file if it already exists.
 pub fn execute(directories: Vec<PathBuf>, output: PathBuf) -> Result<()> {
     let scope = Scope::default();
     let mut all_comments_output = String::new();

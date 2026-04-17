@@ -4,10 +4,12 @@ use crate::visit::Visitor;
 /// A visitor that extracts pure plain text by stripping away all Markdown structural formatting.
 #[derive(Default)]
 pub struct PlainTextExtractor {
+    /// Accumulated plain-text output.
     pub text: String,
 }
 
 impl PlainTextExtractor {
+    /// Creates an empty plain-text extractor.
     pub fn new() -> Self {
         Self::default()
     }

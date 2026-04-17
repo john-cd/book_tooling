@@ -3,6 +3,7 @@
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Eq)]
+/// Parsed representation of a custom `{{ ... }}` directive.
 pub enum DirectiveData<'a> {
     /// Insert a Markdown link.
     ///
@@ -14,7 +15,9 @@ pub enum DirectiveData<'a> {
     /// - `crates.io` link: {{crates.io xyz}}
     /// - Website for the crate: {{web xyz}}
     Link {
+        /// Destination family for the link.
         kind: DestinationKind,
+        /// Directive payload, usually a crate, category, or repository name.
         name: &'a str,
     },
 
@@ -29,7 +32,9 @@ pub enum DirectiveData<'a> {
     /// {{!crates.io xyz}}
     /// {{!web xyz}}
     Badge {
+        /// Destination family for the badge link.
         kind: DestinationKind,
+        /// Directive payload, usually a crate, category, or repository name.
         name: &'a str,
     },
 
@@ -39,13 +44,18 @@ pub enum DirectiveData<'a> {
     /// With optional additional categories:
     /// {{#crate: crt cat1 cat-2 cat-2-2 cat3::sub-cat-3 }}
     CrateBlock {
+        /// Primary crate displayed by the badge block.
         crate_name: &'a str,
+        /// Additional category badges to include in the block.
         additional_categories: Vec<&'a str>,
     },
 
     /// Insert a fenced code block with an `include` directive pointing to a new code example (.rs) file:
     /// {{#example some_example}} -> ```rust,editable\n{{#include ...}}```
-    ExampleBlock { name: &'a str },
+    ExampleBlock {
+        /// Example name to resolve to an included file.
+        name: &'a str,
+    },
 }
 
 impl Display for DirectiveData<'_> {
@@ -69,8 +79,7 @@ impl Display for DirectiveData<'_> {
     }
 }
 
-/// Represents the kind of directive being parsed.
-/// For link or badge directives only.
+/// Destination family used by link and badge directives.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum DestinationKind {
     Category,   // Link to or badge for a `crates.io` category page.

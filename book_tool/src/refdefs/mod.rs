@@ -1,5 +1,4 @@
-// Note on old code: This module was moved to `book_tool`.
-// Primarily finds and strips unused reference definitions in markdown documents.
+//! Reference-definition analysis and cleanup helpers.
 
 use std::collections::HashSet;
 use std::fmt::Write;

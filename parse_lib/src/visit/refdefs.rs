@@ -63,8 +63,7 @@ impl RefDefManager<'_> {
     }
 }
 
-/// Returns a `RefDefManager` that contains the list of refdefs for the provided documents.
-/// It offers methods to check refdefs.
+/// Collects reference definitions from a set of documents and returns a manager over them.
 pub fn refdefs<'d, 'a>(docs: &'a Documents<'d>) -> anyhow::Result<RefDefManager<'d>>
 where
     'a: 'd,

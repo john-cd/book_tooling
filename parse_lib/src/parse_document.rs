@@ -668,7 +668,10 @@ fn parse_elements<'a>(input: &mut &'a str) -> ModalResult<Vec<Element<'a>>> {
     .parse_next(input)
 }
 
-/// Parse a Markdown document.
+/// Parses an entire Markdown document into a [`crate::Document`].
+///
+/// `name` is used for diagnostics, `path` is retained in the resulting AST when available,
+/// and `input` must be valid UTF-8 Markdown text.
 pub fn parse_document<'s>(
     name: &'s str,
     path: Option<&'s std::path::Path>,

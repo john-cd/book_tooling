@@ -5,10 +5,14 @@ use crate::visit::Visitor;
 ///
 /// It supports on-the-fly replacement of Custom Directives and optional resolution
 /// of wikilinks and other link types through callback functions.
+/// Resolver used to rewrite wikilinks while rendering Markdown.
 pub type WikiLinkResolver = Box<dyn for<'b> FnMut(&WikiLinkData<'b>) -> String>;
+/// Resolver used to rewrite inline links while rendering Markdown.
 pub type InlineLinkResolver = Box<dyn for<'b> FnMut(&InlineLinkData<'b>) -> String>;
+/// Resolver used to rewrite autolinks while rendering Markdown.
 pub type AutolinkResolver = Box<dyn for<'b> FnMut(&AutolinkData<'b>) -> String>;
 
+/// Markdown renderer with optional hook points for directive and link rewriting.
 pub struct MarkdownRenderer<F> {
     /// The accumulating Markdown output.
     pub markdown: String,
@@ -37,6 +41,7 @@ where
         }
     }
 
+    /// Installs a resolver for wikilinks encountered during rendering.
     pub fn with_wikilink_resolver(
         mut self,
         resolver: impl for<'b> FnMut(&WikiLinkData<'b>) -> String + 'static,
@@ -45,6 +50,7 @@ where
         self
     }
 
+    /// Installs a resolver for inline links encountered during rendering.
     pub fn with_inline_link_resolver(
         mut self,
         resolver: impl for<'b> FnMut(&InlineLinkData<'b>) -> String + 'static,
@@ -53,6 +59,7 @@ where
         self
     }
 
+    /// Installs a resolver for autolinks encountered during rendering.
     pub fn with_autolink_resolver(
         mut self,
         resolver: impl for<'b> FnMut(&AutolinkData<'b>) -> String + 'static,

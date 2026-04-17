@@ -1,5 +1,6 @@
 use super::Element;
 
+/// Reconstructs Markdown for a sequence of AST elements using their display implementation.
 pub fn reconstruct_markdown(elements: &[Element]) -> String {
     let mut result = String::new();
     for element in elements {

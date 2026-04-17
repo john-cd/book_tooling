@@ -5,9 +5,12 @@ use toml::Table;
 use tracing::info;
 use tracing::warn;
 
+/// Aggregated usage statistics collected from Cargo manifests.
 #[derive(Debug, Default)]
 pub struct CrateStats {
+    /// Number of times each dependency name was observed.
     pub usage_count: HashMap<String, usize>,
+    /// Number of times each crate category was observed.
     pub category_stats: HashMap<String, usize>,
 }
 
@@ -25,11 +28,12 @@ struct PackageInfo {
 }
 
 impl CrateStats {
+    /// Creates an empty statistics accumulator.
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Process a Cargo.toml file content.
+    /// Processes Cargo manifest contents and updates the aggregated counters.
     pub fn process_cargo_toml(&mut self, content: &str) {
         let cargo: CargoToml = match toml::from_str(content) {
             Ok(c) => c,
@@ -62,6 +66,7 @@ impl CrateStats {
         }
     }
 
+    /// Prints a small top-usage summary to stdout.
     pub fn print_summary(&self) {
         info!("--- Crate Usage Statistics ---");
         let mut sorted_usage: Vec<_> = self.usage_count.iter().collect();

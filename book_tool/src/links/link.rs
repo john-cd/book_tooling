@@ -1,3 +1,5 @@
+//! AST-based URL extraction helpers.
+
 use std::collections::HashSet;
 
 use parse_lib::visit::Visitable;
@@ -5,6 +7,9 @@ use parse_lib::visit::Visitor;
 use parse_lib::*;
 use url::Url;
 
+/// Extracts every URL-like destination represented in a parsed Markdown document.
+///
+/// This includes autolinks, inline links, inline images, and reference definitions.
 pub fn extract_urls(doc: &Document) -> HashSet<Url> {
     let mut urls = HashSet::new();
 

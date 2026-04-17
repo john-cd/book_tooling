@@ -6,6 +6,7 @@
 /// Crate destinations.
 ///
 /// Represents different types of targets for badges and links.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DestinationKind {
     /// A crate category.
     Category,

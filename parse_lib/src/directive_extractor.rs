@@ -8,10 +8,12 @@ use crate::visit::Visitor;
 pub struct DirectiveExtractor {
     // Store the extracted directive data or specific fields like the raw text.
     // This example simply keeps a count, but you can collect string slices here.
+    /// Number of directives encountered outside code spans and fenced code blocks.
     pub directives_found: usize,
 }
 
 impl DirectiveExtractor {
+    /// Creates an empty directive extractor.
     pub fn new() -> Self {
         Self::default()
     }

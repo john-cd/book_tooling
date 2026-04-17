@@ -1,3 +1,5 @@
+//! Verifies external links in Markdown documents.
+
 use std::collections::HashSet;
 use std::path::PathBuf;
 
@@ -65,6 +67,10 @@ fn collect_active_external_links(
     collector.urls
 }
 
+/// Checks Markdown files for broken external links and optional unused reference definitions.
+///
+/// When `check_refdefs` is `true`, the workflow reports unused reference definitions.
+/// When `delete_unused` is also `true`, those definitions are removed before link verification.
 pub async fn execute(
     directories: Vec<PathBuf>,
     check_refdefs: bool,

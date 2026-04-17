@@ -1,4 +1,4 @@
-//! Parses custom directives.
+//! Parsers for custom `{{ ... }}` directives.
 
 use winnow::ModalResult;
 use winnow::Parser;
@@ -17,7 +17,7 @@ use crate::DirectiveData;
 use crate::ast::DestinationKind;
 use crate::ast::Element;
 
-/// Parses a custom directive element.
+/// Parses one custom directive and wraps it as [`Element::CustomDirective`].
 pub fn parse_directive_element<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     alt((
         parse_link_directive,

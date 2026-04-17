@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+/// Rendering mode for an index anchor directive.
 #[derive(Debug, PartialEq, Eq)]
 pub enum IndexAnchorKind {
     /// Indexed text appears as is.

@@ -10,6 +10,7 @@
 
 use url::Url;
 
+/// Classified URL variants recognized by [`url_kind`].
 #[derive(Debug, PartialEq, Eq)]
 pub enum UrlKind<'a> {
     /// GitHub issue for the book repo, e.g.
@@ -38,8 +39,7 @@ pub enum UrlKind<'a> {
     Other { url_text: &'a str },
 }
 
-/// Recognize specific URLs.
-/// Parses a url and returns the specific kind of URL it is.
+/// Classifies a URL into one of the known repository, crate, or documentation shapes.
 pub fn url_kind(url_text: &str) -> Result<UrlKind<'_>, url::ParseError> {
     let url = Url::parse(url_text)?;
 

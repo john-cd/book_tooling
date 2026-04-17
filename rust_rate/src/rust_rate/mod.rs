@@ -1,5 +1,6 @@
 use anyhow::Result;
 
+/// Fetches and prints a small crates.io summary for a single crate.
 pub async fn execute(crate_name: String) -> Result<()> {
     println!("Fetching statistics for crate '{}'...", crate_name);
 

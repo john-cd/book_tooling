@@ -1,3 +1,5 @@
+//! Parsers for naked URLs and autolinks.
+
 use winnow::ModalResult;
 use winnow::Parser;
 use winnow::combinator::alt;

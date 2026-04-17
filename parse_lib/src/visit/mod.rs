@@ -1,8 +1,12 @@
-//! AST Visitor and Visitable traits for traversing the Markdown document.
+//! AST visitor traits and helper visitors for traversing Markdown documents.
 
+/// Debug-print visitor implementations.
 pub mod debugger;
+/// I/O-oriented helpers for visitor-based workflows.
 pub mod io;
+/// Markdown reconstruction visitor implementations.
 pub mod pretty_printer;
+/// Reference-definition analysis visitors.
 pub mod refdefs;
 
 use crate::Document;
@@ -123,7 +127,9 @@ pub trait Visitor<'a> {
     }
 }
 
+/// Trait implemented by AST nodes that can accept a [`Visitor`].
 pub trait Visitable<'a> {
+    /// Accepts a visitor and dispatches to the appropriate traversal entry point.
     fn accept(&'a self, visitor: &mut dyn Visitor<'a>);
 }
 
