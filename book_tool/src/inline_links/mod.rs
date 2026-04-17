@@ -1,146 +1,73 @@
 //! Converts inline links and autolinks into reference-style links.
 
+use std::borrow::Cow;
 use std::path::PathBuf;
 
 use anyhow::Result;
-use parse_lib::visit::Visitor;
 
 use crate::common::process_parsed_markdown_file;
 use crate::common::walk::Scope;
 use crate::common::walk::walk_directories_and_process_files;
+use crate::links::InlineLinkConversionStats;
+use crate::links::convert_inline_links_to_reference_definitions;
 
 /// Rewrites matching Markdown files in place so inline links become reference-style links.
 ///
 /// Existing reference definitions are preserved and reused. New definitions are appended
 /// to the end of each updated file.
 pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
+    tracing::info!(
+        directory_count = directories.len(),
+        "Starting inline-link conversion workflow"
+    );
+
     let scope = Scope::default();
+    let mut processed_files = 0_usize;
+    let mut total_stats = InlineLinkConversionStats::default();
 
     walk_directories_and_process_files(&directories, &scope, |path| {
+        let mut file_stats = None;
+
         process_parsed_markdown_file(
             path,
             |s| s.contains("http") || s.contains("["),
             |_path, doc| {
-                let mut existing_url_to_label = std::collections::HashMap::new();
-                let mut existing_labels = std::collections::HashSet::new();
-
-                struct RefDefCollector<'a> {
-                    existing_url_to_label: &'a mut std::collections::HashMap<String, String>,
-                    existing_labels: &'a mut std::collections::HashSet<String>,
-                }
-                impl<'a, 'ast> Visitor<'ast> for RefDefCollector<'a> {
-                    fn visit_reference_definition(
-                        &mut self,
-                        data: &'ast parse_lib::ast::ReferenceDefinitionData<'ast>,
-                    ) {
-                        self.existing_url_to_label
-                            .insert(data.url.to_string(), data.label.to_string());
-                        self.existing_labels.insert(data.label.to_string());
-                    }
-                }
-                let mut collector = RefDefCollector {
-                    existing_url_to_label: &mut existing_url_to_label,
-                    existing_labels: &mut existing_labels,
-                };
-                collector.visit_document(doc);
-
-                let existing_url_to_label = std::rc::Rc::new(existing_url_to_label);
-                let existing_labels = std::rc::Rc::new(std::cell::RefCell::new(existing_labels));
-                let new_url_to_label =
-                    std::rc::Rc::new(std::cell::RefCell::new(std::collections::BTreeMap::new()));
-                let link_counter = std::rc::Rc::new(std::cell::RefCell::new(1));
-
-                let mut renderer =
-                    parse_lib::markdown_renderer::MarkdownRenderer::new(|directive| {
-                        directive.to_string()
-                    });
-
-                let inline_existing_url_to_label = std::rc::Rc::clone(&existing_url_to_label);
-                let inline_existing_labels = std::rc::Rc::clone(&existing_labels);
-                let inline_new_url_to_label = std::rc::Rc::clone(&new_url_to_label);
-                let inline_link_counter = std::rc::Rc::clone(&link_counter);
-
-                renderer = renderer.with_inline_link_resolver(move |link| {
-                    if link.url.contains("github.com/john-cd/rust_howto/issues") {
-                        return format!("[{}]({})", link.text, link.url);
-                    }
-                    let url_str = link.url.to_string();
-                    if let Some(lbl) = inline_existing_url_to_label.get(&url_str) {
-                        return format!("[{}][{}]", link.text, lbl);
-                    }
-                    let mut new_map = inline_new_url_to_label.borrow_mut();
-                    let mut labels = inline_existing_labels.borrow_mut();
-                    let mut counter = inline_link_counter.borrow_mut();
-
-                    let label = new_map
-                        .entry(url_str)
-                        .or_insert_with(|| {
-                            while labels.contains(&counter.to_string()) {
-                                *counter += 1;
-                            }
-                            let l = counter.to_string();
-                            labels.insert(l.clone());
-                            l
-                        })
-                        .clone();
-                    format!("[{}][{}]", link.text, label)
-                });
-
-                let auto_existing_url_to_label = std::rc::Rc::clone(&existing_url_to_label);
-                let auto_existing_labels = std::rc::Rc::clone(&existing_labels);
-                let auto_new_url_to_label = std::rc::Rc::clone(&new_url_to_label);
-                let auto_link_counter = std::rc::Rc::clone(&link_counter);
-
-                renderer = renderer.with_autolink_resolver(move |link| {
-                    if link.url.contains("github.com/john-cd/rust_howto/issues") {
-                        return format!("<{}>", link.url);
-                    }
-                    let url_str = link.url.to_string();
-                    if let Some(lbl) = auto_existing_url_to_label.get(&url_str) {
-                        return format!("[{}][{}]", link.url, lbl);
-                    }
-                    let mut new_map = auto_new_url_to_label.borrow_mut();
-                    let mut labels = auto_existing_labels.borrow_mut();
-                    let mut counter = auto_link_counter.borrow_mut();
-
-                    let label = new_map
-                        .entry(url_str)
-                        .or_insert_with(|| {
-                            while labels.contains(&counter.to_string()) {
-                                *counter += 1;
-                            }
-                            let l = counter.to_string();
-                            labels.insert(l.clone());
-                            l
-                        })
-                        .clone();
-                    format!("[{}][{}]", link.url, label)
-                });
-
-                renderer.visit_document(doc);
-                let mut final_output = std::mem::take(&mut renderer.markdown);
-                drop(renderer);
-
-                let new_map = std::rc::Rc::try_unwrap(new_url_to_label)
-                    .expect("Rc references still alive")
-                    .into_inner();
-                if !new_map.is_empty() {
-                    final_output.push('\n');
-                    let mut sorted_refdefs: Vec<_> = new_map
-                        .into_iter()
-                        .map(|(url, label)| (label.parse::<usize>().unwrap_or(0), label, url))
-                        .collect();
-                    sorted_refdefs.sort_by_key(|k| k.0);
-                    for (_, label, url) in sorted_refdefs {
-                        final_output.push_str(&format!("[{}]: {}\n", label, url));
-                    }
-                }
-
-                std::borrow::Cow::Owned(final_output)
+                let conversion = convert_inline_links_to_reference_definitions(doc);
+                file_stats = Some(conversion.stats);
+                Cow::Owned(conversion.markdown)
             },
             |path, error| tracing::error!("Failed to parse {}: {}", path.display(), error),
-        )
+        )?;
+
+        if let Some(stats) = file_stats {
+            processed_files += 1;
+            total_stats.existing_reference_definitions += stats.existing_reference_definitions;
+            total_stats.reused_reference_definitions += stats.reused_reference_definitions;
+            total_stats.appended_reference_definitions += stats.appended_reference_definitions;
+            total_stats.preserved_issue_links += stats.preserved_issue_links;
+
+            tracing::info!(
+                path = %path.display(),
+                existing_reference_definitions = stats.existing_reference_definitions,
+                reused_reference_definitions = stats.reused_reference_definitions,
+                appended_reference_definitions = stats.appended_reference_definitions,
+                preserved_issue_links = stats.preserved_issue_links,
+                "Converted inline links in file"
+            );
+        }
+
+        Ok(())
     })?;
+
+    tracing::info!(
+        processed_files,
+        existing_reference_definitions = total_stats.existing_reference_definitions,
+        reused_reference_definitions = total_stats.reused_reference_definitions,
+        appended_reference_definitions = total_stats.appended_reference_definitions,
+        preserved_issue_links = total_stats.preserved_issue_links,
+        "Completed inline-link conversion workflow"
+    );
+
     println!("Inline links converted successfully.");
     Ok(())
 }

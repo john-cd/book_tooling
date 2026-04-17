@@ -76,6 +76,13 @@ pub async fn execute(
     check_refdefs: bool,
     delete_unused: bool,
 ) -> Result<()> {
+    tracing::info!(
+        directory_count = directories.len(),
+        check_refdefs,
+        delete_unused,
+        "Starting external link verification workflow"
+    );
+
     let checker = AsyncLinkChecker::new();
     let mut all_links = HashSet::new();
 
@@ -102,12 +109,23 @@ pub async fn execute(
                 }
             }
 
-            all_links.extend(collect_active_external_links(doc, unused.as_ref()));
+            let active_links = collect_active_external_links(doc, unused.as_ref());
+            tracing::debug!(
+                path = %path.display(),
+                active_link_count = active_links.len(),
+                "Collected active external links from file"
+            );
+            all_links.extend(active_links);
 
             Ok(())
         },
-        |_path, _error| {},
+        |path, error| tracing::warn!("Failed to parse {}: {}", path.display(), error),
     )?;
+
+    tracing::info!(
+        unique_external_links = all_links.len(),
+        "Finished collecting links"
+    );
 
     println!(
         "Found {} unique external links. Verifying...",
@@ -116,6 +134,7 @@ pub async fn execute(
 
     let mut results = checker.check_urls(all_links).await;
     results.sort_by(|(left, _), (right, _)| left.as_str().cmp(right.as_str()));
+    let verified_links = results.len();
 
     let mut broken_links = 0;
     for (url, result) in results {
@@ -130,6 +149,7 @@ pub async fn execute(
     if broken_links > 0 {
         anyhow::bail!("Found {} broken links.", broken_links);
     } else {
+        tracing::info!(verified_links, "All external links verified successfully");
         println!("All links verified successfully.");
     }
     Ok(())

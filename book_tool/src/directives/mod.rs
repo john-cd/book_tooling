@@ -25,13 +25,19 @@ use crate::common::walk::walk_directories_and_process_files;
 /// The command loads `config.toml` from the current working directory when present,
 /// and otherwise falls back to [`Config::default`]. Files are rewritten in place.
 pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
+    tracing::info!(
+        directory_count = directories.len(),
+        "Starting directive processing workflow"
+    );
+
     // It assumes a `config.toml` in the current directory.
     let conf = Config::from_file("config.toml").unwrap_or_else(|_| {
         tracing::warn!("Could not load config.toml, using default configuration.");
-        Config::default()
+        Config::default() // TODO should fail if config.toml is expected but malformed
     });
 
     process_all_directives(directories, &conf)?;
+    tracing::info!("Completed directive processing workflow");
     println!("Directive processing complete.");
 
     Ok(())
