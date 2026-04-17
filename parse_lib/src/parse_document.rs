@@ -29,8 +29,6 @@ use crate::ast::TaskItemData;
 use crate::markdown::*;
 use crate::parse_directives::parse_directive_element;
 use crate::parse_hidden::parse_hidden_html_div;
-use crate::parse_parts::inline_link::parse_inline_link;
-use crate::parse_parts::reference_definition::parse_link_reference_definition;
 use crate::parse_urls::parse_autolink;
 use crate::parse_urls::parse_naked_url;
 use crate::parse_wikilinks::parse_wikilink;
