@@ -7,7 +7,8 @@ use std::io::BufWriter;
 
 use fmt2io::Writer;
 
-use super::{Visitable, Visitor};
+use super::Visitable;
+use super::Visitor;
 use crate::ast::*;
 
 impl<'d> Document<'d> {

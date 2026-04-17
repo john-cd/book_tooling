@@ -1,8 +1,11 @@
-use anyhow::Result;
-use parse_lib::{plain_text_extractor::PlainTextExtractor, visit::Visitor};
 use std::path::PathBuf;
 
-use crate::common::walk::{Scope, walk_directory_and_process_files};
+use anyhow::Result;
+use parse_lib::plain_text_extractor::PlainTextExtractor;
+use parse_lib::visit::Visitor;
+
+use crate::common::walk::Scope;
+use crate::common::walk::walk_directory_and_process_files;
 
 pub fn execute(query: String, directories: Vec<PathBuf>) -> Result<()> {
     let scope = Scope::default();

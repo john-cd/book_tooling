@@ -4,8 +4,8 @@
 use std::collections::BTreeMap;
 use std::fmt::Write;
 
-use parse_lib::visit::pretty_printer::PrettyPrinter;
 use parse_lib::visit::Visitor;
+use parse_lib::visit::pretty_printer::PrettyPrinter;
 use parse_lib::*;
 
 /// Transformation visitor that converts inline and naked links to reference-style links.

@@ -1,5 +1,5 @@
-use crate::ast::*;
 use super::Visitable;
+use crate::ast::*;
 
 /// A visitor that collects reference definitions.
 struct RefDefVisitor<'v>(RefDefManager<'v>);

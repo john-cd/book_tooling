@@ -3,7 +3,6 @@
 //! This module provides a centralized way to render common Markdown elements used
 //! across the book tooling, such as crate badges and external links.
 
-
 /// Crate destinations.
 ///
 /// Represents different types of targets for badges and links.

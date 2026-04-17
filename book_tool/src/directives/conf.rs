@@ -52,10 +52,7 @@ impl Default for Config {
             process_link_and_badge_directives: true,
             process_wikilinks: true,
             included_extensions: vec!["md".to_string()],
-            excluded_filenames: vec![
-                "refs.incl.md".to_string(),
-                "SUMMARY.md".to_string(),
-            ],
+            excluded_filenames: vec!["refs.incl.md".to_string(), "SUMMARY.md".to_string()],
         }
     }
 }

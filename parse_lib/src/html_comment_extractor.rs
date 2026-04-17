@@ -32,6 +32,9 @@ mod tests {
         let mut extractor = HtmlCommentExtractor::new();
         extractor.visit_document(&doc);
 
-        assert_eq!(extractor.comments, vec![" TODO: fix this section ".to_string()]);
+        assert_eq!(
+            extractor.comments,
+            vec![" TODO: fix this section ".to_string()]
+        );
     }
 }

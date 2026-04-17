@@ -3,11 +3,13 @@
 // Note on old code: This module was moved to `book_tool`.
 // Uses `core_lib` and `parse_lib` for iterating files and extracting HTML comments.
 
-use anyhow::Result;
-use parse_lib::visit::Visitor;
 use std::path::PathBuf;
 
-use crate::common::walk::{Scope, walk_directory_and_process_files};
+use anyhow::Result;
+use parse_lib::visit::Visitor;
+
+use crate::common::walk::Scope;
+use crate::common::walk::walk_directory_and_process_files;
 
 /// Executes the comment extraction process.
 ///
@@ -28,7 +30,8 @@ pub fn execute(directories: Vec<PathBuf>, output: PathBuf) -> Result<()> {
                 extractor.visit_document(&doc);
 
                 for comment in extractor.comments {
-                    all_comments_output += &format!("File: {}\n<!--{}-->\n\n", path.display(), comment);
+                    all_comments_output +=
+                        &format!("File: {}\n<!--{}-->\n\n", path.display(), comment);
                 }
             }
             Ok(())
@@ -36,6 +39,9 @@ pub fn execute(directories: Vec<PathBuf>, output: PathBuf) -> Result<()> {
     }
 
     std::fs::write(&output, all_comments_output)?;
-    println!("HTML comments extracted successfully to {}.", output.display());
+    println!(
+        "HTML comments extracted successfully to {}.",
+        output.display()
+    );
     Ok(())
 }

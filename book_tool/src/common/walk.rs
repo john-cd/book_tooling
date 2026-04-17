@@ -1,8 +1,8 @@
 use std::ffi::OsString;
 use std::path::Path;
 
-use anyhow::{Context, Result};
-use rayon::prelude::*;
+use anyhow::Context;
+use anyhow::Result;
 use walkdir::WalkDir;
 
 /// Defines what files should be processed based on their extension and filename.
@@ -47,19 +47,20 @@ where
             let ext = p.extension();
 
             p.is_file()
-                && file_name
-                    .is_some_and(|f_n: &std::ffi::OsStr| !scope.excluded_filenames.contains(&f_n.to_os_string()))
-                && ext.is_some_and(|ext: &std::ffi::OsStr| scope.included_extensions.contains(&ext.to_os_string()))
+                && file_name.is_some_and(|f_n: &std::ffi::OsStr| {
+                    !scope.excluded_filenames.contains(&f_n.to_os_string())
+                })
+                && ext.is_some_and(|ext: &std::ffi::OsStr| {
+                    scope.included_extensions.contains(&ext.to_os_string())
+                })
         })
         .map(|e: walkdir::DirEntry| e.path().to_path_buf())
         .collect::<Vec<_>>();
 
     files.into_iter().try_for_each(|file| {
         tracing::info!("Processing {}.", file.display());
-        f(&file)
-            .with_context(|| format!("Error while processing file: {}", file.display()))
+        f(&file).with_context(|| format!("Error while processing file: {}", file.display()))
     })?;
 
     Ok(())
 }
-

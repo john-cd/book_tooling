@@ -30,7 +30,11 @@ pub fn parse_fenced_code_block<'a>(input: &mut &'a str) -> ModalResult<Element<'
     let mut lines_iter = content.split('\n');
     let first_line = lines_iter.next().unwrap_or("").trim_end_matches('\r');
     let lang_str = first_line.trim();
-    let language = if lang_str.is_empty() { None } else { Some(lang_str) };
+    let language = if lang_str.is_empty() {
+        None
+    } else {
+        Some(lang_str)
+    };
 
     let mut lines = Vec::new();
     for line in lines_iter {
@@ -128,7 +132,10 @@ mod tests {
             parse_fenced_code_block.parse_peek("``````"),
             Ok((
                 "",
-                Element::FencedCodeBlock(FencedCodeBlockData { language: None, lines: vec![] })
+                Element::FencedCodeBlock(FencedCodeBlockData {
+                    language: None,
+                    lines: vec![]
+                })
             ))
         );
     }
@@ -163,7 +170,10 @@ mod tests {
             parse_fenced_code_block.parse_peek("```\nfoo \n``` bar```"),
             Ok((
                 " bar```",
-                Element::FencedCodeBlock(FencedCodeBlockData { language: None, lines: vec!["foo "] })
+                Element::FencedCodeBlock(FencedCodeBlockData {
+                    language: None,
+                    lines: vec!["foo "]
+                })
             ))
         );
     }

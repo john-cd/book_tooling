@@ -1,6 +1,7 @@
 use std::fmt;
 
-use super::{Visitable, Visitor};
+use super::Visitable;
+use super::Visitor;
 use crate::ast::*;
 
 /// A visitor that reconstructs a Markdown string from an AST.

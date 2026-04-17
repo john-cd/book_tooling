@@ -5,9 +5,9 @@ pub mod io;
 pub mod pretty_printer;
 pub mod refdefs;
 
-use crate::ast::*;
 use crate::Document;
 use crate::Documents;
+use crate::ast::*;
 
 /// A trait for walking the Abstract Syntax Tree (AST).
 ///

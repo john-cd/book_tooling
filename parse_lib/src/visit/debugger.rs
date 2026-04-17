@@ -78,7 +78,10 @@ impl<'a> Visitor<'a> for Debugger {
     }
 
     fn visit_fenced_code_block(&mut self, fenced_code_block: &FencedCodeBlockData<'a>) {
-        println!("Fenced code block with {} lines.", fenced_code_block.lines.len());
+        println!(
+            "Fenced code block with {} lines.",
+            fenced_code_block.lines.len()
+        );
     }
 
     fn visit_hidden_html_div(&mut self, div: &HiddenHtmlDivData<'a>) {

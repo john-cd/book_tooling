@@ -2,12 +2,19 @@
 
 use winnow::ModalResult;
 use winnow::Parser;
-use winnow::combinator::{alt, delimited, fail, opt, repeat, seq};
-use winnow::token::{any, take_while};
+use winnow::combinator::alt;
+use winnow::combinator::delimited;
+use winnow::combinator::fail;
+use winnow::combinator::opt;
+use winnow::combinator::repeat;
+use winnow::combinator::seq;
+use winnow::token::any;
+use winnow::token::take_while;
 
-use crate::ast::{Element, InlineLinkData};
 use super::link_destination::parse_link_destination;
 use super::link_text::parse_link_text;
+use crate::ast::Element;
+use crate::ast::InlineLinkData;
 
 /// Parses an optional link title enclosed in `""`, `''`, or `()`.
 /// Allows for backslash-escaped characters inside the title.
@@ -15,29 +22,42 @@ pub fn parse_link_title<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     alt((
         delimited(
             "\"",
-            repeat::<_, _, (), _, _>(0.., alt((
-                take_while(1.., |c| c != '"' && c != '\\').void(),
-                ('\\', any).void(),
-            ))).take(),
-            "\""
+            repeat::<_, _, (), _, _>(
+                0..,
+                alt((
+                    take_while(1.., |c| c != '"' && c != '\\').void(),
+                    ('\\', any).void(),
+                )),
+            )
+            .take(),
+            "\"",
         ),
         delimited(
             "'",
-            repeat::<_, _, (), _, _>(0.., alt((
-                take_while(1.., |c| c != '\'' && c != '\\').void(),
-                ('\\', any).void(),
-            ))).take(),
-            "'"
+            repeat::<_, _, (), _, _>(
+                0..,
+                alt((
+                    take_while(1.., |c| c != '\'' && c != '\\').void(),
+                    ('\\', any).void(),
+                )),
+            )
+            .take(),
+            "'",
         ),
         delimited(
             "(",
-            repeat::<_, _, (), _, _>(0.., alt((
-                take_while(1.., |c| c != ')' && c != '\\').void(),
-                ('\\', any).void(),
-            ))).take(),
-            ")"
+            repeat::<_, _, (), _, _>(
+                0..,
+                alt((
+                    take_while(1.., |c| c != ')' && c != '\\').void(),
+                    ('\\', any).void(),
+                )),
+            )
+            .take(),
+            ")",
         ),
-    )).parse_next(input)
+    ))
+    .parse_next(input)
 }
 
 /// Parses a complete inline link: `text`.
@@ -51,7 +71,8 @@ pub fn parse_inline_link<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
         opt(parse_link_title),
         take_while(0.., [' ', '\t', '\n', '\r']),
         ")"
-    ).parse_next(input)?;
+    )
+    .parse_next(input)?;
 
     // CommonMark spec dictates that if a title is present, it must be separated from the destination by whitespace.
     if title.is_some() && dest.is_some() && ws.is_empty() {
@@ -74,7 +95,11 @@ mod tests {
         let mut input = "[my link](https://example.com)";
         assert_eq!(
             parse_inline_link.parse_next(&mut input),
-            Ok(Element::InlineLink(InlineLinkData { text: "my link", url: "https://example.com", title: None }))
+            Ok(Element::InlineLink(InlineLinkData {
+                text: "my link",
+                url: "https://example.com",
+                title: None
+            }))
         );
         assert_eq!(input, "");
     }
@@ -84,7 +109,11 @@ mod tests {
         let mut input = "[my link](https://example.com \"A Title\")";
         assert_eq!(
             parse_inline_link.parse_next(&mut input),
-            Ok(Element::InlineLink(InlineLinkData { text: "my link", url: "https://example.com", title: Some("A Title") }))
+            Ok(Element::InlineLink(InlineLinkData {
+                text: "my link",
+                url: "https://example.com",
+                title: Some("A Title")
+            }))
         );
         assert_eq!(input, "");
     }

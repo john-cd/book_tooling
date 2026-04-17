@@ -6,7 +6,8 @@ use winnow::error::StrContext::*;
 use winnow::error::StrContextValue::*;
 use winnow::token::take_while;
 
-use crate::ast::{AutolinkData, Element};
+use crate::ast::AutolinkData;
+use crate::ast::Element;
 
 /// Predicate function to check if a character is one of the valid URL characters.
 /// Valid chars in URLs are A-Z, a-z, 0-9, -, ., _, ~, :, /, ?, #, [, ], @, !, $, &, ', (, ), *, +, ,, ;, %, =
@@ -34,12 +35,10 @@ pub(crate) fn parse_url_chars<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 
 /// Parses a naked URL (e.g. `https://example.com`) directly from text.
 pub fn parse_naked_url<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
-    let url_text = (
-        alt(("https://", "http://")),
-        parse_url_chars,
-    ).take()
-    .context(Label("naked URL"))
-    .parse_next(input)?;
+    let url_text = (alt(("https://", "http://")), parse_url_chars)
+        .take()
+        .context(Label("naked URL"))
+        .parse_next(input)?;
 
     Ok(Element::Autolink(AutolinkData { url: url_text }))
 }
@@ -51,7 +50,8 @@ pub fn parse_autolink<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
         (
             alt(("https://", "http://")),
             take_while(0.., |c: char| c != '>' && c != '<' && !c.is_whitespace()),
-        ).take(),
+        )
+            .take(),
         ">",
     )
     .context(Label("autolink"))
@@ -68,7 +68,12 @@ mod tests {
     fn test_parse_autolink() {
         let mut input = "<https://example.com/foo>";
         let result = parse_autolink.parse_next(&mut input).unwrap();
-        assert_eq!(result, Element::Autolink(AutolinkData { url: "https://example.com/foo" }));
+        assert_eq!(
+            result,
+            Element::Autolink(AutolinkData {
+                url: "https://example.com/foo"
+            })
+        );
     }
 
     #[test]

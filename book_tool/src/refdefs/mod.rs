@@ -4,8 +4,9 @@
 use std::collections::HashSet;
 use std::fmt::Write;
 
+use parse_lib::visit::Visitable;
+use parse_lib::visit::Visitor;
 use parse_lib::visit::pretty_printer::PrettyPrinter;
-use parse_lib::visit::{Visitor, Visitable};
 use parse_lib::*;
 
 /// Find labels that are defined but never used in links or images.
@@ -19,22 +20,13 @@ pub fn find_unused_refdefs(doc: &Document) -> HashSet<String> {
     }
 
     impl<'a> Visitor<'a> for LabelCollector<'_> {
-        fn visit_reference_style_link(
-            &mut self,
-            link: &'a ReferenceStyleLinkData<'a>,
-        ) {
+        fn visit_reference_style_link(&mut self, link: &'a ReferenceStyleLinkData<'a>) {
             self.used.insert(link.label.to_string());
         }
-        fn visit_reference_style_image(
-            &mut self,
-            img: &'a ReferenceStyleImageData<'a>,
-        ) {
+        fn visit_reference_style_image(&mut self, img: &'a ReferenceStyleImageData<'a>) {
             self.used.insert(img.label.to_string());
         }
-        fn visit_reference_definition(
-            &mut self,
-            refdef: &'a ReferenceDefinitionData<'a>,
-        ) {
+        fn visit_reference_definition(&mut self, refdef: &'a ReferenceDefinitionData<'a>) {
             self.defined.insert(refdef.label.to_string());
         }
     }
@@ -64,19 +56,13 @@ pub fn delete_unused_refdefs(doc: &Document, unused_labels: &HashSet<String>) ->
         fn visit_inline_link(&mut self, data: &'a InlineLinkData<'a>) {
             self.pp.visit_inline_link(data)
         }
-        fn visit_reference_style_link(
-            &mut self,
-            data: &'a ReferenceStyleLinkData<'a>,
-        ) {
+        fn visit_reference_style_link(&mut self, data: &'a ReferenceStyleLinkData<'a>) {
             self.pp.visit_reference_style_link(data)
         }
         fn visit_inline_image(&mut self, data: &'a InlineImageData<'a>) {
             self.pp.visit_inline_image(data)
         }
-        fn visit_reference_style_image(
-            &mut self,
-            data: &'a ReferenceStyleImageData<'a>,
-        ) {
+        fn visit_reference_style_image(&mut self, data: &'a ReferenceStyleImageData<'a>) {
             self.pp.visit_reference_style_image(data)
         }
         fn visit_wikilink(&mut self, data: &'a WikiLinkData<'a>) {
@@ -101,10 +87,7 @@ pub fn delete_unused_refdefs(doc: &Document, unused_labels: &HashSet<String>) ->
             self.pp.visit_custom_directive(data)
         }
 
-        fn visit_reference_definition(
-            &mut self,
-            refdef: &'a ReferenceDefinitionData<'a>,
-        ) {
+        fn visit_reference_definition(&mut self, refdef: &'a ReferenceDefinitionData<'a>) {
             if self.unused.contains(refdef.label) {
                 // To avoid leaving blank lines, we might need a more sophisticated printer,
                 // but for now this removes the definition.
