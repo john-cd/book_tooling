@@ -7,6 +7,7 @@ use parse_lib::visit::Visitor;
 
 use crate::common::Scope;
 use crate::common::walk_parsed_markdown_files;
+use crate::common::warn_and_continue_on_parse_failure;
 
 /// Scans the provided directories and writes all discovered HTML comments to `output`.
 ///
@@ -49,7 +50,7 @@ pub fn execute(directories: Vec<PathBuf>, output: PathBuf) -> Result<()> {
 
             Ok(())
         },
-        |path, error| tracing::warn!("Failed to parse {}: {}", path.display(), error),
+        warn_and_continue_on_parse_failure,
     )?;
 
     std::fs::write(&output, all_comments_output)?;

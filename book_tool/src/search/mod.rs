@@ -8,6 +8,7 @@ use parse_lib::visit::Visitor;
 
 use crate::common::Scope;
 use crate::common::walk_parsed_markdown_files;
+use crate::common::warn_and_continue_on_parse_failure;
 
 /// Searches Markdown files using plain-text extraction and prints contextual snippets.
 ///
@@ -51,7 +52,7 @@ pub fn execute(query: String, directories: Vec<PathBuf>) -> Result<()> {
 
                 Ok(())
             },
-            |path, error| tracing::warn!("Failed to parse {}: {}", path.display(), error),
+            warn_and_continue_on_parse_failure,
         )?;
     }
 

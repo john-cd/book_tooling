@@ -8,6 +8,7 @@ use anyhow::Result;
 use crate::common::Scope;
 use crate::common::process_parsed_markdown_file;
 use crate::common::walk_directories_and_process_files;
+use crate::common::warn_and_continue_on_parse_failure;
 use crate::links::InlineLinkConversionStats;
 use crate::links::convert_inline_links_to_reference_definitions;
 
@@ -36,7 +37,7 @@ pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
                 file_stats = Some(conversion.stats);
                 Cow::Owned(conversion.markdown)
             },
-            |path, error| tracing::error!("Failed to parse {}: {}", path.display(), error),
+            warn_and_continue_on_parse_failure,
         )?;
 
         if let Some(stats) = file_stats {

@@ -13,6 +13,7 @@ use url::Url;
 
 use crate::common::Scope;
 use crate::common::walk_parsed_markdown_files;
+use crate::common::warn_and_continue_on_parse_failure;
 use crate::links::AsyncLinkChecker;
 
 fn collect_active_external_links(
@@ -76,6 +77,10 @@ pub async fn execute(
     check_refdefs: bool,
     delete_unused: bool,
 ) -> Result<()> {
+    if delete_unused && !check_refdefs {
+        anyhow::bail!("--delete requires --refdefs to be enabled");
+    }
+
     tracing::info!(
         directory_count = directories.len(),
         check_refdefs,
@@ -116,7 +121,7 @@ pub async fn execute(
 
             Ok(())
         },
-        |path, error| tracing::warn!("Failed to parse {}: {}", path.display(), error),
+        warn_and_continue_on_parse_failure,
     )?;
 
     tracing::info!(
