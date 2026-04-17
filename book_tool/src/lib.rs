@@ -9,7 +9,7 @@
 //! - [`extract_comments`]: aggregates HTML comments from Markdown files.
 //! - [`inline_links`]: converts inline links and autolinks into reference-style links.
 //! - [`link_check`]: verifies external links and optionally removes unused refdefs.
-//! - [`links`]: lower-level link extraction and asynchronous verification utilities.
+//! - [`links`]: lower-level link conversion, extraction, and asynchronous verification utilities.
 //! - [`refdefs`]: reference-definition analysis and cleanup helpers.
 //! - [`search`]: plain-text search across Markdown documents.
 
@@ -23,7 +23,7 @@ pub mod extract_comments;
 pub mod inline_links;
 /// External link verification workflows.
 pub mod link_check;
-/// Link extraction and validation utilities.
+/// Link conversion, extraction, and validation utilities.
 pub mod links;
 /// Reference-definition analysis and cleanup helpers.
 pub mod refdefs;

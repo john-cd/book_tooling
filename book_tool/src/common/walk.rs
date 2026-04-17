@@ -38,6 +38,13 @@ pub fn walk_directory_and_process_files<F>(root: &Path, scope: &Scope, mut f: F)
 where
     F: FnMut(&Path) -> Result<()> + Sync + Send,
 {
+    tracing::debug!(
+        root = %root.display(),
+        included_extensions = ?scope.included_extensions,
+        excluded_filenames = ?scope.excluded_filenames,
+        "Scanning directory for matching files"
+    );
+
     let files = WalkDir::new(root)
         .into_iter()
         .filter_map(|e| e.ok())
@@ -56,6 +63,12 @@ where
         })
         .map(|e: walkdir::DirEntry| e.path().to_path_buf())
         .collect::<Vec<_>>();
+
+    tracing::debug!(
+        root = %root.display(),
+        file_count = files.len(),
+        "Collected matching files for directory walk"
+    );
 
     files.into_iter().try_for_each(|file| {
         tracing::info!("Processing {}.", file.display());
@@ -77,6 +90,7 @@ where
     F: FnMut(&Path) -> Result<()> + Sync + Send,
 {
     for directory in directories {
+        tracing::debug!(directory = %directory.as_ref().display(), "Walking directory");
         walk_directory_and_process_files(directory.as_ref(), scope, &mut f)?;
     }
 
@@ -99,10 +113,14 @@ where
     E: FnMut(&Path, &anyhow::Error) + Sync + Send,
 {
     walk_directories_and_process_files(directories, scope, |path| {
+        tracing::trace!(path = %path.display(), "Reading Markdown file during parsed walk");
         let content = std::fs::read_to_string(path)?;
 
         match parse_lib::parse_document("file", None, &content) {
-            Ok(doc) => on_document(path, &doc),
+            Ok(doc) => {
+                tracing::trace!(path = %path.display(), "Parsed Markdown file during walk");
+                on_document(path, &doc)
+            }
             Err(error) => {
                 on_parse_error(path, &error);
                 Ok(())

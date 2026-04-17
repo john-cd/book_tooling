@@ -6,6 +6,7 @@ use std::path::Path;
 
 use anyhow::Context;
 use anyhow::Result;
+
 /// Markdown rendering helpers shared by directive processing and other workflows.
 pub mod templates;
 /// Directory traversal helpers shared by file-oriented commands.
@@ -22,16 +23,28 @@ where
     T: FnOnce(&str) -> Cow<str>,
 {
     let path = path.as_ref();
+    tracing::debug!(path = %path.display(), "Reading text file");
     let content = std::fs::read_to_string(path)
         .with_context(|| format!("Failed to read file: {}", path.display()))?;
 
     if !should_process(&content) {
+        tracing::debug!(
+            path = %path.display(),
+            "Skipping file because the fast-path predicate returned false"
+        );
         return Ok(());
     }
 
+    tracing::debug!(path = %path.display(), "Transforming text file");
     let transformed = transform(&content);
 
     if transformed != content {
+        tracing::info!(
+            path = %path.display(),
+            old_bytes = content.len(),
+            new_bytes = transformed.len(),
+            "Writing updated file contents"
+        );
         let temp_path = path.with_extension("tmp");
         {
             let mut file = std::fs::File::create(&temp_path).with_context(|| {
@@ -43,6 +56,8 @@ where
         }
         std::fs::rename(&temp_path, path)
             .with_context(|| format!("Failed to rename temporary file to: {}", path.display()))?;
+    } else {
+        tracing::debug!(path = %path.display(), "Transformation produced no file changes");
     }
 
     Ok(())
@@ -65,15 +80,17 @@ where
 {
     let path = path.as_ref();
 
-    process_text_file(
-        path,
-        should_process,
-        |content| match parse_lib::parse_document("file", None, content) {
-            Ok(doc) => transform(path, &doc),
+    process_text_file(path, should_process, |content| {
+        tracing::debug!(path = %path.display(), "Parsing Markdown document");
+        match parse_lib::parse_document("file", None, content) {
+            Ok(doc) => {
+                tracing::debug!(path = %path.display(), "Parsed Markdown document successfully");
+                transform(path, &doc)
+            }
             Err(error) => {
                 on_parse_error(path, &error);
                 Cow::Borrowed(content)
             }
-        },
-    )
+        }
+    })
 }
