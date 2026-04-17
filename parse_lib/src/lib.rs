@@ -29,7 +29,7 @@ pub mod markdown;
 pub mod parse_directives;
 pub mod parse_document;
 pub mod parse_hidden;
-pub mod parse_parts;
+mod parse_parts;
 pub mod parse_urls;
 pub mod parse_wikilinks;
 

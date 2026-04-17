@@ -2,7 +2,9 @@ use std::time::Duration;
 
 use moka::future::Cache;
 use reqwest::Client;
+use tokio::task::JoinSet;
 use tracing::debug;
+use tracing::warn;
 use url::Url;
 
 #[derive(Debug, Clone)]
@@ -12,6 +14,7 @@ pub struct UrlCheck {
     pub error: Option<String>,
 }
 
+#[derive(Clone)]
 pub struct AsyncLinkChecker {
     client: Client,
     cache: Cache<Url, UrlCheck>,
@@ -52,6 +55,39 @@ impl AsyncLinkChecker {
 
         self.cache.insert(url, result.clone()).await;
         result
+    }
+
+    pub async fn check_urls<I>(&self, urls: I) -> Vec<(Url, UrlCheck)>
+    where
+        I: IntoIterator<Item = Url>,
+    {
+        const MAX_CONCURRENT_CHECKS: usize = 32;
+
+        let mut pending = urls.into_iter();
+        let mut in_flight = JoinSet::new();
+        let mut results = Vec::new();
+
+        loop {
+            while in_flight.len() < MAX_CONCURRENT_CHECKS {
+                let Some(url) = pending.next() else {
+                    break;
+                };
+
+                let checker = self.clone();
+                in_flight.spawn(async move {
+                    let result = checker.check_url(url.clone()).await;
+                    (url, result)
+                });
+            }
+
+            match in_flight.join_next().await {
+                Some(Ok(result)) => results.push(result),
+                Some(Err(error)) => warn!("Link check task failed: {}", error),
+                None => break,
+            }
+        }
+
+        results
     }
 
     async fn do_check(&self, url: &Url, use_head: bool) -> UrlCheck {
