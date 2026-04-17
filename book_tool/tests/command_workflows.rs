@@ -85,10 +85,37 @@ fn ok_response() -> String {
     "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_string()
 }
 
+fn status_response(status_line: &str, headers: &[&str]) -> String {
+    let mut response = format!("HTTP/1.1 {status_line}\r\n");
+    for header in headers {
+        response.push_str(header);
+        response.push_str("\r\n");
+        fn status_response(status_line: &str, headers: &[&str]) -> String {
+            let mut response = format!("HTTP/1.1 {status_line}\r\n");
+            for header in headers {
+                response.push_str(header);
+                response.push_str("\r\n");
+            }
+            response.push_str("Content-Length: 0\r\nConnection: close\r\n\r\n");
+            response
+        }
+    }
+    response.push_str("Content-Length: 0\r\nConnection: close\r\n\r\n");
+    response
+}
+
 fn retry_after_response(seconds: u64) -> String {
     format!(
         "HTTP/1.1 429 Too Many Requests\r\nRetry-After: {seconds}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
     )
+}
+
+fn invalid_retry_after_response(value: &str) -> String {
+    status_response("429 Too Many Requests", &[&format!("Retry-After: {value}")])
+}
+
+fn service_unavailable_response_with_headers(headers: &[&str]) -> String {
+    status_response("503 Service Unavailable", headers)
 }
 
 impl Drop for TestHttpServer {
@@ -172,6 +199,133 @@ async fn link_check_execute_retries_retry_after_responses() {
     book_tool::link_check::execute(vec![temp.path().to_path_buf()], false, false)
         .await
         .expect("run link-check with retry");
+}
+
+#[tokio::test]
+async fn link_check_execute_retries_service_unavailable_without_retry_after() {
+    let server = TestHttpServer::spawn_with_responses(vec![
+        service_unavailable_response_with_headers(&[]),
+        ok_response(),
+    ]);
+    let temp = tempdir().expect("create temp dir");
+    let markdown = format!("[retry me]({})\n", server.url("/service-unavailable"));
+    write_markdown_file(temp.path(), "doc.md", &markdown);
+
+    book_tool::link_check::execute(vec![temp.path().to_path_buf()], false, false)
+        .await
+        .expect("run link-check with missing retry-after");
+}
+
+#[tokio::test]
+async fn link_check_execute_retries_invalid_retry_after_responses() {
+    let server = TestHttpServer::spawn_with_responses(vec![
+        invalid_retry_after_response("soon"),
+        ok_response(),
+    ]);
+    let temp = tempdir().expect("create temp dir");
+    let markdown = format!("[retry me]({})\n", server.url("/invalid-retry-after"));
+    write_markdown_file(temp.path(), "doc.md", &markdown);
+
+    book_tool::link_check::execute(vec![temp.path().to_path_buf()], false, false)
+        .await
+        .expect("run link-check with invalid retry-after");
+}
+
+#[tokio::test]
+async fn link_check_execute_fails_after_max_retry_exhaustion() {
+    let server = TestHttpServer::spawn_with_responses(vec![retry_after_response(0); 8]);
+    let temp = tempdir().expect("create temp dir");
+    let markdown = format!("[retry me]({})\n", server.url("/always-rate-limited"));
+    write_markdown_file(temp.path(), "doc.md", &markdown);
+
+    let error = book_tool::link_check::execute(vec![temp.path().to_path_buf()], false, false)
+        .await
+        .expect_err("link-check should fail after exhausting retries");
+
+    assert!(
+        error.to_string().contains("broken links"),
+        "link-check error was: {error}"
+    );
+}
+
+#[test]
+fn link_check_cli_rejects_delete_without_refdefs() {
+    let temp = tempdir().expect("create temp dir");
+    write_markdown_file(temp.path(), "doc.md", "[ok](https://example.com)\n");
+
+    let output = book_tool_command()
+        .args([
+            "link-check",
+            temp.path().to_str().expect("utf-8 temp path"),
+            "--delete",
+        ])
+        .output()
+        .expect("run link-check command");
+
+    assert!(
+        !output.status.success(),
+        "link-check unexpectedly succeeded: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr).to_lowercase();
+    assert!(stderr.contains("refdefs"), "link-check stderr: {stderr}");
+}
+
+#[test]
+fn directives_cli_fails_for_invalid_config() {
+    let temp = tempdir().expect("create temp dir");
+    write_markdown_file(temp.path(), "doc.md", "{{#example demo}}\n");
+    fs::write(
+        temp.path().join("config.toml"),
+        "process-example-directives = [\n",
+    )
+    .expect("write invalid config");
+
+    let output = book_tool_command()
+        .args(["directives", temp.path().to_str().expect("utf-8 temp path")])
+        .current_dir(temp.path())
+        .output()
+        .expect("run directives command with invalid config");
+
+    assert!(
+        !output.status.success(),
+        "directives unexpectedly succeeded: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr).to_lowercase();
+    assert!(stderr.contains("config"), "directives stderr: {stderr}");
+}
+
+#[test]
+fn inline_links_execute_continues_after_parse_failure() {
+    let temp = tempdir().expect("create temp dir");
+    let valid_file = write_markdown_file(
+        temp.path(),
+        "valid.md",
+        "See [Rust](https://www.rust-lang.org/).\n",
+    );
+    let invalid_file = write_markdown_file(
+        temp.path(),
+        "invalid.md",
+        "<div class=\"hidden\">broken\n\nSee [Rust](https://www.rust-lang.org/).\n",
+    );
+
+    book_tool::inline_links::execute(vec![temp.path().to_path_buf()])
+        .expect("run inline-links with parse failure present");
+
+    let updated_valid = fs::read_to_string(valid_file).expect("read transformed markdown");
+    assert!(
+        updated_valid.contains("[Rust][1]"),
+        "updated content was:\n{updated_valid}"
+    );
+
+    let unchanged_invalid = fs::read_to_string(invalid_file).expect("read invalid markdown");
+    assert!(
+        unchanged_invalid.contains("<div class=\"hidden\">broken"),
+        "invalid content was unexpectedly rewritten:\n{unchanged_invalid}"
+    );
 }
 
 #[test]

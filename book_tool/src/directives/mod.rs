@@ -11,6 +11,7 @@ mod links_or_badges;
 use links_or_badges::*;
 
 mod examples;
+use std::path::Path;
 use std::path::PathBuf;
 
 use anyhow::Result;
@@ -19,6 +20,7 @@ use examples::*;
 use crate::common::Scope;
 use crate::common::process_parsed_markdown_file;
 use crate::common::walk_directories_and_process_files;
+use crate::common::warn_and_continue_on_parse_failure;
 
 /// Processes directives in all configured Markdown files under the given directories.
 ///
@@ -30,11 +32,27 @@ pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
         "Starting directive processing workflow"
     );
 
-    // It assumes a `config.toml` in the current directory.
-    let conf = Config::from_file("config.toml").unwrap_or_else(|_| {
-        tracing::warn!("Could not load config.toml, using default configuration.");
-        Config::default() // TODO should fail if config.toml is expected but malformed
-    });
+    let config_path = Path::new("config.toml");
+    let conf = match config_path.try_exists()? {
+        true => match Config::from_file(config_path) {
+            Ok(conf) => {
+                tracing::info!(path = %config_path.display(), "Loaded directive configuration");
+                conf
+            }
+            Err(error) => {
+                tracing::error!(
+                    path = %config_path.display(),
+                    error = %error,
+                    "Failed to load directive configuration"
+                );
+                return Err(error);
+            }
+        },
+        false => {
+            tracing::info!("No config.toml found; using default directive configuration");
+            Config::default()
+        }
+    };
 
     process_all_directives(directories, &conf)?;
     tracing::info!("Completed directive processing workflow");
@@ -120,6 +138,6 @@ fn process_all_directives_in_file(filepath: &std::path::Path, conf: &Config) -> 
             renderer.visit_document(doc);
             Cow::Owned(renderer.markdown)
         },
-        |filepath, error| tracing::warn!("Failed to parse {}: {}", filepath.display(), error),
+        warn_and_continue_on_parse_failure,
     )
 }

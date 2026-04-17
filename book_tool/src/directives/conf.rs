@@ -1,5 +1,7 @@
 use std::default::Default;
+use std::path::Path;
 
+use anyhow::Context;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -60,9 +62,12 @@ impl Default for Config {
 
 impl Config {
     /// Loads directive-processing configuration from a TOML file.
-    pub fn from_file(path: &str) -> anyhow::Result<Self> {
-        let content = std::fs::read_to_string(path)?;
-        let config: Config = toml::from_str(&content)?;
+    pub fn from_file(path: impl AsRef<Path>) -> anyhow::Result<Self> {
+        let path = path.as_ref();
+        let content = std::fs::read_to_string(path)
+            .with_context(|| format!("Failed to read config file: {}", path.display()))?;
+        let config: Config = toml::from_str(&content)
+            .with_context(|| format!("Failed to parse config file: {}", path.display()))?;
         Ok(config)
     }
 }

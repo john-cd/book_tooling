@@ -29,7 +29,7 @@ enum Commands {
         #[arg(short, long)]
         refdefs: bool,
         /// Delete unused reference definitions if --refdefs is set.
-        #[arg(short, long)]
+        #[arg(short, long, requires = "refdefs")]
         delete: bool,
     },
     /// Convert inline links to reference-style links in Markdown files.

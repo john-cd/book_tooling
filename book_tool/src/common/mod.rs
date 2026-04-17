@@ -15,6 +15,15 @@ mod walk;
 pub use templates::*;
 pub use walk::*;
 
+/// Logs a Markdown parse failure and records that the workflow is skipping the file.
+pub fn warn_and_continue_on_parse_failure(path: &Path, error: &anyhow::Error) {
+    tracing::warn!(
+        path = %path.display(),
+        error = %error,
+        "Failed to parse Markdown file; skipping file and continuing"
+    );
+}
+
 /// Reads a UTF-8 text file, optionally transforms it, and writes changes back atomically.
 ///
 /// The file is only rewritten when `should_process` returns `true` and the transformed
