@@ -1,4 +1,3 @@
-#![allow(missing_docs)]
 use anyhow::Result;
 use futures::future::join_all;
 use rust_rate::crawler::GithubCrawler;

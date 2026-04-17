@@ -62,7 +62,6 @@ where
     }
 }
 
-
 impl<'a, F> Visitor<'a> for MarkdownRenderer<F>
 where
     F: FnMut(&DirectiveData<'a>) -> String,
