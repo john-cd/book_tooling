@@ -15,8 +15,8 @@
 //!
 //! <https://spec.commonmark.org/0.31.2/#link-destination>
 
-pub mod angle_brackets;
-pub mod nonempty_sequence;
+mod angle_brackets;
+mod nonempty_sequence;
 
 pub use angle_brackets::parse_angle_brackets;
 pub use nonempty_sequence::parse_non_empty_sequence;

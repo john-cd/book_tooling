@@ -3,9 +3,9 @@
 use std::collections::HashSet;
 use std::fmt::Write;
 
+use parse_lib::visit::PrettyPrinter;
 use parse_lib::visit::Visitable;
 use parse_lib::visit::Visitor;
-use parse_lib::visit::pretty_printer::PrettyPrinter;
 use parse_lib::*;
 
 /// Find labels that are defined but never used in links or images.

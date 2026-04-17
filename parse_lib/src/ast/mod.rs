@@ -4,17 +4,17 @@
 //! directive-related enums, helper types such as index anchors, and reconstruction helpers.
 
 /// Directive-related AST types.
-pub mod directive;
+mod directive;
 /// Single-document AST container.
-pub mod document;
+mod document;
 /// Multi-document AST container.
-pub mod documents;
+mod documents;
 /// Element payload types and the top-level [`Element`] enum.
-pub mod element;
+mod element;
 /// Index-anchor helper types.
-pub mod indexanchor;
+mod indexanchor;
 /// Utilities for reconstructing Markdown from AST nodes.
-pub mod reconstruct;
+mod reconstruct;
 
 pub use directive::*;
 pub use document::*;

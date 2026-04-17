@@ -4,8 +4,8 @@
 
 use parse_lib::ast::DirectiveData;
 
-use crate::common::templates::DestinationKind;
-use crate::common::templates::render_badge;
+use crate::common::DestinationKind;
+use crate::common::render_badge;
 
 /// Renders a crate block based on the provided DirectiveData.
 pub(super) fn render_crate_block(directive: &DirectiveData<'_>) -> String {
