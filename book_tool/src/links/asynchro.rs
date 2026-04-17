@@ -17,6 +17,12 @@ pub struct AsyncLinkChecker {
     cache: Cache<Url, UrlCheck>,
 }
 
+impl Default for AsyncLinkChecker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AsyncLinkChecker {
     pub fn new() -> Self {
         let client = Client::builder()

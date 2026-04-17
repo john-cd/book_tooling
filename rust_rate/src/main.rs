@@ -1,13 +1,10 @@
 #![allow(missing_docs)]
-mod crawler;
-mod patterns;
-mod stats;
-
 use anyhow::Result;
-use crawler::GithubCrawler;
 use futures::future::join_all;
-use patterns::PatternAnalyzer;
-use stats::CrateStats;
+use rust_rate::crawler::GithubCrawler;
+use rust_rate::patterns::PatternAnalyzer;
+use rust_rate::rust_rate::execute;
+use rust_rate::stats::CrateStats;
 use tracing::info;
 use tracing::warn;
 
@@ -21,6 +18,11 @@ async fn main() -> Result<()> {
     let crawler = GithubCrawler::new(token);
     let mut stats = CrateStats::new();
     let analyzer = PatternAnalyzer::new();
+
+    // Call execute to demonstrate integration and fix dead code
+    if let Err(e) = execute("anyhow".to_string()).await {
+        warn!("crates.io execute failed: {}", e);
+    }
 
     // Example: Search for Cargo.toml files containing "anyhow"
     let items = match crawler.search_cargo_tomls("anyhow").await {

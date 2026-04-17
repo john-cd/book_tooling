@@ -128,7 +128,7 @@ pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
                                 .expect("Rc references still alive")
                                 .into_inner();
                             if !new_map.is_empty() {
-                                final_output.push_str("\n");
+                                final_output.push('\n');
                                 let mut sorted_refdefs: Vec<_> = new_map
                                     .into_iter()
                                     .map(|(url, label)| {

@@ -124,14 +124,14 @@ impl<'a, W: fmt::Write + 'a> Visitor<'a> for PrettyPrinter<W> {
         }
         let mut max_widths = vec![0; num_columns];
 
-        for i in 0..num_columns {
+        for (i, width_ref) in max_widths.iter_mut().enumerate() {
             let mut max_width = data.header.get(i).map_or(0, |s| s.len());
             for row in &data.rows {
                 if let Some(cell) = row.get(i) {
                     max_width = max_width.max(cell.len());
                 }
             }
-            max_widths[i] = max_width.max(3);
+            *width_ref = max_width.max(3);
         }
 
         let _ = write!(self.w, "|");
@@ -148,9 +148,9 @@ impl<'a, W: fmt::Write + 'a> Visitor<'a> for PrettyPrinter<W> {
 
         for row in &data.rows {
             let _ = write!(self.w, "|");
-            for i in 0..num_columns {
+            for (i, &width) in max_widths.iter().enumerate() {
                 let cell = row.get(i).unwrap_or(&"");
-                let _ = write!(self.w, " {:<width$} |", cell, width = max_widths[i]);
+                let _ = write!(self.w, " {:<width$} |", cell, width = width);
             }
             let _ = writeln!(self.w);
         }

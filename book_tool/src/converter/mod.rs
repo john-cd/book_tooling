@@ -15,6 +15,12 @@ pub struct LinkConverter {
     pub next_id: usize,
 }
 
+impl Default for LinkConverter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LinkConverter {
     pub fn new() -> Self {
         Self {

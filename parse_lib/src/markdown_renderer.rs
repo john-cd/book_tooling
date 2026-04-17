@@ -5,17 +5,21 @@ use crate::visit::Visitor;
 ///
 /// It supports on-the-fly replacement of Custom Directives and optional resolution
 /// of wikilinks and other link types through callback functions.
+pub type WikiLinkResolver = Box<dyn for<'b> FnMut(&WikiLinkData<'b>) -> String>;
+pub type InlineLinkResolver = Box<dyn for<'b> FnMut(&InlineLinkData<'b>) -> String>;
+pub type AutolinkResolver = Box<dyn for<'b> FnMut(&AutolinkData<'b>) -> String>;
+
 pub struct MarkdownRenderer<F> {
     /// The accumulating Markdown output.
     pub markdown: String,
     /// A callback to resolve a directive into its Markdown equivalent.
     pub directive_resolver: F,
     /// An optional callback to resolve a wikilink.
-    pub wikilink_resolver: Option<Box<dyn for<'b> FnMut(&WikiLinkData<'b>) -> String>>,
+    pub wikilink_resolver: Option<WikiLinkResolver>,
     /// An optional callback to resolve an inline link.
-    pub inline_link_resolver: Option<Box<dyn for<'b> FnMut(&InlineLinkData<'b>) -> String>>,
+    pub inline_link_resolver: Option<InlineLinkResolver>,
     /// An optional callback to resolve an autolink.
-    pub autolink_resolver: Option<Box<dyn for<'b> FnMut(&AutolinkData<'b>) -> String>>,
+    pub autolink_resolver: Option<AutolinkResolver>,
 }
 
 impl<F> MarkdownRenderer<F>
@@ -55,6 +59,273 @@ where
     ) -> Self {
         self.autolink_resolver = Some(Box::new(resolver));
         self
+    }
+}
+
+
+impl<'a, F> Visitor<'a> for MarkdownRenderer<F>
+where
+    F: FnMut(&DirectiveData<'a>) -> String,
+{
+    fn visit_text(&mut self, data: &TextData<'a>) {
+        self.markdown.push_str(data.content);
+    }
+
+    fn visit_inline_link(&mut self, data: &InlineLinkData<'a>) {
+        if let Some(resolver) = &mut self.inline_link_resolver {
+            let replacement = resolver(data);
+            self.markdown.push_str(&replacement);
+        } else {
+            self.markdown
+                .push_str(&format!("[{}]({})", data.text, data.url));
+        }
+    }
+
+    fn visit_fenced_code_block(&mut self, data: &FencedCodeBlockData<'a>) {
+        let lang = data.language.unwrap_or("");
+        self.markdown.push_str(&format!("```{lang}\n"));
+        for line in &data.lines {
+            self.markdown.push_str(line);
+            self.markdown.push('\n');
+        }
+        self.markdown.push_str("```\n");
+    }
+
+    fn visit_wikilink(&mut self, data: &WikiLinkData<'a>) {
+        if let Some(resolver) = &mut self.wikilink_resolver {
+            let replacement = resolver(data);
+            self.markdown.push_str(&replacement);
+        } else {
+            self.markdown.push_str("[[");
+            self.markdown.push_str(data.target);
+            if let Some(display) = data.display {
+                self.markdown.push_str(" | ");
+                self.markdown.push_str(display);
+            }
+            self.markdown.push_str("]]");
+            if let Some(after) = data.immediately_after {
+                self.markdown.push_str(after);
+            }
+        }
+    }
+
+    fn visit_autolink(&mut self, data: &AutolinkData<'a>) {
+        if let Some(resolver) = &mut self.autolink_resolver {
+            let replacement = resolver(data);
+            self.markdown.push_str(&replacement);
+        } else {
+            self.markdown.push('<');
+            self.markdown.push_str(data.url);
+            self.markdown.push('>');
+        }
+    }
+
+    fn visit_reference_style_link(&mut self, data: &ReferenceStyleLinkData<'a>) {
+        if data.text == data.label {
+            self.markdown.push_str(&format!("[{}]", data.text));
+        } else {
+            self.markdown
+                .push_str(&format!("[{}][{}]", data.text, data.label));
+        }
+    }
+
+    fn visit_reference_style_image(&mut self, data: &ReferenceStyleImageData<'a>) {
+        self.markdown
+            .push_str(&format!("![{}][{}]", data.image_description, data.label));
+    }
+
+    fn visit_reference_definition(&mut self, data: &ReferenceDefinitionData<'a>) {
+        self.markdown
+            .push_str(&format!("[{}]: {}", data.label, data.url));
+        if let Some(title) = data.title {
+            self.markdown.push_str(&format!(" \"{}\"", title));
+        }
+        self.markdown.push('\n');
+    }
+
+    fn visit_inline_image(&mut self, data: &InlineImageData<'a>) {
+        if let Some(title) = data.title {
+            self.markdown.push_str(&format!(
+                "![{}]({} \"{}\")",
+                data.image_description, data.url, title
+            ));
+        } else {
+            self.markdown
+                .push_str(&format!("![{}]({})", data.image_description, data.url));
+        }
+    }
+
+    fn visit_heading(&mut self, data: &HeadingData<'a>) {
+        for _ in 0..data.level {
+            self.markdown.push('#');
+        }
+        if let Some(content) = data.content {
+            self.markdown.push(' ');
+            self.markdown.push_str(content);
+        }
+        if let Some(id) = data.id {
+            self.markdown.push_str(&format!(" {{#{}}}", id));
+        }
+        self.markdown.push('\n');
+    }
+
+    fn visit_task_item(&mut self, data: &TaskItemData<'a>) {
+        let check = if data.completed { "x" } else { " " };
+        self.markdown
+            .push_str(&format!("- [{}] {}\n", check, data.content));
+    }
+
+    fn visit_table(&mut self, data: &TableData<'a>) {
+        let num_columns = data.header.len();
+        if num_columns == 0 {
+            return;
+        }
+        let mut max_widths = vec![0; num_columns];
+
+        // Calculate max width for each column, including header, rows, and separator (min 3 dashes)
+        for (i, width_ref) in max_widths.iter_mut().enumerate() {
+            let mut max_width = data.header.get(i).map_or(0, |s| s.len());
+            for row in &data.rows {
+                if let Some(cell) = row.get(i) {
+                    max_width = max_width.max(cell.len());
+                }
+            }
+            *width_ref = max_width.max(3);
+        }
+
+        // Render Header
+        self.markdown.push('|');
+        for (i, cell) in data.header.iter().enumerate() {
+            self.markdown
+                .push_str(&format!(" {:<width$} |", cell, width = max_widths[i]));
+        }
+        self.markdown.push('\n');
+
+        // Render Separator
+        self.markdown.push('|');
+        for width in &max_widths {
+            self.markdown
+                .push_str(&format!(" {:-<width$} |", "", width = *width));
+        }
+        self.markdown.push('\n');
+
+        // Render Data Rows
+        for row in &data.rows {
+            self.markdown.push('|');
+            for (i, &width) in max_widths.iter().enumerate() {
+                let cell = row.get(i).unwrap_or(&"");
+                self.markdown
+                    .push_str(&format!(" {:<width$} |", cell, width = width));
+            }
+            self.markdown.push('\n');
+        }
+    }
+
+    fn visit_paragraph(&mut self, data: &'a ParagraphData<'a>) {
+        for element in &data.elements {
+            self.visit_element(element);
+        }
+        self.markdown.push_str("\n\n");
+    }
+
+    fn visit_blockquote(&mut self, data: &'a BlockquoteData<'a>) {
+        let start_len = self.markdown.len();
+        for element in &data.elements {
+            self.visit_element(element);
+        }
+        let inner_rendered = self.markdown.split_off(start_len);
+
+        for line in inner_rendered.trim_end().lines() {
+            if line.is_empty() {
+                self.markdown.push_str(">\n");
+            } else {
+                self.markdown.push_str("> ");
+                self.markdown.push_str(line);
+                self.markdown.push('\n');
+            }
+        }
+        self.markdown.push('\n');
+    }
+
+    fn visit_list(&mut self, data: &'a ListData<'a>) {
+        for (i, item) in data.items.iter().enumerate() {
+            let start_len = self.markdown.len();
+            self.visit_element(item);
+            let inner_rendered = self.markdown.split_off(start_len);
+
+            let marker = if data.ordered {
+                format!("{}. ", i + 1)
+            } else {
+                "- ".to_string()
+            };
+
+            let indent = " ".repeat(marker.len());
+
+            for (idx, line) in inner_rendered.trim_end().lines().enumerate() {
+                if idx == 0 {
+                    self.markdown.push_str(&marker);
+                    self.markdown.push_str(line);
+                } else if line.is_empty() {
+                    self.markdown.push('\n');
+                } else {
+                    self.markdown.push_str(&indent);
+                    self.markdown.push_str(line);
+                }
+                self.markdown.push('\n');
+            }
+        }
+        self.markdown.push('\n');
+    }
+
+    fn visit_list_item(&mut self, data: &'a ListItemData<'a>) {
+        for element in &data.elements {
+            self.visit_element(element);
+        }
+    }
+
+    fn visit_strong(&mut self, data: &'a StrongData<'a>) {
+        self.markdown.push_str("**");
+        for element in &data.elements {
+            self.visit_element(element);
+        }
+        self.markdown.push_str("**");
+    }
+
+    fn visit_emphasis(&mut self, data: &'a EmphasisData<'a>) {
+        self.markdown.push('*');
+        for element in &data.elements {
+            self.visit_element(element);
+        }
+        self.markdown.push('*');
+    }
+
+    fn visit_strikethrough(&mut self, data: &'a StrikethroughData<'a>) {
+        self.markdown.push_str("~~");
+        for element in &data.elements {
+            self.visit_element(element);
+        }
+        self.markdown.push_str("~~");
+    }
+
+    fn visit_horizontal_rule(&mut self) {
+        self.markdown.push_str("\n---\n\n");
+    }
+
+    fn visit_html_comment(&mut self, data: &HtmlCommentData<'a>) {
+        self.markdown.push_str("<!--");
+        for (i, line) in data.lines.iter().enumerate() {
+            if i > 0 {
+                self.markdown.push('\n');
+            }
+            self.markdown.push_str(line);
+        }
+        self.markdown.push_str("-->");
+    }
+
+    fn visit_custom_directive(&mut self, data: &DirectiveData<'a>) {
+        // Call the resolver to generate the replacement Markdown
+        let replacement = (self.directive_resolver)(data);
+        self.markdown.push_str(&replacement);
     }
 }
 
@@ -245,271 +516,5 @@ mod tests {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
         renderer.visit_element(&Element::HorizontalRule);
         assert_eq!(renderer.markdown, "\n---\n\n");
-    }
-}
-
-impl<'a, F> Visitor<'a> for MarkdownRenderer<F>
-where
-    F: FnMut(&DirectiveData<'a>) -> String,
-{
-    fn visit_text(&mut self, data: &TextData<'a>) {
-        self.markdown.push_str(data.content);
-    }
-
-    fn visit_inline_link(&mut self, data: &InlineLinkData<'a>) {
-        if let Some(resolver) = &mut self.inline_link_resolver {
-            let replacement = resolver(data);
-            self.markdown.push_str(&replacement);
-        } else {
-            self.markdown
-                .push_str(&format!("[{}]({})", data.text, data.url));
-        }
-    }
-
-    fn visit_fenced_code_block(&mut self, data: &FencedCodeBlockData<'a>) {
-        let lang = data.language.unwrap_or("");
-        self.markdown.push_str(&format!("```{lang}\n"));
-        for line in &data.lines {
-            self.markdown.push_str(line);
-            self.markdown.push('\n');
-        }
-        self.markdown.push_str("```\n");
-    }
-
-    fn visit_wikilink(&mut self, data: &WikiLinkData<'a>) {
-        if let Some(resolver) = &mut self.wikilink_resolver {
-            let replacement = resolver(data);
-            self.markdown.push_str(&replacement);
-        } else {
-            self.markdown.push_str("[[");
-            self.markdown.push_str(data.target);
-            if let Some(display) = data.display {
-                self.markdown.push_str(" | ");
-                self.markdown.push_str(display);
-            }
-            self.markdown.push_str("]]");
-            if let Some(after) = data.immediately_after {
-                self.markdown.push_str(after);
-            }
-        }
-    }
-
-    fn visit_autolink(&mut self, data: &AutolinkData<'a>) {
-        if let Some(resolver) = &mut self.autolink_resolver {
-            let replacement = resolver(data);
-            self.markdown.push_str(&replacement);
-        } else {
-            self.markdown.push('<');
-            self.markdown.push_str(data.url);
-            self.markdown.push('>');
-        }
-    }
-
-    fn visit_reference_style_link(&mut self, data: &ReferenceStyleLinkData<'a>) {
-        if data.text == data.label {
-            self.markdown.push_str(&format!("[{}]", data.text));
-        } else {
-            self.markdown
-                .push_str(&format!("[{}][{}]", data.text, data.label));
-        }
-    }
-
-    fn visit_reference_style_image(&mut self, data: &ReferenceStyleImageData<'a>) {
-        self.markdown
-            .push_str(&format!("![{}][{}]", data.image_description, data.label));
-    }
-
-    fn visit_reference_definition(&mut self, data: &ReferenceDefinitionData<'a>) {
-        self.markdown
-            .push_str(&format!("[{}]: {}", data.label, data.url));
-        if let Some(title) = data.title {
-            self.markdown.push_str(&format!(" \"{}\"", title));
-        }
-        self.markdown.push('\n');
-    }
-
-    fn visit_inline_image(&mut self, data: &InlineImageData<'a>) {
-        if let Some(title) = data.title {
-            self.markdown.push_str(&format!(
-                "![{}]({} \"{}\")",
-                data.image_description, data.url, title
-            ));
-        } else {
-            self.markdown
-                .push_str(&format!("![{}]({})", data.image_description, data.url));
-        }
-    }
-
-    fn visit_heading(&mut self, data: &HeadingData<'a>) {
-        for _ in 0..data.level {
-            self.markdown.push('#');
-        }
-        if let Some(content) = data.content {
-            self.markdown.push(' ');
-            self.markdown.push_str(content);
-        }
-        if let Some(id) = data.id {
-            self.markdown.push_str(&format!(" {{#{}}}", id));
-        }
-        self.markdown.push('\n');
-    }
-
-    fn visit_task_item(&mut self, data: &TaskItemData<'a>) {
-        let check = if data.completed { "x" } else { " " };
-        self.markdown
-            .push_str(&format!("- [{}] {}\n", check, data.content));
-    }
-
-    fn visit_table(&mut self, data: &TableData<'a>) {
-        let num_columns = data.header.len();
-        if num_columns == 0 {
-            return;
-        }
-        let mut max_widths = vec![0; num_columns];
-
-        // Calculate max width for each column, including header, rows, and separator (min 3 dashes)
-        for i in 0..num_columns {
-            let mut max_width = data.header.get(i).map_or(0, |s| s.len());
-            for row in &data.rows {
-                if let Some(cell) = row.get(i) {
-                    max_width = max_width.max(cell.len());
-                }
-            }
-            max_widths[i] = max_width.max(3);
-        }
-
-        // Render Header
-        self.markdown.push('|');
-        for (i, cell) in data.header.iter().enumerate() {
-            self.markdown
-                .push_str(&format!(" {:<width$} |", cell, width = max_widths[i]));
-        }
-        self.markdown.push('\n');
-
-        // Render Separator
-        self.markdown.push('|');
-        for width in &max_widths {
-            self.markdown
-                .push_str(&format!(" {:-<width$} |", "", width = *width));
-        }
-        self.markdown.push('\n');
-
-        // Render Data Rows
-        for row in &data.rows {
-            self.markdown.push('|');
-            for i in 0..num_columns {
-                let cell = row.get(i).unwrap_or(&"");
-                self.markdown
-                    .push_str(&format!(" {:<width$} |", cell, width = max_widths[i]));
-            }
-            self.markdown.push('\n');
-        }
-    }
-
-    fn visit_paragraph(&mut self, data: &'a ParagraphData<'a>) {
-        for element in &data.elements {
-            self.visit_element(element);
-        }
-        self.markdown.push_str("\n\n");
-    }
-
-    fn visit_blockquote(&mut self, data: &'a BlockquoteData<'a>) {
-        let start_len = self.markdown.len();
-        for element in &data.elements {
-            self.visit_element(element);
-        }
-        let inner_rendered = self.markdown.split_off(start_len);
-
-        for line in inner_rendered.trim_end().lines() {
-            if line.is_empty() {
-                self.markdown.push_str(">\n");
-            } else {
-                self.markdown.push_str("> ");
-                self.markdown.push_str(line);
-                self.markdown.push('\n');
-            }
-        }
-        self.markdown.push('\n');
-    }
-
-    fn visit_list(&mut self, data: &'a ListData<'a>) {
-        for (i, item) in data.items.iter().enumerate() {
-            let start_len = self.markdown.len();
-            self.visit_element(item);
-            let inner_rendered = self.markdown.split_off(start_len);
-
-            let marker = if data.ordered {
-                format!("{}. ", i + 1)
-            } else {
-                "- ".to_string()
-            };
-
-            let indent = " ".repeat(marker.len());
-
-            for (idx, line) in inner_rendered.trim_end().lines().enumerate() {
-                if idx == 0 {
-                    self.markdown.push_str(&marker);
-                    self.markdown.push_str(line);
-                } else if line.is_empty() {
-                    self.markdown.push('\n');
-                } else {
-                    self.markdown.push_str(&indent);
-                    self.markdown.push_str(line);
-                }
-                self.markdown.push('\n');
-            }
-        }
-        self.markdown.push('\n');
-    }
-
-    fn visit_list_item(&mut self, data: &'a ListItemData<'a>) {
-        for element in &data.elements {
-            self.visit_element(element);
-        }
-    }
-
-    fn visit_strong(&mut self, data: &'a StrongData<'a>) {
-        self.markdown.push_str("**");
-        for element in &data.elements {
-            self.visit_element(element);
-        }
-        self.markdown.push_str("**");
-    }
-
-    fn visit_emphasis(&mut self, data: &'a EmphasisData<'a>) {
-        self.markdown.push('*');
-        for element in &data.elements {
-            self.visit_element(element);
-        }
-        self.markdown.push('*');
-    }
-
-    fn visit_strikethrough(&mut self, data: &'a StrikethroughData<'a>) {
-        self.markdown.push_str("~~");
-        for element in &data.elements {
-            self.visit_element(element);
-        }
-        self.markdown.push_str("~~");
-    }
-
-    fn visit_horizontal_rule(&mut self) {
-        self.markdown.push_str("\n---\n\n");
-    }
-
-    fn visit_html_comment(&mut self, data: &HtmlCommentData<'a>) {
-        self.markdown.push_str("<!--");
-        for (i, line) in data.lines.iter().enumerate() {
-            if i > 0 {
-                self.markdown.push('\n');
-            }
-            self.markdown.push_str(line);
-        }
-        self.markdown.push_str("-->");
-    }
-
-    fn visit_custom_directive(&mut self, data: &DirectiveData<'a>) {
-        // Call the resolver to generate the replacement Markdown
-        let replacement = (self.directive_resolver)(data);
-        self.markdown.push_str(&replacement);
     }
 }
