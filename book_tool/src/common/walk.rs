@@ -1,8 +1,11 @@
+use std::collections::HashSet;
 use std::ffi::OsString;
 use std::path::Path;
+use std::path::PathBuf;
 
 use anyhow::Context;
 use anyhow::Result;
+use anyhow::bail;
 use walkdir::WalkDir;
 
 /// Defines what files should be processed based on their extension and filename.
@@ -10,7 +13,7 @@ use walkdir::WalkDir;
 pub struct Scope {
     /// Extensions to process (e.g., "md", "txt").
     pub included_extensions: Vec<OsString>,
-    /// File names (i.e. final component of a `Path`) to exclude (e.g., "SUMMARY.md").
+    /// File names to exclude (e.g., "SUMMARY.md").
     pub excluded_filenames: Vec<OsString>,
 }
 
@@ -23,17 +26,55 @@ impl Default for Scope {
     }
 }
 
+fn path_identity(path: &Path) -> String {
+    let identity = path.to_string_lossy().replace('\\', "/");
+    #[cfg(windows)]
+    {
+        identity.to_lowercase()
+    }
+    #[cfg(not(windows))]
+    {
+        identity
+    }
+}
+
+fn collect_files(root: &Path, scope: &Scope, seen: &mut HashSet<String>) -> Result<Vec<PathBuf>> {
+    let mut files = Vec::new();
+    for entry in WalkDir::new(root) {
+        let entry = entry.with_context(|| format!("Failed to traverse {}", root.display()))?;
+        if !entry.file_type().is_file() {
+            continue;
+        }
+
+        let path = entry.path();
+        let Some(file_name) = path.file_name() else {
+            continue;
+        };
+        if scope.excluded_filenames.contains(&file_name.to_os_string())
+            || !path.extension().is_some_and(|extension| {
+                scope
+                    .included_extensions
+                    .contains(&extension.to_os_string())
+            })
+        {
+            continue;
+        }
+
+        let canonical = path
+            .canonicalize()
+            .with_context(|| format!("Failed to resolve file {}", path.display()))?;
+        if seen.insert(path_identity(&canonical)) {
+            files.push(path.to_path_buf());
+        }
+    }
+    Ok(files)
+}
+
 /// Walks through a directory and processes all files matching the specified scope.
-///
-/// # Arguments
-///
-/// * `root` - The directory to walk through.
-/// * `scope` - The criteria for including/excluding files.
-/// * `f` - A function that processes one file at a time.
 ///
 /// # Errors
 ///
-/// Returns an error if directory traversal fails or if the processing function `f` returns an error.
+/// Returns an error if the root cannot be traversed or if processing a file fails.
 pub fn walk_directory_and_process_files<F>(root: &Path, scope: &Scope, mut f: F) -> Result<()>
 where
     F: FnMut(&Path) -> Result<()> + Sync + Send,
@@ -45,40 +86,18 @@ where
         "Scanning directory for matching files"
     );
 
-    let files = WalkDir::new(root)
-        .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|e: &walkdir::DirEntry| {
-            let p = e.path();
-            let file_name = p.file_name();
-            let ext = p.extension();
+    let mut seen = HashSet::new();
+    let files = collect_files(root, scope, &mut seen)?;
+    tracing::debug!(root = %root.display(), file_count = files.len(), "Collected matching files");
 
-            p.is_file()
-                && file_name.is_some_and(|f_n: &std::ffi::OsStr| {
-                    !scope.excluded_filenames.contains(&f_n.to_os_string())
-                })
-                && ext.is_some_and(|ext: &std::ffi::OsStr| {
-                    scope.included_extensions.contains(&ext.to_os_string())
-                })
-        })
-        .map(|e: walkdir::DirEntry| e.path().to_path_buf())
-        .collect::<Vec<_>>();
-
-    tracing::debug!(
-        root = %root.display(),
-        file_count = files.len(),
-        "Collected matching files for directory walk"
-    );
-
-    files.into_iter().try_for_each(|file| {
+    for file in files {
         tracing::info!("Processing {}.", file.display());
-        f(&file).with_context(|| format!("Error while processing file: {}", file.display()))
-    })?;
-
+        f(&file).with_context(|| format!("Error while processing file: {}", file.display()))?;
+    }
     Ok(())
 }
 
-/// Walks multiple directories and processes all files matching the provided scope.
+/// Walks multiple directories and processes each matching file once, including when roots overlap.
 pub fn walk_directories_and_process_files<I, F>(
     directories: I,
     scope: &Scope,
@@ -89,17 +108,25 @@ where
     I::Item: AsRef<Path>,
     F: FnMut(&Path) -> Result<()> + Sync + Send,
 {
+    let mut seen = HashSet::new();
+    let mut files = Vec::new();
     for directory in directories {
-        tracing::debug!(directory = %directory.as_ref().display(), "Walking directory");
-        walk_directory_and_process_files(directory.as_ref(), scope, &mut f)?;
+        let root = directory.as_ref();
+        tracing::debug!(directory = %root.display(), "Walking directory");
+        files.extend(collect_files(root, scope, &mut seen)?);
     }
 
+    for file in files {
+        tracing::info!("Processing {}.", file.display());
+        f(&file).with_context(|| format!("Error while processing file: {}", file.display()))?;
+    }
     Ok(())
 }
 
-/// Walks Markdown files, parses them, and invokes `on_document` for each successfully parsed AST.
+/// Walks Markdown files, parses them, and invokes `on_document` for every valid document.
 ///
-/// Parse failures are delegated to `on_parse_error` and do not stop the directory walk.
+/// Parse failures are reported and accumulated. The walk returns an error with scanned,
+/// processed, and failed counts after leaving all malformed source files untouched.
 pub fn walk_parsed_markdown_files<I, F, E>(
     directories: I,
     scope: &Scope,
@@ -112,19 +139,91 @@ where
     F: for<'input> FnMut(&Path, &parse_lib::Document<'input>) -> Result<()> + Sync + Send,
     E: FnMut(&Path, &anyhow::Error) + Sync + Send,
 {
+    let mut scanned = 0usize;
+    let mut processed = 0usize;
+    let mut failed_paths = Vec::new();
+
     walk_directories_and_process_files(directories, scope, |path| {
+        scanned += 1;
         tracing::trace!(path = %path.display(), "Reading Markdown file during parsed walk");
-        let content = std::fs::read_to_string(path)?;
+        let content = match std::fs::read_to_string(path) {
+            Ok(content) => content,
+            Err(error) => {
+                let error = anyhow::Error::new(error)
+                    .context(format!("Failed to read Markdown file {}", path.display()));
+                on_parse_error(path, &error);
+                failed_paths.push(path.display().to_string());
+                return Ok(());
+            }
+        };
 
         match parse_lib::parse_document("file", None, &content) {
             Ok(doc) => {
                 tracing::trace!(path = %path.display(), "Parsed Markdown file during walk");
-                on_document(path, &doc)
+                on_document(path, &doc)?;
+                processed += 1;
             }
             Err(error) => {
                 on_parse_error(path, &error);
-                Ok(())
+                failed_paths.push(path.display().to_string());
             }
         }
-    })
+        Ok(())
+    })?;
+
+    if !failed_paths.is_empty() {
+        let paths = failed_paths.join(", ");
+        eprintln!(
+            "Markdown processing incomplete: scanned {scanned}, processed {processed}, failed {} file(s): {paths}",
+            failed_paths.len()
+        );
+        bail!(
+            "Markdown processing incomplete after scanning {scanned} file(s): processed {processed}, failed {}",
+            failed_paths.len()
+        );
+    }
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use tempfile::tempdir;
+
+    use super::*;
+
+    #[test]
+    fn overlapping_roots_process_each_file_once() -> Result<()> {
+        let temp = tempdir()?;
+        let nested = temp.path().join("nested");
+        std::fs::create_dir(&nested)?;
+        let chapter = nested.join("chapter.md");
+        std::fs::write(&chapter, "# Chapter\n")?;
+        let nested = nested.canonicalize()?;
+        let mut processed = Vec::new();
+
+        walk_directories_and_process_files(
+            [temp.path(), nested.as_path()],
+            &Scope::default(),
+            |path| {
+                processed.push(path.canonicalize()?);
+                Ok(())
+            },
+        )?;
+
+        assert_eq!(processed, [chapter.canonicalize()?]);
+        Ok(())
+    }
+
+    #[test]
+    fn traversal_failure_is_reported() -> Result<()> {
+        let temp = tempdir()?;
+        let missing = temp.path().join("missing");
+
+        let error = walk_directory_and_process_files(&missing, &Scope::default(), |_| Ok(()))
+            .expect_err("missing roots must fail instead of looking empty");
+
+        assert!(error.to_string().contains("traverse"));
+        Ok(())
+    }
 }

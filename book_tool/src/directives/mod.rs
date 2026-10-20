@@ -18,9 +18,7 @@ use anyhow::Result;
 use examples::*;
 
 use crate::common::Scope;
-use crate::common::process_parsed_markdown_file;
-use crate::common::walk_directories_and_process_files;
-use crate::common::warn_and_continue_on_parse_failure;
+use crate::common::walk_parsed_markdown_files;
 
 /// Processes directives in all configured Markdown files under the given directories.
 ///
@@ -90,54 +88,62 @@ where
         })
         .collect::<Result<Vec<_>>>()?;
 
-    walk_directories_and_process_files(&directories, &scope, |file| {
-        process_all_directives_in_file(file, conf)
-    })?;
+    walk_parsed_markdown_files(
+        &directories,
+        &scope,
+        |path, doc| process_all_directives_in_file(path, doc, conf),
+        crate::common::warn_and_continue_on_parse_failure,
+    )?;
 
     Ok(())
 }
 
 /// Given a file, process all directives found in it.
-fn process_all_directives_in_file(filepath: &std::path::Path, conf: &Config) -> anyhow::Result<()> {
-    use std::borrow::Cow;
-
+fn process_all_directives_in_file(
+    filepath: &std::path::Path,
+    doc: &parse_lib::Document<'_>,
+    conf: &Config,
+) -> anyhow::Result<()> {
     use parse_lib::markdown_renderer::MarkdownRenderer;
     use parse_lib::visit::Visitor;
 
-    process_parsed_markdown_file(
-        filepath,
-        |s: &str| s.contains("{{") || s.contains("[["), // Fast path check
-        |_filepath, doc| {
-            let mut renderer = MarkdownRenderer::new(|directive| {
-                use parse_lib::ast::DirectiveData;
-                match directive {
-                    DirectiveData::CrateBlock { .. } if conf.process_crate_block_directives => {
-                        render_crate_block(directive)
-                    }
-                    DirectiveData::ExampleBlock { .. } if conf.process_example_directives => {
-                        render_example(directive)
-                    }
-                    DirectiveData::Link { .. } | DirectiveData::Badge { .. }
-                        if conf.process_link_and_badge_directives =>
-                    {
-                        render_link_or_badge(directive)
-                    }
-                    _ => directive.to_string(),
-                }
-            });
+    use crate::common::replace_text_file_atomically;
 
-            if conf.process_wikilinks {
-                renderer = renderer.with_wikilink_resolver(|wikilink| {
-                    let display_text = wikilink.display.unwrap_or(wikilink.target);
-                    let link_label = wikilink.target.replace(' ', "-");
-                    let after = wikilink.immediately_after.unwrap_or("");
-                    format!("[{}{}][{}]", display_text, after, link_label)
-                });
+    if !doc.source.contains("{{") && !doc.source.contains("[[") {
+        return Ok(());
+    }
+
+    let mut renderer = MarkdownRenderer::new(|directive| {
+        use parse_lib::ast::DirectiveData;
+        match directive {
+            DirectiveData::CrateBlock { .. } if conf.process_crate_block_directives => {
+                render_crate_block(directive)
             }
+            DirectiveData::ExampleBlock { .. } if conf.process_example_directives => {
+                render_example(directive)
+            }
+            DirectiveData::Link { .. } | DirectiveData::Badge { .. }
+                if conf.process_link_and_badge_directives =>
+            {
+                render_link_or_badge(directive)
+            }
+            _ => directive.to_string(),
+        }
+    });
 
-            renderer.visit_document(doc);
-            Cow::Owned(renderer.markdown)
-        },
-        warn_and_continue_on_parse_failure,
-    )
+    if conf.process_wikilinks {
+        renderer = renderer.with_wikilink_resolver(|wikilink| {
+            let display_text = wikilink.display.unwrap_or(wikilink.target);
+            let link_label = wikilink.target.replace(' ', "-");
+            let after = wikilink.immediately_after.unwrap_or("");
+            format!("[{}{}][{}]", display_text, after, link_label)
+        });
+    }
+
+    renderer.visit_document(doc);
+    if renderer.markdown != doc.source {
+        replace_text_file_atomically(filepath, &renderer.markdown)?;
+    }
+
+    Ok(())
 }

@@ -680,7 +680,7 @@ pub fn parse_document<'s>(
     let mut input_ref = input;
     match parse_elements.parse_next(&mut input_ref) {
         Ok(elements) => {
-            let doc = crate::Document::new(name, path, elements);
+            let doc = crate::Document::new(name, path, input, elements);
             Ok(doc)
         }
         Err(e) => anyhow::bail!("Failed to parse document '{}':\n{}", name, e),
