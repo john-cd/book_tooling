@@ -92,6 +92,7 @@ impl<F> MarkdownRenderer<F> {
         let payload = match directive {
             DirectiveData::Link { name, .. } | DirectiveData::Badge { name, .. } => *name,
             DirectiveData::CrateBlock { crate_name, .. } => *crate_name,
+            DirectiveData::CategoryBlock { categories } => categories.first().copied()?,
             DirectiveData::ExampleBlock { name } => *name,
         };
         let payload_range = self.source_range(payload)?;

@@ -50,6 +50,15 @@ pub enum DirectiveData<'a> {
         additional_categories: Vec<&'a str>,
     },
 
+    /// Insert badges for one or more categories.
+    ///
+    /// A category may use `slug=Title` to preserve its displayed title, for
+    /// example `{{#categories filesystem=Filesystem,api-bindings="API bindings"}}`.
+    CategoryBlock {
+        /// Category slugs, optionally paired with their display titles.
+        categories: Vec<&'a str>,
+    },
+
     /// Insert a fenced code block with an `include` directive pointing to a new code example (.rs) file:
     /// {{#example some_example}} -> ```rust,editable\n{{#include ...}}```
     ExampleBlock {
@@ -73,6 +82,9 @@ impl Display for DirectiveData<'_> {
                     let categories = &additional_categories.join(" ");
                     write!(f, "{{#crate {crate_name} {categories}}}")
                 }
+            }
+            DirectiveData::CategoryBlock { categories } => {
+                write!(f, "{{#categories {}}}", categories.join(","))
             }
             DirectiveData::ExampleBlock { name } => write!(f, "{{#example {name}}}"),
         }

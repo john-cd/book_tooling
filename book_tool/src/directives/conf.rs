@@ -12,8 +12,9 @@ use serde::Serialize;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct Config {
-    /// If true, process crate block directives e.g.
+    /// If true, process crate and category block directives e.g.
     /// `{{#crate my_crate}}`
+    /// `{{#categories filesystem,api-bindings}}`
     /// into several badges for the crate, its categories, etc...
     pub process_crate_block_directives: bool,
 
