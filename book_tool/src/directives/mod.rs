@@ -379,6 +379,20 @@ mod tests {
     }
 
     #[test]
+    fn crate_and_category_directives_preserve_existing_book_badges() {
+        let config = Config::default();
+        let source = "{{#crate std}} {{#categories filesystem=Filesystem}}";
+        let expected = "[![std][c~std~docs~badge]][c~std~docs]{{hi:std}} [![cat~filesystem][cat~filesystem~badge]][cat~filesystem]{{hi:Filesystem}}";
+
+        let rendered = process_markdown(source, &config).expect("directives render");
+        assert_eq!(rendered, expected);
+        assert_eq!(
+            process_markdown(&rendered, &config).expect("repeat render is a no-op"),
+            expected
+        );
+    }
+
+    #[test]
     fn unresolved_check_ignores_code_and_native_mdbook_helpers() {
         let source = concat!(
             "{{#include section.md}}\n\n",
@@ -396,3 +410,4 @@ mod tests {
         assert!(error.to_string().contains("#example"));
     }
 }
+
