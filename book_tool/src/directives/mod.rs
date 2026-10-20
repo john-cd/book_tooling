@@ -352,7 +352,13 @@ mod tests {
             rendered.contains("[![cat~filesystem][cat~filesystem~badge]][cat~filesystem]"),
             "rendered output: {rendered}"
         );
+        assert!(rendered.contains(
+            "[![anyhow][c~anyhow~docs~badge]][c~anyhow~docs]{{hi:anyhow}} [![cat~filesystem][cat~filesystem~badge]][cat~filesystem]{{hi:filesystem}}"
+        ));
         assert!(rendered.contains("{{hi:Filesystem}}"));
+        assert!(rendered.contains(
+            "[![cat~filesystem][cat~filesystem~badge]][cat~filesystem]{{hi:Filesystem}}"
+        ));
         assert!(rendered.contains(
             "{{#include ../../../crates/cats/filesystem/examples/read_write/read_file.rs:example}}"
         ));

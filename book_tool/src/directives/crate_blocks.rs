@@ -15,7 +15,7 @@ pub(super) fn render_crate_block(directive: &DirectiveData<'_>) -> String {
         additional_categories,
     } = directive
     {
-        let mut badges = vec![render_badge(&DestinationKind::Crate, crate_name)];
+        let mut badges = vec![render_badge(&DestinationKind::Docs, crate_name)];
 
         for cat in additional_categories {
             badges.push(render_category_badge(cat));
