@@ -169,6 +169,28 @@ pub struct TableData<'a> {
     pub header: Vec<&'a str>,
     /// Data rows in display order.
     pub rows: Vec<Vec<&'a str>>,
+    /// Parsed inline elements for each header cell, used by visitors that transform inline syntax.
+    pub header_elements: Vec<Vec<Element<'a>>>,
+    /// Parsed inline elements for each data cell, used by visitors that transform inline syntax.
+    pub row_elements: Vec<Vec<Vec<Element<'a>>>>,
+}
+
+impl<'a> TableData<'a> {
+    /// Creates a table from raw cells without parsed inline elements.
+    pub fn new(header: Vec<&'a str>, rows: Vec<Vec<&'a str>>) -> Self {
+        let header_elements = header.iter().map(|_| Vec::new()).collect();
+        let row_elements = rows
+            .iter()
+            .map(|row| row.iter().map(|_| Vec::new()).collect())
+            .collect();
+
+        Self {
+            header,
+            rows,
+            header_elements,
+            row_elements,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

@@ -393,6 +393,34 @@ mod tests {
     }
 
     #[test]
+    fn crate_and_category_directives_expand_inside_tables_idempotently() {
+        let config = Config::default();
+        let source = concat!(
+            "| Recipe | Crates | Categories |\n",
+            "|--------|--------|------------|\n",
+            "| [Sort values][ex~sort-values] | {{#crate std}} | ",
+            "{{#categories algorithms=Algorithms}} |\n\n",
+            "[ex~sort-values]: sorting.md#sort-values\n"
+        );
+        let expected = concat!(
+            "| Recipe | Crates | Categories |\n",
+            "|--------|--------|------------|\n",
+            "| [Sort values][ex~sort-values] | ",
+            "[![std][c~std~docs~badge]][c~std~docs]{{hi:std}} | ",
+            "[![cat~algorithms][cat~algorithms~badge]][cat~algorithms]",
+            "{{hi:Algorithms}} |\n\n",
+            "[ex~sort-values]: sorting.md#sort-values\n"
+        );
+
+        let rendered = process_markdown(source, &config).expect("table directives render");
+        assert_eq!(rendered, expected);
+        assert_eq!(
+            process_markdown(&rendered, &config).expect("second processing succeeds"),
+            expected
+        );
+    }
+
+    #[test]
     fn unresolved_check_ignores_code_and_native_mdbook_helpers() {
         let source = concat!(
             "{{#include section.md}}\n\n",
