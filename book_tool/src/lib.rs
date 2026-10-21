@@ -14,18 +14,26 @@
 //! - [`search`]: plain-text search across Markdown documents.
 
 /// Shared helpers used by multiple command modules.
+#[cfg(any(feature = "cli", feature = "directives"))]
 pub mod common;
 /// Directive and wikilink expansion workflows.
+#[cfg(feature = "directives")]
 pub mod directives;
 /// HTML comment extraction workflows.
+#[cfg(feature = "cli")]
 pub mod extract_comments;
 /// Inline-link to reference-link conversion workflows.
+#[cfg(feature = "cli")]
 pub mod inline_links;
 /// External link verification workflows.
+#[cfg(feature = "cli")]
 pub mod link_check;
 /// Link conversion, extraction, and validation utilities.
+#[cfg(feature = "cli")]
 pub mod links;
 /// Reference-definition analysis and cleanup helpers.
+#[cfg(feature = "cli")]
 pub mod refdefs;
 /// Plain-text Markdown search workflows.
+#[cfg(feature = "cli")]
 pub mod search;
