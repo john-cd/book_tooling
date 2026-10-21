@@ -8,18 +8,38 @@ description = "A unified CLI for book tooling"
 publish = false
 license.workspace = true
 
+[features]
+default = ["cli"]
+directives = []
+cli = [
+    "directives",
+    "dep:clap",
+    "dep:moka",
+    "dep:rayon",
+    "dep:reqwest",
+    "dep:serde_json",
+    "dep:tokio",
+    "dep:tracing-subscriber",
+    "dep:url",
+]
+
+[[bin]]
+name = "book_tool"
+path = "src/main.rs"
+required-features = ["cli"]
+
 [dependencies]
 anyhow = { workspace = true }
-clap = { workspace = true, features = ["derive"] }
+clap = { workspace = true, features = ["derive"], optional = true }
 parse_lib = { workspace = true }
-reqwest = { workspace = true }
-serde_json = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+reqwest = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"], optional = true }
 tracing = { workspace = true }
-tracing-subscriber = { workspace = true, features = ["env-filter"] }
-url = { workspace = true }
-moka = { workspace = true }
-rayon = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"], optional = true }
+url = { workspace = true, optional = true }
+moka = { workspace = true, optional = true }
+rayon = { workspace = true, optional = true }
 walkdir = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 toml = { workspace = true }
