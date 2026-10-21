@@ -33,6 +33,7 @@ The project is organized as a Rust workspace optimized for high-performance Mark
 - `directives`
   - `execute`: file-oriented directive expansion workflow.
   - `process_all_directives`: configurable batch processor.
+  - `process_markdown` and `process_markdown_with_example_resolver`: in-memory transformations for render-time adapters.
   - `conf::Config`: TOML-backed directive configuration.
 - `inline_links`
   - `execute`: converts inline links and autolinks into reference-style links.

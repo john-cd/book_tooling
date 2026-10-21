@@ -1,14 +1,12 @@
 //! Converts inline links and autolinks into reference-style links.
 
-use std::borrow::Cow;
 use std::path::PathBuf;
 
 use anyhow::Result;
 
 use crate::common::Scope;
-use crate::common::process_parsed_markdown_file;
-use crate::common::walk_directories_and_process_files;
-use crate::common::warn_and_continue_on_parse_failure;
+use crate::common::replace_text_file_atomically;
+use crate::common::walk_parsed_markdown_files;
 use crate::links::InlineLinkConversionStats;
 use crate::links::convert_inline_links_to_reference_definitions;
 
@@ -26,21 +24,18 @@ pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
     let mut processed_files = 0_usize;
     let mut total_stats = InlineLinkConversionStats::default();
 
-    walk_directories_and_process_files(&directories, &scope, |path| {
-        let mut file_stats = None;
-
-        process_parsed_markdown_file(
-            path,
-            |s| s.contains("http") || s.contains("["),
-            |_path, doc| {
-                let conversion = convert_inline_links_to_reference_definitions(doc);
-                file_stats = Some(conversion.stats);
-                Cow::Owned(conversion.markdown)
-            },
-            warn_and_continue_on_parse_failure,
-        )?;
-
-        if let Some(stats) = file_stats {
+    walk_parsed_markdown_files(
+        &directories,
+        &scope,
+        |path, doc| {
+            if !doc.source.contains("http") && !doc.source.contains('[') {
+                return Ok(());
+            }
+            let conversion = convert_inline_links_to_reference_definitions(doc);
+            if conversion.markdown != doc.source {
+                replace_text_file_atomically(path, &conversion.markdown)?;
+            }
+            let stats = conversion.stats;
             processed_files += 1;
             total_stats.existing_reference_definitions += stats.existing_reference_definitions;
             total_stats.reused_reference_definitions += stats.reused_reference_definitions;
@@ -55,10 +50,10 @@ pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
                 preserved_issue_links = stats.preserved_issue_links,
                 "Converted inline links in file"
             );
-        }
-
-        Ok(())
-    })?;
+            Ok(())
+        },
+        crate::common::warn_and_continue_on_parse_failure,
+    )?;
 
     tracing::info!(
         processed_files,

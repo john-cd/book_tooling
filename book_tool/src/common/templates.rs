@@ -53,9 +53,25 @@ impl DestinationKind {
 /// Example: `render_badge(&DestinationKind::CratesIo, "anyhow")`
 /// produces: `[![anyhow][p~anyhow~crates.io~badge]][p~anyhow~crates.io]{{hi:anyhow}}`
 pub fn render_badge(kind: &DestinationKind, name: &str) -> String {
+    render_badge_with_text(kind, name, name, name)
+}
+
+/// Renders a badge with independent image alt text and index/title text.
+pub fn render_badge_with_text(
+    kind: &DestinationKind,
+    name: &str,
+    alt_text: &str,
+    title: &str,
+) -> String {
+    if *kind == DestinationKind::Category {
+        return format!("[![{alt_text}][cat~{name}~badge]][cat~{name}]{{{{hi:{title}}}}}");
+    }
+
     let prefix = kind.prefix();
     let label = kind.label();
-    format!("[![{name}][{prefix}~{name}~{label}~badge]][{prefix}~{name}~{label}]{{{{hi:{name}}}}}")
+    format!(
+        "[![{alt_text}][{prefix}~{name}~{label}~badge]][{prefix}~{name}~{label}]{{{{hi:{title}}}}}"
+    )
 }
 
 /// Renders a Markdown link for a given destination.

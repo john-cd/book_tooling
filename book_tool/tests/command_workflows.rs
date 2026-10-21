@@ -290,21 +290,19 @@ fn directives_cli_fails_for_invalid_config() {
 }
 
 #[test]
-fn inline_links_execute_continues_after_parse_failure() {
+fn inline_links_reports_failed_input_and_leaves_it_unchanged() {
     let temp = tempdir().expect("create temp dir");
     let valid_file = write_markdown_file(
         temp.path(),
         "valid.md",
         "See [Rust](https://www.rust-lang.org/).\n",
     );
-    let invalid_file = write_markdown_file(
-        temp.path(),
-        "invalid.md",
-        "<div class=\"hidden\">broken\n\nSee [Rust](https://www.rust-lang.org/).\n",
-    );
+    let invalid_file = temp.path().join("invalid.md");
+    fs::write(&invalid_file, [0xff, 0xfe, 0x00]).expect("write invalid UTF-8 Markdown");
 
-    book_tool::inline_links::execute(vec![temp.path().to_path_buf()])
-        .expect("run inline-links with parse failure present");
+    let error = book_tool::inline_links::execute(vec![temp.path().to_path_buf()])
+        .expect_err("incomplete inline-link processing must fail");
+    assert!(error.to_string().contains("incomplete"));
 
     let updated_valid = fs::read_to_string(valid_file).expect("read transformed markdown");
     assert!(
@@ -312,10 +310,43 @@ fn inline_links_execute_continues_after_parse_failure() {
         "updated content was:\n{updated_valid}"
     );
 
-    let unchanged_invalid = fs::read_to_string(invalid_file).expect("read invalid markdown");
+    assert_eq!(
+        fs::read(invalid_file).expect("read invalid Markdown"),
+        [0xff, 0xfe, 0x00]
+    );
+}
+
+#[test]
+fn directives_cli_reports_mixed_corpus_failures_and_preserves_bad_input() {
+    let temp = tempdir().expect("create temp dir");
+    let valid = write_markdown_file(temp.path(), "valid.md", "{{#example demo}}\n");
+    let invalid = temp.path().join("invalid.md");
+    let invalid_source = [0xff, 0xfe, 0x00];
+    fs::write(&invalid, invalid_source).expect("write invalid UTF-8 Markdown");
+
+    let output = book_tool_command()
+        .args(["directives", temp.path().to_str().expect("utf-8 temp path")])
+        .current_dir(temp.path())
+        .output()
+        .expect("run directives command");
+
     assert!(
-        unchanged_invalid.contains("<div class=\"hidden\">broken"),
-        "invalid content was unexpectedly rewritten:\n{unchanged_invalid}"
+        !output.status.success(),
+        "directives command should fail on an incomplete corpus"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("invalid.md"), "stderr: {stderr}");
+    assert!(
+        stderr.contains("scanned 2, processed 1, failed 1"),
+        "stderr: {stderr}"
+    );
+    assert_eq!(
+        fs::read(invalid).expect("read invalid Markdown"),
+        invalid_source
+    );
+    assert_eq!(
+        fs::read_to_string(valid).expect("read transformed Markdown"),
+        "{{#include examples/demo.md}}\n"
     );
 }
 

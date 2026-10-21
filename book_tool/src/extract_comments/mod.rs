@@ -6,6 +6,7 @@ use anyhow::Result;
 use parse_lib::visit::Visitor;
 
 use crate::common::Scope;
+use crate::common::replace_text_file_atomically;
 use crate::common::walk_parsed_markdown_files;
 use crate::common::warn_and_continue_on_parse_failure;
 
@@ -53,7 +54,7 @@ pub fn execute(directories: Vec<PathBuf>, output: PathBuf) -> Result<()> {
         warn_and_continue_on_parse_failure,
     )?;
 
-    std::fs::write(&output, all_comments_output)?;
+    replace_text_file_atomically(&output, &all_comments_output)?;
     tracing::info!(
         output = %output.display(),
         extracted_comments,

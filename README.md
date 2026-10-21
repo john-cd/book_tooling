@@ -125,8 +125,12 @@ book_tool extract-comments ./src --output comments.md
 - `{{crate name}}`: Link to an internal crate page.
 - `{{docs name}}`: Link to docs.rs documentation.
 - `{{github repo}}`: Link to a GitHub repository.
-- `{{#crate name cat1 cat2}}`: A "crate block" displaying multiple badges.
-- `{{#example name}}`: Includes a code example block.
+- `{{!docs name}}`: A linked docs.rs badge; the other link kinds also support `!` badges.
+- `{{#crate name cat1 cat2}}`: A crate badge followed by badges for its categories.
+- `{{#categories filesystem,api-bindings}}`: Badges for categories. Use `slug=Title` to keep a display title, including spaces in quotes, such as `{{#categories filesystem=Filesystem,api-bindings="API bindings"}}`.
+- `{{#example name}}`: Inserts the legacy `examples/name.md` include when processed by the file-oriented command. In an mdBook adapter, the example resolver can instead map a chapter-relative include such as `{{#example ../../../crates/cats/filesystem/examples/read_write/read_file.rs:example}}`.
+
+The render-time API, `directives::process_markdown`, applies the same configured transformations to a string without touching files. `process_markdown_with_example_resolver` lets an adapter supply its own example mapping and returns an error if that resolution fails.
 
 ## Getting Started
 

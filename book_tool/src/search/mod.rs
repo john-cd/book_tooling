@@ -25,36 +25,34 @@ pub fn execute(query: String, directories: Vec<PathBuf>) -> Result<()> {
     let query_lower = query.to_lowercase();
     let mut matched_files = 0_usize;
 
-    for dir in &directories {
-        walk_parsed_markdown_files(
-            [dir],
-            &scope,
-            |path, doc| {
-                let mut extractor = PlainTextExtractor::new();
-                extractor.visit_document(doc);
+    walk_parsed_markdown_files(
+        &directories,
+        &scope,
+        |path, doc| {
+            let mut extractor = PlainTextExtractor::new();
+            extractor.visit_document(doc);
 
-                let plain_text = extractor.text.to_lowercase();
-                if let Some(index) = plain_text.find(&query_lower) {
-                    matched_files += 1;
-                    tracing::info!(
-                        path = %path.display(),
-                        query = %query,
-                        "Search query matched file"
-                    );
+            let plain_text = extractor.text.to_lowercase();
+            if let Some(index) = plain_text.find(&query_lower) {
+                matched_files += 1;
+                tracing::info!(
+                    path = %path.display(),
+                    query = %query,
+                    "Search query matched file"
+                );
 
-                    // Extract a small snippet surrounding the match for context
-                    let start = index.saturating_sub(30);
-                    let end = (index + query.len() + 30).min(extractor.text.len());
-                    let snippet = &extractor.text[start..end].replace('\n', " ");
+                // Extract a small snippet surrounding the match for context
+                let start = index.saturating_sub(30);
+                let end = (index + query.len() + 30).min(extractor.text.len());
+                let snippet = &extractor.text[start..end].replace('\n', " ");
 
-                    println!("📄 {}: ...{}...", path.display(), snippet.trim());
-                }
+                println!("📄 {}: ...{}...", path.display(), snippet.trim());
+            }
 
-                Ok(())
-            },
-            warn_and_continue_on_parse_failure,
-        )?;
-    }
+            Ok(())
+        },
+        warn_and_continue_on_parse_failure,
+    )?;
 
     if matched_files == 0 {
         tracing::info!(query = %query, "No search matches found");

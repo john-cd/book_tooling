@@ -12,16 +12,24 @@ pub struct Document<'s> {
     pub name: &'s str,
     /// The physical path to the file on disk, if known.
     pub path: Option<&'s Path>,
+    /// The original Markdown source, retained for source-preserving transforms.
+    pub source: &'s str,
     /// The sequence of elements that make up the document content.
     pub elements: Vec<Element<'s>>,
 }
 
 impl<'s> Document<'s> {
     /// Creates a new `Document` with the given elements.
-    pub fn new(name: &'s str, path: Option<&'s Path>, elements: Vec<Element<'s>>) -> Self {
+    pub fn new(
+        name: &'s str,
+        path: Option<&'s Path>,
+        source: &'s str,
+        elements: Vec<Element<'s>>,
+    ) -> Self {
         Document {
             name,
             path,
+            source,
             elements,
         }
     }
