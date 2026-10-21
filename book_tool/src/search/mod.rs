@@ -1,3 +1,4 @@
+// TODO Reviewed ??-??-2026
 //! Plain-text search across Markdown documents.
 
 use std::path::PathBuf;

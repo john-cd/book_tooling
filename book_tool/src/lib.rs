@@ -1,3 +1,4 @@
+// TODO Reviewed ??-??-2026
 //! Command-oriented Markdown tooling built on top of `parse_lib`.
 //!
 //! `book_tool` exposes reusable modules behind the CLI commands defined in
