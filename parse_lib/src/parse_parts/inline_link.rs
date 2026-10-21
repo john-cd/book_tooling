@@ -1,3 +1,4 @@
+// TODO Reviewed ??-??-2026
 //! Parses a complete Markdown inline link: `text`.
 
 use winnow::ModalResult;

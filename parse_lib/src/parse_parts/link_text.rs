@@ -1,3 +1,4 @@
+// TODO Reviewed ??-??-2026
 //! Parses a link text, which is enclosed in square brackets `[]`.
 //!
 //! Simplified from spec: <https://spec.commonmark.org/0.31.2/#link-text>

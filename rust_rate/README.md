@@ -1,3 +1,4 @@
+<!-- TODO Reviewed ??-??-2026 -->
 # `rust_rate`
 
 `rust_rate` is a tool for crawling and analyzing Rust crate usage patterns across public repositories.

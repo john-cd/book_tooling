@@ -1,3 +1,4 @@
+// TODO Reviewed ??-??-2026
 //! Template system for rendering Markdown badges and links.
 //!
 //! This module provides a centralized way to render common Markdown elements used

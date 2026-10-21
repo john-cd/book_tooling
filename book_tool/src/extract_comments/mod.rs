@@ -1,3 +1,4 @@
+// TODO Reviewed ??-??-2026
 //! Extracts HTML comments from Markdown files into an audit file.
 
 use std::path::PathBuf;

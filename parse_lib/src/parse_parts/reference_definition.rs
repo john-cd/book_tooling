@@ -1,3 +1,4 @@
+// TODO Reviewed ??-??-2026
 //! Parses a complete Markdown reference definition: `[label]: url "title"`.
 
 use winnow::ModalResult;

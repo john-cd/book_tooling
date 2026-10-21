@@ -1,3 +1,4 @@
+// TODO Reviewed ??-??-2026
 //! Verifies external links in Markdown documents.
 
 use std::collections::HashSet;

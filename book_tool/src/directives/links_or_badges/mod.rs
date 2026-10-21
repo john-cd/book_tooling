@@ -1,3 +1,4 @@
+// TODO Reviewed ??-??-2026
 //! Process links and badge directives.
 
 use parse_lib::ast::DestinationKind as AstDestinationKind;
