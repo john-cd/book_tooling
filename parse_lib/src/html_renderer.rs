@@ -323,10 +323,10 @@ mod tests {
     #[test]
     fn test_html_renderer_table() {
         let mut renderer = HtmlRenderer::new();
-        renderer.visit_element(&Element::Table(TableData {
-            header: vec!["Col <1>", "Col 2"],
-            rows: vec![vec!["Val 1", "Val 2"]],
-        }));
+        renderer.visit_element(&Element::Table(TableData::new(
+            vec!["Col <1>", "Col 2"],
+            vec![vec!["Val 1", "Val 2"]],
+        )));
         let expected = "<table>\n  <thead>\n    <tr>\n      <th>Col &lt;1&gt;</th>\n      <th>Col 2</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <td>Val 1</td>\n      <td>Val 2</td>\n    </tr>\n  </tbody>\n</table>\n";
         assert_eq!(renderer.html, expected);
     }

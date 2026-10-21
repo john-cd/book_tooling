@@ -369,7 +369,11 @@ where
             .push_str(&format!("- [{}] {}\n", check, data.content));
     }
 
-    fn visit_table(&mut self, data: &TableData<'a>) {
+    fn visit_table(&mut self, data: &'a TableData<'a>) {
+        let start_len = self.markdown.len();
+        self.visit_table_cells(data);
+        self.markdown.truncate(start_len);
+
         let num_columns = data.header.len();
         if num_columns == 0 {
             return;
@@ -616,10 +620,10 @@ mod tests {
     #[test]
     fn test_markdown_renderer_table_aligned() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
-        renderer.visit_element(&Element::Table(TableData {
-            header: vec!["Header 1", "H2"],
-            rows: vec![vec!["Cell 1", "C 2"], vec!["Longer Cell", "Val"]],
-        }));
+        renderer.visit_element(&Element::Table(TableData::new(
+            vec!["Header 1", "H2"],
+            vec![vec!["Cell 1", "C 2"], vec!["Longer Cell", "Val"]],
+        )));
         let expected = "\
 | Header 1    | H2  |
 | ----------- | --- |
@@ -682,10 +686,10 @@ mod tests {
     #[test]
     fn test_markdown_renderer_table() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
-        renderer.visit_element(&Element::Table(TableData {
-            header: vec!["Col 1", "Col 2"],
-            rows: vec![vec!["Val 1", "Val 2"], vec!["Val 3", "Val 4"]],
-        }));
+        renderer.visit_element(&Element::Table(TableData::new(
+            vec!["Col 1", "Col 2"],
+            vec![vec!["Val 1", "Val 2"], vec!["Val 3", "Val 4"]],
+        )));
         let expected =
             "| Col 1 | Col 2 |\n| ----- | ----- |\n| Val 1 | Val 2 |\n| Val 3 | Val 4 |\n";
         assert_eq!(renderer.markdown, expected);

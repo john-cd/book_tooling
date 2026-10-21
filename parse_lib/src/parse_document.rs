@@ -60,16 +60,37 @@ fn parse_table_row<'a>(input: &mut &'a str) -> ModalResult<Vec<&'a str>> {
     .parse_next(input)
 }
 
+fn parse_table_cells<'a>(cells: &[&'a str]) -> ModalResult<Vec<Vec<Element<'a>>>> {
+    cells
+        .iter()
+        .map(|cell| {
+            let mut input = *cell;
+            parse_inline_sequence.parse_next(&mut input)
+        })
+        .collect()
+}
+
 /// Parses a simplified GFM table.
 fn parse_table<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
-    seq!(
+    let (header, rows): (Vec<&'a str>, Vec<Vec<&'a str>>) = seq!(
         parse_table_row,
         _: repeat::<_, _, (), _, _>(1.., alt(("-", "|", " ", ":"))), // separator row
         _: alt((line_ending, eof)),
         repeat(1.., parse_table_row)
     )
-    .map(|(header, rows)| Element::Table(TableData { header, rows }))
-    .parse_next(input)
+    .parse_next(input)?;
+    let header_elements = parse_table_cells(&header)?;
+    let row_elements = rows
+        .iter()
+        .map(|row| parse_table_cells(row))
+        .collect::<ModalResult<_>>()?;
+
+    Ok(Element::Table(TableData {
+        header,
+        rows,
+        header_elements,
+        row_elements,
+    }))
 }
 
 /// Parses a sequence of inline elements and text.
@@ -638,6 +659,7 @@ fn parse_inline_element<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
         parse_emphasis,
         parse_strikethrough,
         parse_html_comment,
+        parse_directive_element,
         parse_wikilink,
         alt((
             parse_reference_style_image,
@@ -690,6 +712,7 @@ pub fn parse_document<'s>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ast::DirectiveData;
 
     #[test]
     fn test_parser() {
@@ -774,6 +797,34 @@ Hello [link](url)
         } else {
             panic!("Expected Table");
         }
+    }
+
+    #[test]
+    fn test_parse_table_inline_directives_in_cells() {
+        let input = concat!(
+            "| Recipe | Crates | Categories |\n",
+            "|--------|--------|------------|\n",
+            "| Sort values | {{#crate std}} | {{#categories algorithms=Algorithms}} |"
+        );
+        let mut input_ref = input;
+        let result = parse_table.parse_next(&mut input_ref).unwrap();
+        let Element::Table(table) = result else {
+            panic!("Expected Table");
+        };
+
+        assert!(matches!(
+            table.row_elements[0][1].as_slice(),
+            [Element::CustomDirective(DirectiveData::CrateBlock {
+                crate_name: "std",
+                ..
+            })]
+        ));
+        assert!(matches!(
+            table.row_elements[0][2].as_slice(),
+            [Element::CustomDirective(
+                DirectiveData::CategoryBlock { .. }
+            )]
+        ));
     }
 
     #[test]

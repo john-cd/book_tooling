@@ -78,7 +78,25 @@ pub trait Visitor<'a> {
     fn visit_wikilink(&mut self, _data: &'a WikiLinkData<'a>) {}
     fn visit_heading(&mut self, _data: &'a HeadingData<'a>) {}
     fn visit_task_item(&mut self, _data: &'a TaskItemData<'a>) {}
-    fn visit_table(&mut self, _data: &'a TableData<'a>) {}
+    fn visit_table(&mut self, data: &'a TableData<'a>) {
+        self.visit_table_cells(data);
+    }
+
+    /// Visits the inline elements in each table cell.
+    fn visit_table_cells(&mut self, data: &'a TableData<'a>) {
+        for cell in &data.header_elements {
+            for element in cell {
+                self.visit_element(element);
+            }
+        }
+        for row in &data.row_elements {
+            for cell in row {
+                for element in cell {
+                    self.visit_element(element);
+                }
+            }
+        }
+    }
     fn visit_autolink(&mut self, _data: &'a AutolinkData<'a>) {}
     fn visit_inline_image(&mut self, _data: &'a InlineImageData<'a>) {}
     fn visit_reference_style_image(&mut self, _data: &'a ReferenceStyleImageData<'a>) {}
