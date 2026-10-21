@@ -1,5 +1,9 @@
 # book_tooling instructions
 
+## Branches
+
+`develop` is the default integration branch and the primary checkout branch. `main` starts with an empty root commit and has independent history. Keep the existing `main` build-cache directory identity across branch renames to reuse compiled artifacts.
+
 ## Build outputs
 
 Cargo artifacts are stored outside the checkout in `D:\target\book_tooling\<worktree name>`. Cargo intermediate build artifacts are stored in `C:\code_build\book_tooling\<worktree name>`.
