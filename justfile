@@ -5,6 +5,9 @@ set shell := ["bash", "-uc"]
 set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
 
 root := source_directory()
+worktree_name := env("BOOK_TOOLING_WORKTREE_NAME", "main")
+export CARGO_TARGET_DIR := join("D:/target/book_tooling", worktree_name)
+export CARGO_BUILD_BUILD_DIR := join("C:/code_build/book_tooling", worktree_name)
 
 [no-exit-message]
 _default:

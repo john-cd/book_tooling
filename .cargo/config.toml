@@ -1,6 +1,7 @@
 
 [build]
-#target-dir = "target/book_tooling/"
+target-dir = "D:/target/book_tooling/main"
+build-dir = "C:/code_build/book_tooling/main"
 
 ## "ci" is used by the Github Action CD/CI workflow -  no need to optimize heavily
 ## This profile is optimized for fast compilation and testing in CI.

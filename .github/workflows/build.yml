@@ -16,8 +16,16 @@ env:
 
 jobs:
   build_code:
-    name: Build code for book_tooling
-    runs-on: ubuntu-latest
+    name: Build code for book_tooling (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      # Local Cargo paths point to developer-specific volumes; CI uses runner-local paths.
+      CARGO_TARGET_DIR: target
+      CARGO_BUILD_BUILD_DIR: target/build
     steps:
       # Checks out your repository under $GITHUB_WORKSPACE
       - name: Code checkout (clones the Git repository)
@@ -34,20 +42,17 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            /usr/local/cargo/bin/
-            /usr/local/cargo/binstall/
-            /usr/local/cargo/registry/index/
-            /usr/local/cargo/registry/cache/
-            /usr/local/cargo/git/db/
             target/
           key: book_tooling-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             book_tooling-${{ runner.os }}-cargo-
 
       - name: Install `cargo binstall`
+        if: runner.os == 'Linux'
         run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 
       - name: Install Nextest
+        if: runner.os == 'Linux'
         run: cargo binstall --no-confirm --secure cargo-nextest
 
       - name: Update Rust; install nightly Rust
@@ -71,7 +76,14 @@ jobs:
       - name: Clippy
         run: cargo clippy --workspace --all-targets --locked --profile ci -- --deny warnings
 
-      - name: Run tests
+      - name: Run tests (Linux)
+        if: runner.os == 'Linux'
         run: |
           cargo nextest run --workspace --all-targets --locked --cargo-profile ci --hide-progress-bar
+          cargo test --workspace --doc --locked --profile ci -- --show-output
+
+      - name: Run tests (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cargo test --workspace --all-targets --locked --profile ci -- --show-output
           cargo test --workspace --doc --locked --profile ci -- --show-output

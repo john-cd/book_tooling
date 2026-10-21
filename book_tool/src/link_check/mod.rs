@@ -3,6 +3,7 @@
 use std::collections::HashSet;
 use std::path::PathBuf;
 
+use anyhow::Context;
 use anyhow::Result;
 use parse_lib::ast::AutolinkData;
 use parse_lib::ast::InlineImageData;
@@ -12,9 +13,12 @@ use parse_lib::visit::Visitor;
 use url::Url;
 
 use crate::common::Scope;
+use crate::common::replace_text_file_atomically;
 use crate::common::walk_parsed_markdown_files;
 use crate::common::warn_and_continue_on_parse_failure;
 use crate::links::AsyncLinkChecker;
+use crate::refdefs::find_unused_refdefs_in_scopes;
+use crate::refdefs::normalize_reference_label;
 
 fn collect_active_external_links(
     doc: &parse_lib::Document,
@@ -49,10 +53,11 @@ fn collect_active_external_links(
         }
 
         fn visit_reference_definition(&mut self, data: &'ast ReferenceDefinitionData<'ast>) {
-            if self
-                .unused_refdefs
-                .is_some_and(|unused| unused.contains(data.label))
-            {
+            if self.unused_refdefs.is_some_and(|unused| {
+                unused.iter().any(|label| {
+                    normalize_reference_label(label) == normalize_reference_label(data.label)
+                })
+            }) {
                 return;
             }
 
@@ -91,27 +96,65 @@ pub async fn execute(
     let checker = AsyncLinkChecker::new()?;
     let mut all_links = HashSet::new();
 
-    let scope = Scope::default();
+    let refdef_analysis = if check_refdefs {
+        let analysis = find_unused_refdefs_in_scopes(&directories)?;
+        if analysis.unused_by_file.is_empty() {
+            println!("No unused reference definitions found.");
+        } else {
+            let mut reports = analysis.unused_by_file.iter().collect::<Vec<_>>();
+            reports.sort_by(|left, right| left.0.cmp(right.0));
+            for (path, labels) in reports {
+                let mut labels = labels.iter().cloned().collect::<Vec<_>>();
+                labels.sort();
+                println!(
+                    "Unused reference definitions in {}: {}",
+                    path.display(),
+                    labels.join(", ")
+                );
+            }
+        }
+
+        if delete_unused {
+            let mut replacements = Vec::new();
+            for (path, unused_labels) in &analysis.unused_by_file {
+                let source = std::fs::read_to_string(path)
+                    .with_context(|| format!("Failed to read {}", path.display()))?;
+                let document = parse_lib::parse_document("file", Some(path), &source)
+                    .with_context(|| format!("Failed to parse {}", path.display()))?;
+                let replacement = crate::refdefs::delete_unused_refdefs(&document, unused_labels)?;
+                if replacement != source {
+                    replacements.push((path.clone(), replacement));
+                }
+            }
+            replacements.sort_by(|left, right| left.0.cmp(&right.0));
+            for (path, replacement) in replacements {
+                replace_text_file_atomically(&path, &replacement)?;
+            }
+        }
+        Some(analysis)
+    } else {
+        None
+    };
+
+    let mut scope = Scope::default();
+    if check_refdefs {
+        scope
+            .excluded_filenames
+            .retain(|filename| filename.to_string_lossy() != "refs.incl.md");
+    }
 
     walk_parsed_markdown_files(
         &directories,
         &scope,
         |path, doc| {
-            let unused = check_refdefs.then(|| crate::refdefs::find_unused_refdefs(doc));
+            let unused = if let Some(analysis) = &refdef_analysis {
+                let canonical = path.canonicalize()?;
+                analysis.unused_by_file.get(&canonical)
+            } else {
+                None
+            };
 
-            if let Some(unused) = unused.as_ref().filter(|unused| !unused.is_empty()) {
-                tracing::info!(
-                    "Found {} unused refdefs in {}",
-                    unused.len(),
-                    path.display()
-                );
-                if delete_unused {
-                    let new_content = crate::refdefs::delete_unused_refdefs(doc, unused);
-                    std::fs::write(path, new_content)?;
-                }
-            }
-
-            let active_links = collect_active_external_links(doc, unused.as_ref());
+            let active_links = collect_active_external_links(doc, unused);
             tracing::debug!(
                 path = %path.display(),
                 active_link_count = active_links.len(),
