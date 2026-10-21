@@ -421,3 +421,204 @@ fn extract_comments_cli_writes_output_file() {
         "extract-comments output: {extracted}"
     );
 }
+
+#[test]
+fn refdefs_audit_reports_uses_before_idempotent_cleanup() {
+    let temp = tempdir().expect("create temp dir");
+    let chapter = write_markdown_file(
+        temp.path(),
+        "chapter.md",
+        "{{#include refs.incl.md}}\n[Full][SERDE]\n[ SeRdE ][]\n[SERDE]\n![crate][serDe]\n![SeRdE][]\n![serde]\n[![crate][sErDe]][SERDE]\n`[serde]` <!-- [serde] -->\n```md\n[serde]\n```\n[serde](https://example.com)\n",
+    );
+    let definitions = write_markdown_file(
+        temp.path(),
+        "refs.incl.md",
+        "[serde]: https://docs.rs/serde\n[unused]: https://example.com/unused\n",
+    );
+    let chapter_before = fs::read(&chapter).expect("read original chapter");
+    let report = temp.path().join("reference-audit.json");
+    let root = temp.path().to_str().expect("utf-8 source path");
+    let report_path = report.to_str().expect("utf-8 report path");
+
+    let first = book_tool_command()
+        .args(["refdefs-audit", root, "--report", report_path, "--delete"])
+        .output()
+        .expect("run reference audit and cleanup");
+    assert!(
+        first.status.success(),
+        "refdefs-audit stderr: {}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+
+    let first_report: serde_json::Value =
+        serde_json::from_slice(&fs::read(&report).expect("read pre-cleanup report"))
+            .expect("parse pre-cleanup report");
+    let records = first_report.as_array().expect("report is a JSON array");
+    let serde_record = records
+        .iter()
+        .find(|record| record["label"] == "serde")
+        .expect("report contains the shared definition");
+    assert_eq!(serde_record["proven_unused"], false);
+    assert_eq!(
+        serde_record["uses"].as_array().expect("uses array").len(),
+        8
+    );
+    assert!(
+        serde_record["uses"]
+            .as_array()
+            .expect("uses array")
+            .iter()
+            .any(|usage| usage["kind"] == "image")
+    );
+    assert!(
+        serde_record["uses_outside_scoped_roots"]
+            .as_array()
+            .expect("outside-scope use array")
+            .is_empty()
+    );
+    let unused_record = records
+        .iter()
+        .find(|record| record["label"] == "unused")
+        .expect("report contains the unused definition");
+    assert_eq!(unused_record["proven_unused"], true);
+    assert!(
+        unused_record["uses"]
+            .as_array()
+            .expect("uses array")
+            .is_empty()
+    );
+
+    let cleaned = fs::read_to_string(&definitions).expect("read cleaned definitions");
+    assert!(cleaned.contains("[serde]: https://docs.rs/serde"));
+    assert!(!cleaned.contains("[unused]:"));
+    assert_eq!(
+        fs::read(&chapter).expect("read chapter after cleanup"),
+        chapter_before
+    );
+
+    let second = book_tool_command()
+        .args(["refdefs-audit", root, "--report", report_path, "--delete"])
+        .output()
+        .expect("run idempotent audit");
+    assert!(
+        second.status.success(),
+        "second refdefs-audit stderr: {}",
+        String::from_utf8_lossy(&second.stderr)
+    );
+    let second_report = fs::read(&report).expect("read idempotent report");
+    let second_report_json: serde_json::Value =
+        serde_json::from_slice(&second_report).expect("parse idempotent report");
+    assert!(
+        second_report_json
+            .as_array()
+            .expect("report is a JSON array")
+            .iter()
+            .all(|record| record["proven_unused"] == false)
+    );
+
+    let third = book_tool_command()
+        .args(["refdefs-audit", root, "--report", report_path, "--delete"])
+        .output()
+        .expect("repeat idempotent audit");
+    assert!(
+        third.status.success(),
+        "third refdefs-audit stderr: {}",
+        String::from_utf8_lossy(&third.stderr)
+    );
+    assert_eq!(
+        fs::read(&report).expect("read stable second-run report"),
+        second_report
+    );
+}
+
+#[test]
+fn refdefs_audit_preserves_definitions_used_in_additional_sources() {
+    let temp = tempdir().expect("create temp dir");
+    let published = temp.path().join("published");
+    let drafts = temp.path().join("drafts");
+    fs::create_dir_all(&published).expect("create published source root");
+    fs::create_dir_all(&drafts).expect("create draft source root");
+    let definitions = write_markdown_file(
+        &published,
+        "refs.incl.md",
+        "[serde]: https://docs.rs/serde\n[unused]: https://example.com/unused\n",
+    );
+    let generated = write_markdown_file(
+        &published,
+        "generated-refs.md",
+        "[reserved]: https://example.com/generated\n",
+    );
+    write_markdown_file(
+        &published,
+        "chapter.md",
+        "{{#include refs.incl.md}}\n{{#include generated-refs.md}}\n",
+    );
+    write_markdown_file(
+        &drafts,
+        "draft.md",
+        "[Issue note with nested [serde][SERDE] reference](https://example.com)\n",
+    );
+    let report = temp.path().join("reference-audit.json");
+
+    let output = book_tool_command()
+        .args([
+            "refdefs-audit",
+            published.to_str().expect("utf-8 published path"),
+            "--report",
+            report.to_str().expect("utf-8 report path"),
+            "--also-scan-uses-in",
+            drafts.to_str().expect("utf-8 drafts path"),
+            "--preserve-definitions-in",
+            generated
+                .to_str()
+                .expect("utf-8 generated definitions path"),
+            "--delete",
+        ])
+        .output()
+        .expect("run reference audit with additional source root");
+    assert!(
+        output.status.success(),
+        "refdefs-audit stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let report: serde_json::Value =
+        serde_json::from_slice(&fs::read(report).expect("read audit report"))
+            .expect("parse audit report");
+    let records = report.as_array().expect("report is a JSON array");
+    let serde_record = records
+        .iter()
+        .find(|record| record["label"] == "serde")
+        .expect("report contains serde definition");
+    assert_eq!(serde_record["proven_unused"], false);
+    let outside_uses = serde_record["uses_outside_scoped_roots"]
+        .as_array()
+        .expect("outside-scope use array");
+    assert_eq!(outside_uses.len(), 1);
+    assert_eq!(outside_uses[0]["line"], 1);
+    assert!(
+        outside_uses[0]["path"]
+            .as_str()
+            .unwrap()
+            .ends_with("draft.md")
+    );
+
+    let unused_record = records
+        .iter()
+        .find(|record| record["label"] == "unused")
+        .expect("report contains unused definition");
+    assert_eq!(unused_record["proven_unused"], true);
+    let reserved_record = records
+        .iter()
+        .find(|record| record["label"] == "reserved")
+        .expect("report contains protected definition");
+    assert_eq!(reserved_record["protected"], true);
+    assert_eq!(reserved_record["proven_unused"], false);
+    let cleaned = fs::read_to_string(definitions).expect("read cleaned definitions");
+    assert!(cleaned.contains("[serde]: https://docs.rs/serde"));
+    assert!(!cleaned.contains("[unused]:"));
+    assert_eq!(
+        fs::read_to_string(generated).expect("read protected generated definitions"),
+        "[reserved]: https://example.com/generated\n"
+    );
+}

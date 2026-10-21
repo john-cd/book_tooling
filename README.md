@@ -95,6 +95,21 @@ Verifies external links and optionally cleans up unused reference definitions.
 book_tool link-check ./src --refdefs --delete
 ```
 
+### Audit Reference Definitions
+
+Writes a JSON report with definition locations, include provenance, and reference-use locations.
+Additional roots are scanned for reference uses without requiring their include graphs to resolve;
+these uses are reported separately and protect matching definitions from deletion. Generated or
+otherwise maintained definition files can be protected explicitly.
+
+```bash
+book_tool refdefs-audit ./bk/src --report ./refdefs-audit.json \
+  --also-scan-uses-in ./bk/drafts \
+  --also-scan-uses-in ./later/src \
+  --preserve-definitions-in ./bk/src/refs/dependency-refs.md \
+  --delete
+```
+
 ### Convert Inline Links
 
 Transforms `[text](url)` and `https://url.com` into reference-style links.
