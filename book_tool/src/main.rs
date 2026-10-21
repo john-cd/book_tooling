@@ -32,6 +32,24 @@ enum Commands {
         #[arg(short, long, requires = "refdefs")]
         delete: bool,
     },
+    /// Audit reference-definition provenance and uses, then optionally delete proven-unused entries.
+    RefdefsAudit {
+        /// Directories to analyze.
+        #[arg(required = true)]
+        directories: Vec<PathBuf>,
+        /// JSON report path. The report is written before any requested cleanup.
+        #[arg(short, long, required = true)]
+        report: PathBuf,
+        /// Remove only definitions proven unused in every include scope.
+        #[arg(long)]
+        delete: bool,
+        /// Also report and preserve uses found in these Markdown roots, without resolving includes.
+        #[arg(long = "also-scan-uses-in", value_name = "DIR")]
+        additional_use_directories: Vec<PathBuf>,
+        /// Protect generated or otherwise maintained definition files from cleanup.
+        #[arg(long = "preserve-definitions-in", value_name = "FILE")]
+        protected_definition_files: Vec<PathBuf>,
+    },
     /// Convert inline links to reference-style links in Markdown files.
     InlineLinks {
         /// Directories to process.
@@ -76,6 +94,21 @@ async fn main() -> Result<()> {
             delete,
         } => {
             book_tool::link_check::execute(directories.clone(), *refdefs, *delete).await?;
+        }
+        Commands::RefdefsAudit {
+            directories,
+            report,
+            delete,
+            additional_use_directories,
+            protected_definition_files,
+        } => {
+            book_tool::refdefs::audit(
+                directories.clone(),
+                report,
+                *delete,
+                additional_use_directories.clone(),
+                protected_definition_files.clone(),
+            )?;
         }
         Commands::InlineLinks { directories } => {
             book_tool::inline_links::execute(directories.clone())?;
