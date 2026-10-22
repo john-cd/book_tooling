@@ -88,6 +88,12 @@ Replaces custom directives with their expanded Markdown/HTML content.
 book_tool directives ./src
 ```
 
+The filesystem command reads an optional `config.toml` from the current working directory and uses
+`Config::default()` when the file is absent. Its example shorthand keeps the legacy
+`examples/<name>.md` include mapping. Render-time adapters use
+`process_markdown_with_example_resolver` to resolve chapter-relative paths and anchors in their own
+book layout.
+
 ### Check Links
 
 Verifies external links and optionally cleans up unused reference definitions.
@@ -95,6 +101,13 @@ Verifies external links and optionally cleans up unused reference definitions.
 ```bash
 book_tool link-check ./src --refdefs --delete
 ```
+
+Link checking requires outbound network access; there is no offline mode. The checker sends `HEAD`
+requests first and falls back to `GET` when a response is not successful. Only `2xx` responses pass.
+Each method retries `429` and `503` responses up to three times using a numeric `Retry-After` value,
+or one second when the header is absent or not numeric. Requests time out after ten seconds, with up
+to 32 links checked concurrently. Local HTTP fixtures can exercise the command without contacting
+external sites.
 
 ### Audit Reference Definitions
 
@@ -118,6 +131,10 @@ Transforms `[text](url)` and `https://url.com` into reference-style links.
 ```bash
 book_tool inline-links ./src
 ```
+
+Untitled links and naked URLs become reference-style links. Existing reference definitions are reused,
+and generated numeric labels avoid collisions. Links with Markdown titles and rust_howto issue links
+remain inline so their original semantics and source text are preserved.
 
 ### Search
 
