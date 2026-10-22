@@ -623,3 +623,106 @@ fn refdefs_audit_preserves_definitions_used_in_additional_sources() {
         "[reserved]: https://example.com/generated\n"
     );
 }
+
+/// Verifies the link-check executable resolves included references and prunes only unused labels.
+#[test]
+fn link_check_cli_checks_local_urls_and_cleans_shared_references_deterministically() {
+    let server = TestHttpServer::spawn();
+    let temp = tempdir().expect("create temporary book directory");
+    let chapter = write_markdown_file(
+        temp.path(),
+        "chapter.md",
+        &format!(
+            "{{{{#include refs.incl.md}}}}\n[Book source][ SeRdE ]\n[Direct]({})\n",
+            server.url("/book")
+        ),
+    );
+    let references = write_markdown_file(
+        temp.path(),
+        "refs.incl.md",
+        &format!(
+            "[serde]: {}\n[unused]: http://127.0.0.1:9/unused\n",
+            server.url("/book")
+        ),
+    );
+
+    let output = book_tool_command()
+        .args([
+            "link-check",
+            temp.path().to_str().expect("UTF-8 temp path"),
+            "--refdefs",
+            "--delete",
+        ])
+        .env("RUST_LOG", "off")
+        .output()
+        .expect("run link-check with a local HTTP fixture");
+
+    assert!(
+        output.status.success(),
+        "link-check stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert_eq!(
+        stdout
+            .matches("Found 1 unique external links. Verifying...")
+            .count(),
+        1,
+        "link-check stdout: {stdout}"
+    );
+    let canonical_references = references
+        .canonicalize()
+        .expect("canonicalize shared references");
+    assert!(
+        stdout.contains(&format!(
+            "Unused reference definitions in {}: unused",
+            canonical_references.display()
+        )),
+        "link-check stdout: {stdout}"
+    );
+    assert!(stdout.ends_with("All links verified successfully.\n"));
+    assert_eq!(
+        fs::read_to_string(&chapter).expect("read chapter after cleanup"),
+        format!(
+            "{{{{#include refs.incl.md}}}}\n[Book source][ SeRdE ]\n[Direct]({})\n",
+            server.url("/book")
+        )
+    );
+    let cleaned = fs::read_to_string(references).expect("read shared definitions after cleanup");
+    assert!(cleaned.contains("[serde]:"));
+    assert!(!cleaned.contains("[unused]:"));
+}
+
+/// Verifies broken local HTTP links produce a nonzero executable status without source edits.
+#[test]
+fn link_check_cli_returns_failure_for_broken_urls_and_keeps_the_chapter_unchanged() {
+    let not_found = status_response("404 Not Found", &[]);
+    let server = TestHttpServer::spawn_with_responses(vec![not_found.clone(), not_found]);
+    let temp = tempdir().expect("create temporary book directory");
+    let source = format!("[Missing]({})\n", server.url("/missing"));
+    let chapter = write_markdown_file(temp.path(), "chapter.md", &source);
+
+    let output = book_tool_command()
+        .args(["link-check", temp.path().to_str().expect("UTF-8 temp path")])
+        .env("RUST_LOG", "off")
+        .output()
+        .expect("run link-check against a 404 fixture");
+
+    assert!(
+        !output.status.success(),
+        "link-check unexpectedly succeeded"
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "Found 1 unique external links. Verifying...\n"
+    );
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("Found 1 broken links."),
+        "link-check stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        fs::read_to_string(chapter).expect("read unchanged chapter"),
+        source
+    );
+}
