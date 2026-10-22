@@ -3,7 +3,7 @@
 //! TODO Reviewed ??-??-2026
 
 use winnow::ModalResult;
-use winnow::Parser;
+use winnow::Parser as _;
 use winnow::ascii::space0;
 use winnow::ascii::space1;
 use winnow::combinator::alt;
@@ -11,8 +11,8 @@ use winnow::combinator::delimited;
 use winnow::combinator::opt;
 use winnow::combinator::preceded;
 use winnow::combinator::repeat;
-use winnow::error::StrContext::*;
-use winnow::error::StrContextValue::*;
+use winnow::error::StrContext::{Expected, Label};
+use winnow::error::StrContextValue::Description;
 use winnow::token::take_until;
 use winnow::token::take_while;
 
@@ -21,6 +21,10 @@ use crate::ast::DestinationKind;
 use crate::ast::Element;
 
 /// Parses one custom directive and wraps it as [`Element::CustomDirective`].
+///
+/// # Errors
+///
+/// Returns a backtrack error if the input does not begin with a custom directive.
 pub fn parse_directive_element<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     alt((
         parse_link_directive,
@@ -37,6 +41,7 @@ pub fn parse_directive_element<'a>(input: &mut &'a str) -> ModalResult<Element<'
     .parse_next(input)
 }
 
+/// Parses the destination keyword of a link or badge directive, such as `web` or `crates.io`.
 fn parse_destination_kind(input: &mut &str) -> ModalResult<DestinationKind> {
     alt((
         "cat".value(DestinationKind::Category),
@@ -50,6 +55,7 @@ fn parse_destination_kind(input: &mut &str) -> ModalResult<DestinationKind> {
     .parse_next(input)
 }
 
+/// Parses the non-empty name after the destination keyword, introduced by `:` or whitespace and ending at `}}`.
 fn parse_link_or_badge_name<'a>(input: &mut &'a str) -> ModalResult<&'a str> {
     alt((
         preceded(':', preceded(space0, take_until(1.., "}}"))),
@@ -60,6 +66,7 @@ fn parse_link_or_badge_name<'a>(input: &mut &'a str) -> ModalResult<&'a str> {
     .parse_next(input)
 }
 
+/// Parses a link directive such as `{{web example.com}}`.
 fn parse_link_directive<'a>(input: &mut &'a str) -> ModalResult<DirectiveData<'a>> {
     delimited(
         "{{",
@@ -74,6 +81,7 @@ fn parse_link_directive<'a>(input: &mut &'a str) -> ModalResult<DirectiveData<'a
     .parse_next(input)
 }
 
+/// Parses a badge directive such as `{{!crate serde}}`.
 fn parse_badge_directive<'a>(input: &mut &'a str) -> ModalResult<DirectiveData<'a>> {
     delimited(
         "{{!",
@@ -88,6 +96,7 @@ fn parse_badge_directive<'a>(input: &mut &'a str) -> ModalResult<DirectiveData<'
     .parse_next(input)
 }
 
+/// Parses a `{{#crate ...}}` block directive.
 fn parse_crate_block_directive<'a>(input: &mut &'a str) -> ModalResult<DirectiveData<'a>> {
     // {{#crate: crt cat1 cat-2}}
     delimited(
@@ -115,6 +124,7 @@ fn parse_crate_block_directive<'a>(input: &mut &'a str) -> ModalResult<Directive
     .parse_next(input)
 }
 
+/// Parses a `{{#categories ...}}` block directive.
 fn parse_category_block_directive<'a>(input: &mut &'a str) -> ModalResult<DirectiveData<'a>> {
     delimited(
         "{{#categories",
@@ -127,30 +137,31 @@ fn parse_category_block_directive<'a>(input: &mut &'a str) -> ModalResult<Direct
     .parse_next(input)
 }
 
+/// Splits category arguments on whitespace and commas, keeping double-quoted text together.
 fn split_category_arguments(input: &str) -> Vec<&str> {
     let mut categories = Vec::new();
-    let mut start = None;
+    let mut category_start = None;
     let mut in_quotes = false;
 
     for (index, character) in input.char_indices() {
         match character {
             '"' => in_quotes = !in_quotes,
             ',' | ' ' | '\t' if !in_quotes => {
-                if let Some(start) = start.take() {
-                    let category = input[start..index].trim();
+                if let Some(start) = category_start.take() {
+                    let category = input.get(start..index).unwrap_or_default().trim();
                     if !category.is_empty() {
                         categories.push(category);
                     }
                 }
             }
             _ => {
-                start.get_or_insert(index);
+                category_start.get_or_insert(index);
             }
         }
     }
 
-    if let Some(start) = start {
-        let category = input[start..].trim();
+    if let Some(start) = category_start {
+        let category = input.get(start..).unwrap_or_default().trim();
         if !category.is_empty() {
             categories.push(category);
         }
@@ -159,6 +170,7 @@ fn split_category_arguments(input: &str) -> Vec<&str> {
     categories
 }
 
+/// Parses a `{{#example ...}}` block directive.
 fn parse_example_block_directive<'a>(input: &mut &'a str) -> ModalResult<DirectiveData<'a>> {
     // Nested directives: {{#example {{#include ...}}}}
     // Actually, commonmark-style directives usually aren't that complex but let's allow
@@ -223,9 +235,9 @@ mod tests {
         );
 
         let mut empty_name = "{{cat }}";
-        assert!(parse_directive_element(&mut empty_name).is_err());
+        parse_directive_element(&mut empty_name).expect_err("input should be rejected");
         let mut invalid_destination = "{{catalog accessibility}}";
-        assert!(parse_directive_element(&mut invalid_destination).is_err());
+        parse_directive_element(&mut invalid_destination).expect_err("input should be rejected");
     }
 
     /// Verifies every directive variant has canonical double-brace formatting that reparses.

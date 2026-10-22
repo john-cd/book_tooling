@@ -14,7 +14,9 @@ pub(super) fn render_link_or_badge(directive: &DirectiveData<'_>) -> String {
     let (is_badge, ast_kind, name) = match directive {
         DirectiveData::Link { kind, name } => (false, kind, name),
         DirectiveData::Badge { kind, name } => (true, kind, name),
-        _ => return String::new(),
+        DirectiveData::CrateBlock { .. }
+        | DirectiveData::CategoryBlock { .. }
+        | DirectiveData::ExampleBlock { .. } => return String::new(),
     };
 
     // Keep this conversion explicit and exhaustive while this adapter has one caller.
@@ -29,9 +31,9 @@ pub(super) fn render_link_or_badge(directive: &DirectiveData<'_>) -> String {
     };
 
     if is_badge {
-        render_badge(&kind, name)
+        render_badge(kind, name)
     } else {
-        render_link(&kind, name)
+        render_link(kind, name)
     }
 }
 
@@ -50,43 +52,43 @@ mod tests {
             (
                 AstDestinationKind::Category,
                 DestinationKind::Category,
-                "[serde][cat~serde]↗{{hi:serde}}",
+                "[serde][cat~serde]\u{2197}{{hi:serde}}",
                 "[![serde][cat~serde~badge]][cat~serde]{{hi:serde}}",
             ),
             (
                 AstDestinationKind::Crate,
                 DestinationKind::Crate,
-                "[serde][p~serde~crate]↗{{hi:serde}}",
+                "[serde][p~serde~crate]\u{2197}{{hi:serde}}",
                 "[![serde][p~serde~crate~badge]][p~serde~crate]{{hi:serde}}",
             ),
             (
                 AstDestinationKind::Docs,
                 DestinationKind::Docs,
-                "[serde][c~serde~docs]↗{{hi:serde}}",
+                "[serde][c~serde~docs]\u{2197}{{hi:serde}}",
                 "[![serde][c~serde~docs~badge]][c~serde~docs]{{hi:serde}}",
             ),
             (
                 AstDestinationKind::GithubRepo,
                 DestinationKind::GithubRepo,
-                "[serde][c~serde~repo]↗{{hi:serde}}",
+                "[serde][c~serde~repo]\u{2197}{{hi:serde}}",
                 "[![serde][c~serde~repo~badge]][c~serde~repo]{{hi:serde}}",
             ),
             (
                 AstDestinationKind::LibRs,
                 DestinationKind::LibRs,
-                "[serde][c~serde~lib.rs]↗{{hi:serde}}",
+                "[serde][c~serde~lib.rs]\u{2197}{{hi:serde}}",
                 "[![serde][c~serde~lib.rs~badge]][c~serde~lib.rs]{{hi:serde}}",
             ),
             (
                 AstDestinationKind::CratesIo,
                 DestinationKind::CratesIo,
-                "[serde][c~serde~crates.io]↗{{hi:serde}}",
+                "[serde][c~serde~crates.io]\u{2197}{{hi:serde}}",
                 "[![serde][c~serde~crates.io~badge]][c~serde~crates.io]{{hi:serde}}",
             ),
             (
                 AstDestinationKind::Web,
                 DestinationKind::Web,
-                "[serde][c~serde~website]↗{{hi:serde}}",
+                "[serde][c~serde~website]\u{2197}{{hi:serde}}",
                 "[![serde][c~serde~website~badge]][c~serde~website]{{hi:serde}}",
             ),
         ];
@@ -105,11 +107,11 @@ mod tests {
             assert_eq!(render_link_or_badge(&badge), expected_badge);
             assert_eq!(
                 render_link_or_badge(&link),
-                crate::common::render_link(&template_kind, "serde")
+                crate::common::render_link(template_kind, "serde")
             );
             assert_eq!(
                 render_link_or_badge(&badge),
-                crate::common::render_badge(&template_kind, "serde")
+                crate::common::render_badge(template_kind, "serde")
             );
         }
     }

@@ -2,24 +2,30 @@
 //!
 //! TODO Reviewed ??-??-2026
 
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::hash::BuildHasher;
 use std::ops::Range;
 use std::path::Path;
 use std::path::PathBuf;
 
-use anyhow::Context;
+use anyhow::Context as _;
 use anyhow::Result;
 use anyhow::bail;
-use parse_lib::visit::Visitable;
+use parse_lib::visit::Visitable as _;
 use parse_lib::visit::Visitor;
-use parse_lib::*;
+use parse_lib::{
+    Document, ReferenceDefinitionData, ReferenceStyleImageData, ReferenceStyleLinkData,
+    parse_document,
+};
 use serde::Serialize;
 use walkdir::WalkDir;
 
 use crate::common::replace_text_file_atomically;
 
 /// Normalize a Markdown reference label by collapsing whitespace and folding case.
+#[must_use]
 pub fn normalize_reference_label(label: &str) -> String {
     label
         .split_whitespace()
@@ -28,34 +34,52 @@ pub fn normalize_reference_label(label: &str) -> String {
         .to_lowercase()
 }
 
+/// Labels used by references and labels defined by definitions in one document.
 #[derive(Default)]
 struct LabelSets {
+    /// Normalized labels that at least one reference link or image uses.
     used: HashSet<String>,
+    /// Defined labels as `(label, normalized_label)` pairs.
     definitions: Vec<(String, String)>,
 }
 
+/// The kind of Markdown construct that uses a reference definition.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReferenceUseKind {
+    /// A reference-style link.
     Link,
+    /// A reference-style image.
     Image,
 }
 
+/// One use of a reference label by a reference-style link or image.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub struct ReferenceUseAudit {
+    /// File that contains the use.
     pub path: PathBuf,
+    /// 1-based line of the use.
     pub line: usize,
+    /// 1-based column of the use.
     pub column: usize,
+    /// Label as written in the source.
     pub label: String,
+    /// Whether the use is a link or an image.
     pub kind: ReferenceUseKind,
 }
 
+/// One reference definition together with where it is defined and used.
 #[derive(Debug, Clone, Serialize)]
 pub struct ReferenceDefinitionAudit {
+    /// File that contains the definition.
     pub path: PathBuf,
+    /// 1-based line of the definition.
     pub line: usize,
+    /// 1-based column of the definition.
     pub column: usize,
+    /// Label as written in the source.
     pub label: String,
+    /// Label normalized for case-insensitive matching.
     pub normalized_label: String,
     /// Markdown roots whose include scope contains this definition.
     pub included_by: Vec<PathBuf>,
@@ -71,39 +95,61 @@ pub struct ReferenceDefinitionAudit {
     pub proven_unused: bool,
 }
 
+/// Where a reference definition appears in a source file.
 #[derive(Debug, Clone)]
 struct DefinitionOccurrence {
+    /// Label as written in the source.
     label: String,
+    /// Label normalized for case-insensitive matching.
     normalized_label: String,
+    /// 1-based line of the label.
     line: usize,
+    /// 1-based column of the label.
     column: usize,
 }
 
+/// Where a reference link or image appears in a source file.
 #[derive(Debug, Clone)]
 struct UseOccurrence {
+    /// Label as written in the source.
     label: String,
+    /// Label normalized for case-insensitive matching.
     normalized_label: String,
+    /// 1-based line of the label.
     line: usize,
+    /// 1-based column of the label.
     column: usize,
+    /// Whether the use is a link or an image.
     kind: ReferenceUseKind,
 }
 
+/// Every reference definition and use found in one source file.
 #[derive(Default)]
 struct ReferenceOccurrences {
+    /// The reference definitions in the file.
     definitions: Vec<DefinitionOccurrence>,
+    /// The reference links and images in the file.
     uses: Vec<UseOccurrence>,
 }
 
+/// Visitor that records reference definitions and uses together with their source locations.
 struct OccurrenceCollector<'source> {
+    /// The source text being scanned.
     source: &'source str,
+    /// Address of the start of `source`, used to turn parsed fragments into byte offsets.
     source_base: usize,
+    /// The reference definitions and uses in the file.
     occurrences: ReferenceOccurrences,
+    /// The first error hit while locating a fragment; later recording stops once it is set.
     error: Option<anyhow::Error>,
 }
 
 impl OccurrenceCollector<'_> {
+    /// Returns the 1-based line and column of `fragment` within the source.
     fn location(&self, fragment: &str) -> Result<(usize, usize)> {
-        let start = (fragment.as_ptr() as usize)
+        let start = fragment
+            .as_ptr()
+            .addr()
             .checked_sub(self.source_base)
             .context("Reference label does not belong to its source document")?;
         let end = start
@@ -116,7 +162,7 @@ impl OccurrenceCollector<'_> {
             bail!("Reference label source range is outside its document");
         }
 
-        let prefix = &self.source[..start];
+        let prefix = self.source.get(..start).unwrap_or_default();
         let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
         let column = prefix
             .rsplit('\n')
@@ -125,13 +171,14 @@ impl OccurrenceCollector<'_> {
         Ok((line, column))
     }
 
+    /// Records a reference link or image that uses `label`, unless an earlier error was stored.
     fn record_use(&mut self, label: &str, kind: ReferenceUseKind) {
         if self.error.is_some() {
             return;
         }
         match self.location(label) {
             Ok((line, column)) => self.occurrences.uses.push(UseOccurrence {
-                label: label.to_string(),
+                label: label.to_owned(),
                 normalized_label: normalize_reference_label(label),
                 line,
                 column,
@@ -141,13 +188,14 @@ impl OccurrenceCollector<'_> {
         }
     }
 
+    /// Records a reference definition of `label`, unless an earlier error was stored.
     fn record_definition(&mut self, label: &str) {
         if self.error.is_some() {
             return;
         }
         match self.location(label) {
             Ok((line, column)) => self.occurrences.definitions.push(DefinitionOccurrence {
-                label: label.to_string(),
+                label: label.to_owned(),
                 normalized_label: normalize_reference_label(label),
                 line,
                 column,
@@ -171,19 +219,21 @@ impl<'a> Visitor<'a> for OccurrenceCollector<'_> {
     }
 }
 
+/// Returns the UTF-8 length of the character starting at byte `index`, or 1 if there is none.
 fn next_character_len(text: &str, index: usize) -> usize {
     text.get(index..)
         .and_then(|suffix| suffix.chars().next())
         .map_or(1, char::len_utf8)
 }
 
+/// Finds the bracket pair that opens at `opening`, honoring nesting and backslash escapes; returns `(start, end, closing)` byte offsets.
 fn bracket_contents(line: &str, opening: usize) -> Option<(usize, usize, usize)> {
     let bytes = line.as_bytes();
     if bytes.get(opening) != Some(&b'[') {
         return None;
     }
 
-    let mut depth = 1usize;
+    let mut depth = 1_usize;
     let mut index = opening + 1;
     while index < bytes.len() {
         match bytes.get(index).copied()? {
@@ -210,17 +260,19 @@ fn bracket_contents(line: &str, opening: usize) -> Option<(usize, usize, usize)>
     None
 }
 
+/// Returns whether the character at `opening` is preceded by an odd number of backslashes.
 fn is_escaped(line: &str, opening: usize) -> bool {
     let bytes = line.as_bytes();
     let mut cursor = opening;
-    let mut backslashes = 0usize;
+    let mut backslashes = 0_usize;
     while cursor > 0 && bytes.get(cursor - 1) == Some(&b'\\') {
         backslashes += 1;
         cursor -= 1;
     }
-    backslashes % 2 == 1
+    (backslashes & 1) == 1
 }
 
+/// Returns the first byte offset at or after `index` that is not a space or tab.
 fn skip_spaces(line: &str, mut index: usize) -> usize {
     let bytes = line.as_bytes();
     while bytes
@@ -235,18 +287,22 @@ fn skip_spaces(line: &str, mut index: usize) -> usize {
 /// Finds shortcut and collapsed references left as plain text by the lightweight AST parser.
 /// Full references are collected by the visitor; this scan also recognizes them so whitespace
 /// accepted by mdBook does not hide a use from the cleanup analysis.
+#[expect(
+    clippy::too_many_lines,
+    clippy::excessive_nesting,
+    reason = "A single-pass scanner whose branches follow the Markdown reference syntax; splitting it would obscure the state it threads through."
+)]
 fn implicit_reference_uses(source: &str) -> Vec<(&str, ReferenceUseKind)> {
     let mut uses = Vec::new();
     let mut fence: Option<(u8, usize)> = None;
-    let mut inline_code_length = 0usize;
+    let mut inline_code_length = 0_usize;
     let mut in_html_comment = false;
 
     for raw_line in source.split_inclusive('\n') {
-        let line = raw_line
-            .strip_suffix('\n')
-            .unwrap_or(raw_line)
+        let without_newline = raw_line.strip_suffix('\n').unwrap_or(raw_line);
+        let line = without_newline
             .strip_suffix('\r')
-            .unwrap_or(raw_line.strip_suffix('\n').unwrap_or(raw_line));
+            .unwrap_or(without_newline);
         let trimmed = line.trim_start();
         let trimmed_bytes = trimmed.as_bytes();
 
@@ -277,7 +333,7 @@ fn implicit_reference_uses(source: &str) -> Vec<(&str, ReferenceUseKind)> {
         }
 
         let bytes = line.as_bytes();
-        let mut index = 0usize;
+        let mut index = 0_usize;
         while index < bytes.len() {
             if in_html_comment {
                 if line
@@ -325,11 +381,10 @@ fn implicit_reference_uses(source: &str) -> Vec<(&str, ReferenceUseKind)> {
                 if line
                     .get(index..)
                     .is_some_and(|suffix| suffix.starts_with("[["))
+                    && let Some(end) = line.get(index..).and_then(|suffix| suffix.find("]]"))
                 {
-                    if let Some(end) = line.get(index..).and_then(|suffix| suffix.find("]]")) {
-                        index += end + 2;
-                        continue;
-                    }
+                    index += end + 2;
+                    continue;
                 }
 
                 if let Some((label_start, label_end, close)) = bracket_contents(line, index) {
@@ -396,12 +451,13 @@ fn implicit_reference_uses(source: &str) -> Vec<(&str, ReferenceUseKind)> {
     uses
 }
 
+/// Parses `source` and collects its reference definitions and uses, including implicit uses.
 fn collect_reference_occurrences(path: &Path, source: &str) -> Result<ReferenceOccurrences> {
     let document = parse_document("file", Some(path), source)
         .with_context(|| format!("Failed to parse Markdown file {}", path.display()))?;
     let mut collector = OccurrenceCollector {
         source,
-        source_base: source.as_ptr() as usize,
+        source_base: source.as_ptr().addr(),
         occurrences: ReferenceOccurrences::default(),
         error: None,
     };
@@ -425,6 +481,7 @@ fn collect_reference_occurrences(path: &Path, source: &str) -> Result<ReferenceO
     Ok(collector.occurrences)
 }
 
+/// Collects reference uses found in supplementary Markdown roots, grouped by normalized label.
 fn collect_uses_outside_scoped_roots<I, P>(
     directories: I,
 ) -> Result<HashMap<String, HashSet<ReferenceUseAudit>>>
@@ -442,7 +499,7 @@ where
         })?;
         for entry in WalkDir::new(&root) {
             let entry = entry.with_context(|| format!("Failed to traverse {}", root.display()))?;
-            if !entry.file_type().is_file()
+            if (entry.file_type().is_dir() || entry.file_type().is_symlink())
                 || !entry
                     .path()
                     .extension()
@@ -485,26 +542,36 @@ impl<'a> Visitor<'a> for LabelSets {
 
     fn visit_reference_definition(&mut self, definition: &'a ReferenceDefinitionData<'a>) {
         self.definitions.push((
-            definition.label.to_string(),
+            definition.label.to_owned(),
             normalize_reference_label(definition.label),
         ));
     }
 }
 
+/// A parsed Markdown file in the scanned roots.
 struct MarkdownFile {
+    /// Path of the file.
     path: PathBuf,
+    /// The reference definitions and uses in the file.
     occurrences: ReferenceOccurrences,
+    /// Identities of the files this file includes.
     includes: Vec<String>,
 }
 
 /// Unused definitions proven unused within every chapter/include scope in the scanned roots.
 #[derive(Debug, Default)]
 pub struct ScopedRefDefAnalysis {
-    pub unused_by_file: HashMap<PathBuf, HashSet<String>>,
+    /// Labels of unused definitions, grouped by the file that defines them.
+    pub unused_by_file: BTreeMap<PathBuf, HashSet<String>>,
+    /// Audit entries for every definition in the analyzed scopes.
     pub definitions: Vec<ReferenceDefinitionAudit>,
 }
 
 /// Write a deterministic JSON report containing every definition and its scoped uses.
+///
+/// # Errors
+///
+/// Returns an error if the report cannot be serialized or written.
 pub fn write_audit_report(path: &Path, analysis: &ScopedRefDefAnalysis) -> Result<()> {
     let mut report = serde_json::to_string_pretty(&analysis.definitions)
         .context("Failed to serialize reference-definition audit")?;
@@ -518,6 +585,10 @@ pub fn write_audit_report(path: &Path, analysis: &ScopedRefDefAnalysis) -> Resul
 }
 
 /// Remove definitions identified as unused by a complete include-scope analysis.
+///
+/// # Errors
+///
+/// Returns an error if a file cannot be read, parsed or rewritten.
 pub fn remove_proven_unused_refdefs(analysis: &ScopedRefDefAnalysis) -> Result<usize> {
     let mut replacements = Vec::new();
     for (path, unused_labels) in &analysis.unused_by_file {
@@ -539,14 +610,18 @@ pub fn remove_proven_unused_refdefs(analysis: &ScopedRefDefAnalysis) -> Result<u
 }
 
 /// Analyze reference definitions, save the report, and optionally remove proven-unused entries.
+///
+/// # Errors
+///
+/// Returns an error if the roots cannot be analyzed, the report cannot be written, or cleanup fails.
 pub fn audit(
-    directories: Vec<PathBuf>,
+    directories: &[PathBuf],
     report_path: &Path,
     delete_unused: bool,
     additional_use_directories: Vec<PathBuf>,
     protected_definition_files: Vec<PathBuf>,
 ) -> Result<()> {
-    let analysis = find_unused_refdefs_in_scopes(&directories)?;
+    let analysis = find_unused_refdefs_in_scopes(directories)?;
     let mut analysis = analysis;
     let additional_uses = collect_uses_outside_scoped_roots(additional_use_directories)?;
     let additional_labels = additional_uses.keys().cloned().collect::<HashSet<_>>();
@@ -614,6 +689,7 @@ pub fn audit(
     Ok(())
 }
 
+/// Normalizes a path to a string usable as a map key; lowercased on Windows, where paths are case-insensitive.
 fn path_identity(path: &Path) -> String {
     let identity = path.to_string_lossy().replace('\\', "/");
     #[cfg(windows)]
@@ -626,6 +702,7 @@ fn path_identity(path: &Path) -> String {
     }
 }
 
+/// Returns the `{{#include}}` targets in `source` that are not inside code fences or HTML comments.
 fn active_markdown_includes(source: &str) -> Vec<String> {
     let mut includes = Vec::new();
     let mut fence: Option<(u8, usize)> = None;
@@ -639,7 +716,7 @@ fn active_markdown_includes(source: &str) -> Vec<String> {
                 .iter()
                 .take_while(|byte| **byte == marker)
                 .count();
-            if run >= minimum_length && trimmed[run..].trim().is_empty() {
+            if run >= minimum_length && trimmed.get(run..).unwrap_or_default().trim().is_empty() {
                 fence = None;
             }
             continue;
@@ -654,25 +731,27 @@ fn active_markdown_includes(source: &str) -> Vec<String> {
             }
         }
 
-        let mut index = 0usize;
-        let mut code_span_length = 0usize;
+        let mut index = 0_usize;
+        let mut code_span_length = 0_usize;
         while index < bytes.len() {
             if in_html_comment {
-                if trimmed[index..].starts_with("-->") {
+                if trimmed.get(index..).unwrap_or_default().starts_with("-->") {
                     in_html_comment = false;
                     index += 3;
                 } else {
-                    index += trimmed[index..].chars().next().map_or(1, char::len_utf8);
+                    index += next_character_len(trimmed, index);
                 }
                 continue;
             }
-            if trimmed[index..].starts_with("<!--") {
+            if trimmed.get(index..).unwrap_or_default().starts_with("<!--") {
                 in_html_comment = true;
                 index += 4;
                 continue;
             }
-            if bytes[index] == b'`' {
-                let run = bytes[index..]
+            if bytes.get(index) == Some(&b'`') {
+                let run = bytes
+                    .get(index..)
+                    .unwrap_or_default()
                     .iter()
                     .take_while(|byte| **byte == b'`')
                     .count();
@@ -686,23 +765,28 @@ fn active_markdown_includes(source: &str) -> Vec<String> {
                 index += run;
                 continue;
             }
-            if code_span_length == 0 && trimmed[index..].starts_with("{{#include") {
-                let Some(close_offset) = trimmed[index..].find("}}") else {
+            if code_span_length == 0
+                && trimmed
+                    .get(index..)
+                    .unwrap_or_default()
+                    .starts_with("{{#include")
+            {
+                let Some(close_offset) = trimmed.get(index..).unwrap_or_default().find("}}") else {
                     break;
                 };
-                let directive = &trimmed[index..index + close_offset];
+                let directive = trimmed.get(index..index + close_offset).unwrap_or_default();
                 let token = directive
                     .strip_prefix("{{#include")
                     .unwrap_or_default()
                     .trim();
                 let token = token.split_whitespace().next().unwrap_or_default();
                 if let Some(path_end) = token.find(".md") {
-                    includes.push(token[..path_end + 3].to_string());
+                    includes.push(token.get(..path_end + 3).unwrap_or(token).to_owned());
                 }
                 index += close_offset + 2;
                 continue;
             }
-            index += trimmed[index..].chars().next().map_or(1, char::len_utf8);
+            index += next_character_len(trimmed, index);
         }
     }
     includes
@@ -712,6 +796,15 @@ fn active_markdown_includes(source: &str) -> Vec<String> {
 ///
 /// Definitions are marked unused only when every containing scope parses completely. Missing
 /// includes, traversal errors and cycles return an error so callers cannot apply partial cleanup.
+///
+/// # Errors
+///
+/// Returns an error if a root cannot be read or parsed, an include is missing, or the includes form a cycle.
+#[expect(
+    clippy::too_many_lines,
+    clippy::excessive_nesting,
+    reason = "Builds the include graph and the per-scope analysis in one pass over the scanned roots."
+)]
 pub fn find_unused_refdefs_in_scopes<I, P>(directories: I) -> Result<ScopedRefDefAnalysis>
 where
     I: IntoIterator<Item = P>,
@@ -729,11 +822,11 @@ where
         })
         .collect::<Result<Vec<_>>>()?;
 
-    let mut files = HashMap::<String, MarkdownFile>::new();
+    let mut files = BTreeMap::<String, MarkdownFile>::new();
     for root in &roots {
         for entry in WalkDir::new(root) {
             let entry = entry.with_context(|| format!("Failed to traverse {}", root.display()))?;
-            if !entry.file_type().is_file()
+            if (entry.file_type().is_dir() || entry.file_type().is_symlink())
                 || entry
                     .file_name()
                     .to_string_lossy()
@@ -769,7 +862,10 @@ where
                         path.display()
                     )
                 })?;
-                if !roots.iter().any(|root| canonical_include.starts_with(root)) {
+                if !roots
+                    .iter()
+                    .any(|allowed_root| canonical_include.starts_with(allowed_root))
+                {
                     bail!(
                         "Markdown include {} from {} is outside the scanned roots",
                         canonical_include.display(),
@@ -777,12 +873,8 @@ where
                     );
                 }
                 let include_key = path_identity(&canonical_include);
-                if !files.contains_key(&include_key) {
-                    // The target may be visited later in the WalkDir traversal; retain its key.
-                    includes.push(include_key);
-                } else {
-                    includes.push(include_key);
-                }
+                // The target may be visited later in the WalkDir traversal; retain its key either way.
+                includes.push(include_key);
             }
 
             files.insert(
@@ -813,7 +905,7 @@ where
     let mut used_definitions = HashSet::<(String, String)>::new();
     let mut duplicate_definitions = HashSet::<(String, String)>::new();
     let mut ambiguous_definitions = HashSet::<(String, String)>::new();
-    let mut roots_by_file = HashMap::<String, HashSet<String>>::new();
+    let mut roots_by_file = BTreeMap::<String, HashSet<String>>::new();
     let mut uses_by_definition = HashMap::<(String, String), HashSet<ReferenceUseAudit>>::new();
     for root_key in files.keys() {
         let mut active = Vec::new();
@@ -957,9 +1049,10 @@ where
     Ok(analysis)
 }
 
+/// Depth-first walk of the include graph from `key`; fails on missing sources and include cycles.
 fn collect_scope(
     key: &str,
-    files: &HashMap<String, MarkdownFile>,
+    files: &BTreeMap<String, MarkdownFile>,
     active: &mut Vec<String>,
     visited: &mut Vec<String>,
 ) -> Result<()> {
@@ -967,7 +1060,7 @@ fn collect_scope(
         let cycle = active
             .iter()
             .cloned()
-            .chain(std::iter::once(key.to_string()))
+            .chain(std::iter::once(key.to_owned()))
             .collect::<Vec<_>>()
             .join(" -> ");
         bail!("Recursive Markdown include cycle: {cycle}");
@@ -978,8 +1071,8 @@ fn collect_scope(
     let file = files
         .get(key)
         .with_context(|| format!("Missing Markdown source in include scope: {key}"))?;
-    active.push(key.to_string());
-    visited.push(key.to_string());
+    active.push(key.to_owned());
+    visited.push(key.to_owned());
     for include in &file.includes {
         collect_scope(include, files, active, visited)?;
     }
@@ -988,7 +1081,8 @@ fn collect_scope(
 }
 
 /// Find labels that are defined but never used in links or images.
-pub fn find_unused_refdefs(doc: &Document) -> HashSet<String> {
+#[must_use]
+pub fn find_unused_refdefs(doc: &Document<'_>) -> HashSet<String> {
     let mut defined_labels = HashMap::<String, (String, usize)>::new();
 
     let mut labels = LabelSets::default();
@@ -1010,18 +1104,27 @@ pub fn find_unused_refdefs(doc: &Document) -> HashSet<String> {
 }
 
 /// Remove only proven-unused reference-definition source ranges.
-pub fn delete_unused_refdefs(doc: &Document, unused_labels: &HashSet<String>) -> Result<String> {
-    struct RemovalCollector<'a> {
+///
+/// # Errors
+///
+/// Returns an error if a definition cannot be located in the source.
+pub fn delete_unused_refdefs<S: BuildHasher>(
+    doc: &Document<'_>,
+    unused_labels: &HashSet<String, S>,
+) -> Result<String> {
+    struct RemovalCollector<'a, S> {
         source: &'a str,
         source_base: usize,
-        unused: &'a HashSet<String>,
+        unused: &'a HashSet<String, S>,
         ranges: Vec<Range<usize>>,
         error: Option<anyhow::Error>,
     }
 
-    impl RemovalCollector<'_> {
+    impl<S> RemovalCollector<'_, S> {
         fn source_range(&self, fragment: &str) -> Result<Range<usize>> {
-            let start = (fragment.as_ptr() as usize)
+            let start = fragment
+                .as_ptr()
+                .addr()
                 .checked_sub(self.source_base)
                 .context("Reference definition does not belong to its source document")?;
             let end = start
@@ -1037,7 +1140,7 @@ pub fn delete_unused_refdefs(doc: &Document, unused_labels: &HashSet<String>) ->
         }
     }
 
-    impl<'a> Visitor<'a> for RemovalCollector<'_> {
+    impl<'a, S: BuildHasher> Visitor<'a> for RemovalCollector<'_, S> {
         fn visit_reference_definition(&mut self, definition: &'a ReferenceDefinitionData<'a>) {
             if !self.unused.iter().any(|label| {
                 normalize_reference_label(label) == normalize_reference_label(definition.label)
@@ -1070,10 +1173,16 @@ pub fn delete_unused_refdefs(doc: &Document, unused_labels: &HashSet<String>) ->
                 ));
                 return;
             };
-            let line_start = self.source[..label_range.start]
+            let line_start = self
+                .source
+                .get(..label_range.start)
+                .unwrap_or_default()
                 .rfind('\n')
                 .map_or(0, |newline| newline + 1);
-            let line_end = self.source[end..]
+            let line_end = self
+                .source
+                .get(end..)
+                .unwrap_or_default()
                 .find('\n')
                 .map_or(self.source.len(), |newline| end + newline + 1);
             self.ranges.push(line_start..line_end);
@@ -1082,7 +1191,7 @@ pub fn delete_unused_refdefs(doc: &Document, unused_labels: &HashSet<String>) ->
 
     let mut collector = RemovalCollector {
         source: doc.source,
-        source_base: doc.source.as_ptr() as usize,
+        source_base: doc.source.as_ptr().addr(),
         unused: unused_labels,
         ranges: Vec::new(),
         error: None,
@@ -1099,10 +1208,10 @@ pub fn delete_unused_refdefs(doc: &Document, unused_labels: &HashSet<String>) ->
         if range.start < cursor || range.end > doc.source.len() {
             bail!("Reference definition removal ranges overlap or exceed source bounds");
         }
-        output.push_str(&doc.source[cursor..range.start]);
+        output.push_str(doc.source.get(cursor..range.start).unwrap_or_default());
         cursor = range.end;
     }
-    output.push_str(&doc.source[cursor..]);
+    output.push_str(doc.source.get(cursor..).unwrap_or_default());
     Ok(output)
 }
 
@@ -1119,8 +1228,7 @@ mod tests {
         let unused = find_unused_refdefs(&doc);
         assert!(
             unused.contains("unused"),
-            "Unused labels should contain 'unused', got: {:?}",
-            unused
+            "Unused labels should contain 'unused', got: {unused:?}"
         );
         assert_eq!(unused.len(), 1);
     }
@@ -1133,8 +1241,7 @@ mod tests {
         let cleaned = delete_unused_refdefs(&doc, &unused).expect("delete unused definitions");
         assert!(
             cleaned.contains("[used]: https://example.com"),
-            "Cleaned content should contain [used] refdef, got:\n{}",
-            cleaned
+            "Cleaned content should contain [used] refdef, got:\n{cleaned}"
         );
         assert!(!cleaned.contains("[unused]: https://unused.com"));
     }
@@ -1251,7 +1358,7 @@ mod tests {
         let chapter = source.join("chapter.md");
 
         std::fs::write(&chapter, "{{#include missing.md}}\n")?;
-        assert!(find_unused_refdefs_in_scopes([source]).is_err());
+        find_unused_refdefs_in_scopes([source]).expect_err("input should be rejected");
 
         std::fs::write(source.join("chapter.md"), "{{#include other.md}}\n")?;
         std::fs::write(source.join("other.md"), "{{#include chapter.md}}\n")?;

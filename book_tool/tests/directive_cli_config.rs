@@ -1,3 +1,5 @@
+//! Tests for configuring the `directives` subcommand through a TOML file.
+
 use std::fs;
 use std::process::Command;
 
@@ -40,7 +42,7 @@ fn directives_cli_uses_configured_features_and_file_extensions() {
     );
     assert_eq!(
         fs::read_to_string(&chapter).expect("read configured chapter"),
-        "[serde][c~serde~docs]↗{{hi:serde}} {{#include examples/demo.md}} {{#include refs.incl.md}}\n"
+        "[serde][c~serde~docs]\u{2197}{{hi:serde}} {{#include examples/demo.md}} {{#include refs.incl.md}}\n"
     );
     assert_eq!(
         fs::read_to_string(skipped).expect("read skipped extension"),

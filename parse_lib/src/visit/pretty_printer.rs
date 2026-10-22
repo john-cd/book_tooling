@@ -1,9 +1,14 @@
 // TODO Reviewed ??-??-2026
 use std::fmt;
 
-use super::Visitable;
+use super::Visitable as _;
 use super::Visitor;
-use crate::ast::*;
+use crate::ast::{
+    AutolinkData, CodeSpanData, DirectiveData, Document, Element, FencedCodeBlockData, HeadingData,
+    HiddenHtmlDivData, InlineImageData, InlineLinkData, ReferenceDefinitionData,
+    ReferenceStyleImageData, ReferenceStyleLinkData, TableData, TaskItemData, TextData,
+    WikiLinkData,
+};
 
 /// A visitor that reconstructs a Markdown string from an AST.
 ///
@@ -13,6 +18,7 @@ pub struct PrettyPrinter<W>
 where
     W: fmt::Write,
 {
+    /// Destination that receives the reconstructed Markdown.
     w: W,
 }
 
@@ -21,101 +27,125 @@ impl<W: fmt::Write> PrettyPrinter<W> {
     pub fn new(w: W) -> Self {
         Self { w }
     }
+
+    /// Writes formatted text to the sink.
+    ///
+    /// Write failures are deliberately ignored because the `Visitor` methods cannot return errors.
+    fn emit(&mut self, args: fmt::Arguments<'_>) {
+        let _unused = self.w.write_fmt(args);
+    }
+
+    /// Writes formatted text followed by a newline; see [`Self::emit`].
+    fn emit_line(&mut self, args: fmt::Arguments<'_>) {
+        let _unused = self
+            .w
+            .write_fmt(args)
+            .and_then(|()| self.w.write_char('\n'));
+    }
+
+    /// Writes a newline; see [`Self::emit`].
+    fn emit_newline(&mut self) {
+        let _unused = self.w.write_char('\n');
+    }
 }
 
 impl<'a, W: fmt::Write + 'a> Visitor<'a> for PrettyPrinter<W> {
     fn visit_autolink(&mut self, link: &AutolinkData<'a>) {
-        let _ = write!(self.w, "<{}>", link.url);
+        self.emit(format_args!("<{}>", link.url));
     }
 
     fn visit_inline_link(&mut self, link: &InlineLinkData<'a>) {
         if let Some(title) = link.title {
-            let _ = write!(self.w, "[{}]({} \"{title}\")", link.text, link.url);
+            self.emit(format_args!("[{}]({} \"{title}\")", link.text, link.url));
         } else {
-            let _ = write!(self.w, "[{}]({})", link.text, link.url);
+            self.emit(format_args!("[{}]({})", link.text, link.url));
         }
     }
 
     fn visit_reference_style_link(&mut self, link: &ReferenceStyleLinkData<'a>) {
-        let _ = write!(self.w, "[{}][{}]", link.text, link.label);
+        self.emit(format_args!("[{}][{}]", link.text, link.label));
     }
 
     fn visit_inline_image(&mut self, img: &InlineImageData<'a>) {
         if let Some(title) = img.title {
-            let _ = write!(
-                self.w,
+            self.emit(format_args!(
                 "![{}]({} \"{title}\")",
                 img.image_description, img.url
-            );
+            ));
         } else {
-            let _ = write!(self.w, "![{}]({})", img.image_description, img.url);
+            self.emit(format_args!("![{}]({})", img.image_description, img.url));
         }
     }
 
     fn visit_reference_style_image(&mut self, img: &ReferenceStyleImageData<'a>) {
-        let _ = write!(self.w, "![{}][{}]", img.image_description, img.label);
+        self.emit(format_args!("![{}][{}]", img.image_description, img.label));
     }
 
     fn visit_reference_definition(&mut self, refdef: &'a ReferenceDefinitionData<'a>) {
         if let Some(title) = refdef.title {
-            let _ = writeln!(self.w, "[{}]: {} \"{title}\"", refdef.label, refdef.url);
+            self.emit_line(format_args!(
+                "[{}]: {} \"{title}\"",
+                refdef.label, refdef.url
+            ));
         } else {
-            let _ = writeln!(self.w, "[{}]: {}", refdef.label, refdef.url);
+            self.emit_line(format_args!("[{}]: {}", refdef.label, refdef.url));
         }
     }
 
     fn visit_wikilink(&mut self, link: &WikiLinkData<'a>) {
         let immediately_after = link.immediately_after.unwrap_or("");
         if let Some(display) = link.display {
-            let _ = write!(self.w, "[[{} | {display}]]{immediately_after}", link.target);
+            self.emit(format_args!(
+                "[[{} | {display}]]{immediately_after}",
+                link.target
+            ));
         } else {
-            let _ = write!(self.w, "[[{}]]{immediately_after}", link.target);
+            self.emit(format_args!("[[{}]]{immediately_after}", link.target));
         }
     }
 
     fn visit_code_span(&mut self, code_span: &CodeSpanData<'a>) {
-        let _ = write!(self.w, "`{}`", code_span.content);
+        self.emit(format_args!("`{}`", code_span.content));
     }
 
     fn visit_fenced_code_block(&mut self, fenced_code_block: &FencedCodeBlockData<'a>) {
         let lang = fenced_code_block.language.unwrap_or("");
-        let _ = writeln!(self.w, "```{lang}");
+        self.emit_line(format_args!("```{lang}"));
         for line in &fenced_code_block.lines {
-            let _ = writeln!(self.w, "{}", line);
+            self.emit_line(format_args!("{line}"));
         }
-        let _ = writeln!(self.w, "```");
+        self.emit_line(format_args!("```"));
     }
 
     fn visit_hidden_html_div(&mut self, div: &HiddenHtmlDivData<'a>) {
-        let _ = writeln!(self.w, "<div class=\"hidden\">");
-        let _ = writeln!(self.w, "{}", div.content);
-        let _ = writeln!(self.w, "</div>");
+        self.emit_line(format_args!("<div class=\"hidden\">"));
+        self.emit_line(format_args!("{}", div.content));
+        self.emit_line(format_args!("</div>"));
     }
 
     fn visit_heading(&mut self, heading: &HeadingData<'a>) {
-        let hashes = "#".repeat(heading.level as usize);
+        let hashes = "#".repeat(usize::from(heading.level));
         let content = heading
             .content
-            .map(|c| format!(" {c}"))
-            .unwrap_or_else(|| "".into());
+            .map_or_else(String::new, |c| format!(" {c}"));
         if let Some(id) = heading.id {
-            let _ = writeln!(self.w, "{hashes}{content} {{#{id}}}");
+            self.emit_line(format_args!("{hashes}{content} {{#{id}}}"));
         } else {
-            let _ = writeln!(self.w, "{hashes}{content}");
+            self.emit_line(format_args!("{hashes}{content}"));
         }
     }
 
     fn visit_text(&mut self, text: &TextData<'a>) {
-        let _ = write!(self.w, "{}", text.content);
+        self.emit(format_args!("{}", text.content));
     }
 
     fn visit_custom_directive(&mut self, directive: &DirectiveData<'a>) {
-        let _ = write!(self.w, "{}", directive);
+        self.emit(format_args!("{directive}"));
     }
 
     fn visit_task_item(&mut self, task: &TaskItemData<'a>) {
         let check = if task.completed { 'x' } else { ' ' };
-        let _ = writeln!(self.w, "- [{check}] {}", task.content);
+        self.emit_line(format_args!("- [{check}] {}", task.content));
     }
 
     fn visit_table(&mut self, data: &TableData<'a>) {
@@ -135,34 +165,34 @@ impl<'a, W: fmt::Write + 'a> Visitor<'a> for PrettyPrinter<W> {
             *width_ref = max_width.max(3);
         }
 
-        let _ = write!(self.w, "|");
-        for (i, cell) in data.header.iter().enumerate() {
-            let _ = write!(self.w, " {:<width$} |", cell, width = max_widths[i]);
+        self.emit(format_args!("|"));
+        for (cell, width) in data.header.iter().zip(&max_widths) {
+            self.emit(format_args!(" {:<width$} |", cell, width = *width));
         }
-        let _ = writeln!(self.w);
+        self.emit_newline();
 
-        let _ = write!(self.w, "|");
+        self.emit(format_args!("|"));
         for width in &max_widths {
-            let _ = write!(self.w, " {:-<width$} |", "", width = *width);
+            self.emit(format_args!(" {:-<width$} |", "", width = *width));
         }
-        let _ = writeln!(self.w);
+        self.emit_newline();
 
         for row in &data.rows {
-            let _ = write!(self.w, "|");
+            self.emit(format_args!("|"));
             for (i, &width) in max_widths.iter().enumerate() {
                 let cell = row.get(i).unwrap_or(&"");
-                let _ = write!(self.w, " {:<width$} |", cell, width = width);
+                self.emit(format_args!(" {cell:<width$} |"));
             }
-            let _ = writeln!(self.w);
+            self.emit_newline();
         }
     }
 
     fn visit_horizontal_rule(&mut self) {
-        let _ = writeln!(self.w, "---");
+        self.emit_line(format_args!("---"));
     }
 }
 
-impl<'a> fmt::Display for Element<'a> {
+impl fmt::Display for Element<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut pp = PrettyPrinter::new(f);
         self.accept(&mut pp);
@@ -170,7 +200,7 @@ impl<'a> fmt::Display for Element<'a> {
     }
 }
 
-impl<'a> fmt::Display for Document<'a> {
+impl fmt::Display for Document<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut pp = PrettyPrinter::new(f);
         self.accept(&mut pp);

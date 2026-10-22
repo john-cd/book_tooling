@@ -26,13 +26,13 @@ pub enum DirectiveData<'a> {
     /// Insert a Badge,
     /// e.g. `[![some_crate][c~some_crate~docs~badge]][c~some_crate~docs]`.
     ///
-    /// {{!cat xyz}}
+    /// `{{!cat xyz}}
     /// {{!crate xyz}}
     /// {{!docs xyz}}
     /// {{!github xyz}}
     /// {{!lib.rs xyz}}
     /// {{!crates.io xyz}}
-    /// {{!web xyz}}
+    /// {{!web xyz}}`.
     Badge {
         /// Destination family for the badge link.
         kind: DestinationKind,
@@ -41,10 +41,10 @@ pub enum DirectiveData<'a> {
     },
 
     /// Insert a Crate block e.g., multiple badges for a given crate:
-    /// {{#crate crt}}
+    /// `{{#crate crt}}`.
     ///
-    /// With optional additional categories:
-    /// {{#crate: crt cat1 cat-2 cat-2-2 cat3::sub-cat-3 }}
+    /// With optional additional categories, for example
+    /// `{{#crate: crt cat1 cat-2 cat-2-2 cat3::sub-cat-3 }}`.
     CrateBlock {
         /// Primary crate displayed by the badge block.
         crate_name: &'a str,
@@ -61,8 +61,8 @@ pub enum DirectiveData<'a> {
         categories: Vec<&'a str>,
     },
 
-    /// Insert a fenced code block with an `include` directive pointing to a new code example (.rs) file:
-    /// {{#example some_example}} -> ```rust,editable\n{{#include ...}}```
+    /// Insert a fenced code block with an `include` directive pointing to a new code example (.rs) file,
+    /// for example `{{#example some_example}}`.
     ExampleBlock {
         /// Example name to resolve to an included file.
         name: &'a str,
@@ -99,25 +99,32 @@ impl Display for DirectiveData<'_> {
 /// Destination family used by link and badge directives.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum DestinationKind {
-    Category,   // Link to or badge for a `crates.io` category page.
-    Crate,      // Link to or badge for an internal crate page.
-    Docs,       // Link to or badge for a `docs.rs` crate page.
-    GithubRepo, // Link to or badge for a GitHub repo.
-    LibRs,      // Link to or badge for a `lib.rs` crate page.
-    CratesIo,   // Link to or badge for a `crates.io` crate page.
-    Web,        // Link to or badge for another website.
+    /// Link to or badge for a `crates.io` category page.
+    Category,
+    /// Link to or badge for an internal crate page.
+    Crate,
+    /// Link to or badge for a `docs.rs` crate page.
+    Docs,
+    /// Link to or badge for a GitHub repo.
+    GithubRepo,
+    /// Link to or badge for a `lib.rs` crate page.
+    LibRs,
+    /// Link to or badge for a `crates.io` crate page.
+    CratesIo,
+    /// Link to or badge for another website.
+    Web,
 }
 
 impl Display for DestinationKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            DestinationKind::Category => write!(f, "cat"),
-            DestinationKind::Crate => write!(f, "crate"),
-            DestinationKind::Docs => write!(f, "docs"),
-            DestinationKind::GithubRepo => write!(f, "github"),
-            DestinationKind::LibRs => write!(f, "lib.rs"),
-            DestinationKind::CratesIo => write!(f, "crates.io"),
-            DestinationKind::Web => write!(f, "web"),
+            Self::Category => write!(f, "cat"),
+            Self::Crate => write!(f, "crate"),
+            Self::Docs => write!(f, "docs"),
+            Self::GithubRepo => write!(f, "github"),
+            Self::LibRs => write!(f, "lib.rs"),
+            Self::CratesIo => write!(f, "crates.io"),
+            Self::Web => write!(f, "web"),
         }
     }
 }

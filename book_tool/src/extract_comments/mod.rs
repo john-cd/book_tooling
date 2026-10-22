@@ -2,10 +2,12 @@
 //!
 //! TODO Reviewed ??-??-2026
 
+use std::fmt::Write as _;
+use std::path::Path;
 use std::path::PathBuf;
 
 use anyhow::Result;
-use parse_lib::visit::Visitor;
+use parse_lib::visit::Visitor as _;
 
 use crate::common::Scope;
 use crate::common::replace_text_file_atomically;
@@ -15,7 +17,11 @@ use crate::common::warn_and_continue_on_parse_failure;
 /// Scans the provided directories and writes all discovered HTML comments to `output`.
 ///
 /// Output is grouped by source file and overwrites the destination file if it already exists.
-pub fn execute(directories: Vec<PathBuf>, output: PathBuf) -> Result<()> {
+///
+/// # Errors
+///
+/// Returns an error if a directory cannot be processed or the output file cannot be written.
+pub fn execute(directories: &[PathBuf], output: &Path) -> Result<()> {
     tracing::info!(
         directory_count = directories.len(),
         output = %output.display(),
@@ -28,7 +34,7 @@ pub fn execute(directories: Vec<PathBuf>, output: PathBuf) -> Result<()> {
     let mut files_with_comments = 0_usize;
 
     walk_parsed_markdown_files(
-        &directories,
+        directories,
         &scope,
         |path, doc| {
             let mut extractor = parse_lib::html_comment_extractor::HtmlCommentExtractor::new();
@@ -48,7 +54,12 @@ pub fn execute(directories: Vec<PathBuf>, output: PathBuf) -> Result<()> {
             }
 
             for comment in extractor.comments {
-                all_comments_output += &format!("File: {}\n<!--{}-->\n\n", path.display(), comment);
+                let _unused = write!(
+                    all_comments_output,
+                    "File: {}\n<!--{}-->\n\n",
+                    path.display(),
+                    comment
+                );
             }
 
             Ok(())
@@ -56,7 +67,7 @@ pub fn execute(directories: Vec<PathBuf>, output: PathBuf) -> Result<()> {
         warn_and_continue_on_parse_failure,
     )?;
 
-    replace_text_file_atomically(&output, &all_comments_output)?;
+    replace_text_file_atomically(output, &all_comments_output)?;
     tracing::info!(
         output = %output.display(),
         extracted_comments,

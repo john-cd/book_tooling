@@ -1,13 +1,17 @@
 // TODO Reviewed ??-??-2026
 use winnow::ModalResult;
-use winnow::Parser;
+use winnow::Parser as _;
 use winnow::combinator::delimited;
 use winnow::token::take_until;
 
-use crate::ast::*;
+use crate::ast::{CodeSpanData, Element, FencedCodeBlockData};
 
-/// Parses text enclosed in backticks (`).
-/// Simplified from <https://spec.commonmark.org/0.31.2/#code-spans>
+/// Parses text enclosed in single backticks.
+/// Simplified from <https://spec.commonmark.org/0.31.2/#code-spans>.
+///
+/// # Errors
+///
+/// Returns a backtrack error if the input does not begin with a code span.
 pub fn parse_code_span<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     delimited(
         '`',                  // Opening backtick.
@@ -18,8 +22,12 @@ pub fn parse_code_span<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     .parse_next(input)
 }
 
-/// Parses text enclosed in triple backticks (```).
-/// Simplified from <https://spec.commonmark.org/0.31.2/#fenced-code-blocks>
+/// Parses text enclosed in triple backticks.
+/// Simplified from <https://spec.commonmark.org/0.31.2/#fenced-code-blocks>.
+///
+/// # Errors
+///
+/// Returns a backtrack error if the input does not begin with a fenced code block.
 pub fn parse_fenced_code_block<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     let content = delimited(
         "```",                  // Opening triple backticks.
@@ -42,7 +50,7 @@ pub fn parse_fenced_code_block<'a>(input: &mut &'a str) -> ModalResult<Element<'
         lines.push(line.trim_end_matches('\r'));
     }
 
-    if lines.last().is_some_and(|l| l.is_empty()) {
+    if lines.last().is_some_and(|last| last.is_empty()) {
         lines.pop();
     }
 
@@ -94,22 +102,22 @@ mod tests {
 
     #[test]
     fn test_parse_code_span_no_closing_backtick() {
-        assert!(parse_code_span(&mut "`unclosed span").is_err());
+        parse_code_span(&mut "`unclosed span").expect_err("input should be rejected");
     }
 
     #[test]
     fn test_parse_code_span_no_opening_backtick() {
-        assert!(parse_code_span(&mut "no opening backtick`").is_err());
+        parse_code_span(&mut "no opening backtick`").expect_err("input should be rejected");
     }
 
     #[test]
     fn test_parse_code_span_only_backticks() {
-        assert!(parse_code_span(&mut "`").is_err());
+        parse_code_span(&mut "`").expect_err("input should be rejected");
     }
 
     #[test]
     fn test_parse_code_span_not_a_code_span() {
-        assert!(parse_code_span(&mut "just plain text").is_err());
+        parse_code_span(&mut "just plain text").expect_err("input should be rejected");
     }
 
     // --- Tests for parse_fenced_code_block ---
@@ -156,12 +164,12 @@ mod tests {
 
     #[test]
     fn test_parse_fenced_code_block_no_closing_delimiter() {
-        assert!(parse_fenced_code_block(&mut "```unclosed block").is_err());
+        parse_fenced_code_block(&mut "```unclosed block").expect_err("input should be rejected");
     }
 
     #[test]
     fn test_parse_fenced_code_block_no_opening_delimiter() {
-        assert!(parse_fenced_code_block(&mut "unopened block```").is_err());
+        parse_fenced_code_block(&mut "unopened block```").expect_err("input should be rejected");
     }
 
     #[test]
@@ -181,12 +189,12 @@ mod tests {
 
     #[test]
     fn test_parse_fenced_code_block_only_delimiters() {
-        assert!(parse_fenced_code_block(&mut "```").is_err());
+        parse_fenced_code_block(&mut "```").expect_err("input should be rejected");
     }
 
     #[test]
     fn test_parse_fenced_code_block_not_a_code_block() {
-        assert!(parse_fenced_code_block(&mut "plain text").is_err());
+        parse_fenced_code_block(&mut "plain text").expect_err("input should be rejected");
     }
 
     #[test]

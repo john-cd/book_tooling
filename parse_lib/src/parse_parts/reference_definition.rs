@@ -3,7 +3,7 @@
 //! TODO Reviewed ??-??-2026
 
 use winnow::ModalResult;
-use winnow::Parser;
+use winnow::Parser as _;
 use winnow::combinator::fail;
 use winnow::combinator::opt;
 use winnow::combinator::seq;
@@ -16,6 +16,10 @@ use crate::ast::Element;
 use crate::ast::ReferenceDefinitionData;
 
 /// Parses a complete link reference definition.
+///
+/// # Errors
+///
+/// Returns a backtrack error if the input does not begin with a link reference definition.
 pub fn parse_link_reference_definition<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     let (label, _, _, dest, ws2, title, _) = seq!(
         parse_link_label,
@@ -74,10 +78,8 @@ mod tests {
     #[test]
     fn test_parse_reference_definition_fails_missing_colon() {
         let mut input = "[my-label] https://example.com";
-        assert!(
-            parse_link_reference_definition
-                .parse_next(&mut input)
-                .is_err()
-        );
+        parse_link_reference_definition
+            .parse_next(&mut input)
+            .expect_err("input should be rejected");
     }
 }

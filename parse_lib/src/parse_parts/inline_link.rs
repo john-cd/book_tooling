@@ -3,7 +3,7 @@
 //! TODO Reviewed ??-??-2026
 
 use winnow::ModalResult;
-use winnow::Parser;
+use winnow::Parser as _;
 use winnow::combinator::alt;
 use winnow::combinator::delimited;
 use winnow::combinator::fail;
@@ -20,7 +20,7 @@ use crate::ast::InlineLinkData;
 
 /// Parses an optional link title enclosed in `""`, `''`, or `()`.
 /// Allows for backslash-escaped characters inside the title.
-pub fn parse_link_title<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+pub(crate) fn parse_link_title<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     alt((
         delimited(
             "\"",
@@ -63,6 +63,10 @@ pub fn parse_link_title<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 }
 
 /// Parses a complete inline link: `text`.
+///
+/// # Errors
+///
+/// Returns a backtrack error if the input does not begin with an inline link.
 pub fn parse_inline_link<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     let (text, _, _, dest, ws, title, _, _) = seq!(
         parse_link_text,

@@ -31,7 +31,8 @@ pub enum DestinationKind {
 
 impl DestinationKind {
     /// Returns the standard label for this destination kind.
-    pub fn label(&self) -> &'static str {
+    #[must_use]
+    pub fn label(self) -> &'static str {
         match self {
             Self::Category => "cat",
             Self::Crate => "crate",
@@ -44,11 +45,16 @@ impl DestinationKind {
     }
 
     /// Returns the prefix used in reference labels for this destination kind.
-    pub fn prefix(&self) -> char {
+    #[must_use]
+    pub fn prefix(self) -> char {
         match self {
-            Self::Category => 'c',
             Self::Crate => 'p',
-            _ => 'c',
+            Self::Category
+            | Self::Docs
+            | Self::GithubRepo
+            | Self::LibRs
+            | Self::CratesIo
+            | Self::Web => 'c',
         }
     }
 }
@@ -56,9 +62,10 @@ impl DestinationKind {
 /// Renders a Markdown badge for a given destination.
 ///
 /// Example: `render_badge(DestinationKind::CratesIo, "anyhow")`
-/// produces: `[![anyhow][p~anyhow~crates.io~badge]][p~anyhow~crates.io]{{hi:anyhow}}`
-pub fn render_badge(kind: &DestinationKind, name: &str) -> String {
-    if *kind == DestinationKind::Category {
+/// produces: `[![anyhow][p~anyhow~crates.io~badge]][p~anyhow~crates.io]{{hi:anyhow}}`.
+#[must_use]
+pub fn render_badge(kind: DestinationKind, name: &str) -> String {
+    if kind == DestinationKind::Category {
         return format!("[![{name}][cat~{name}~badge]][cat~{name}]{{{{hi:{name}}}}}");
     }
 
@@ -70,14 +77,14 @@ pub fn render_badge(kind: &DestinationKind, name: &str) -> String {
 /// Renders a Markdown link for a given destination.
 ///
 /// Example: `render_link(DestinationKind::Docs, "anyhow")`
-/// produces: `[anyhow][p~anyhow~docs]↗{{hi:anyhow}}`
-pub fn render_link(kind: &DestinationKind, name: &str) -> String {
-    match kind {
-        DestinationKind::Category => format!("[{name}][cat~{name}]↗{{{{hi:{name}}}}}"),
-        _ => {
-            let prefix = kind.prefix();
-            let label = kind.label();
-            format!("[{name}][{prefix}~{name}~{label}]↗{{{{hi:{name}}}}}")
-        }
+/// produces: `[anyhow][p~anyhow~docs]↗{{hi:anyhow}}`.
+#[must_use]
+pub fn render_link(kind: DestinationKind, name: &str) -> String {
+    if kind == DestinationKind::Category {
+        format!("[{name}][cat~{name}]↗{{{{hi:{name}}}}}")
+    } else {
+        let prefix = kind.prefix();
+        let label = kind.label();
+        format!("[{name}][{prefix}~{name}~{label}]↗{{{{hi:{name}}}}}")
     }
 }

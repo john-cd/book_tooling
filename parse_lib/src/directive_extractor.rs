@@ -1,5 +1,5 @@
 // TODO Reviewed ??-??-2026
-use crate::ast::*;
+use crate::ast::DirectiveData;
 use crate::visit::Visitor;
 
 /// A visitor that identifies and counts custom directives within a Markdown document.
@@ -15,6 +15,7 @@ pub struct DirectiveExtractor {
 
 impl DirectiveExtractor {
     /// Creates an empty directive extractor.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }

@@ -21,3 +21,6 @@ fmt2io.workspace = true
 multimap.workspace = true
 url.workspace = true
 winnow.workspace = true
+
+[lints]
+workspace = true

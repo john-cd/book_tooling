@@ -12,12 +12,15 @@ use winnow::error::ParseError;
 /// Custom parsing error.
 #[derive(Debug)]
 pub struct ParsingError {
+    /// Human-readable description of the parse failure.
     message: String,
     // Byte spans are tracked, rather than line and column.
     // This makes it easier to operate on programmatically
     // and doesn't limit us to one definition for column count
     // which can depend on the output medium and application.
+    /// Byte range of the input where parsing failed.
     span: std::ops::Range<usize>,
+    /// Copy of the input that was being parsed.
     input: String,
 }
 
@@ -44,7 +47,8 @@ impl ParsingError {
     /// Convert from `winnow::error::ParseError`.
     ///
     /// Avoiding `From`, so `winnow` types don't become part of our public API.
-    pub fn from_parse(error: ParseError<&str, ContextError>) -> Self {
+    #[must_use]
+    pub fn from_parse(error: &ParseError<&str, ContextError>) -> Self {
         // The default renderer for `ContextError` is still used but that can be
         // customized as well to better fit your needs.
         let message = error.inner().to_string();

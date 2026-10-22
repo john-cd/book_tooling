@@ -1,8 +1,15 @@
 // TODO Reviewed ??-??-2026
+//! End-to-end tests of the `book_tool` subcommands.
+
+#![expect(
+    clippy::expect_used,
+    reason = "Helpers in this test file fail loudly when test setup breaks."
+)]
+
 use std::collections::VecDeque;
 use std::fs;
-use std::io::Read;
-use std::io::Write;
+use std::io::Read as _;
+use std::io::Write as _;
 use std::net::SocketAddr;
 use std::net::TcpListener;
 use std::net::TcpStream;
@@ -50,7 +57,7 @@ impl TestHttpServer {
                             .expect("lock response queue")
                             .pop_front()
                             .unwrap_or_else(ok_response);
-                        let _ = respond(&mut stream, &response);
+                        drop(respond(&mut stream, &response));
                     }
                     Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                         thread::sleep(Duration::from_millis(10));
@@ -83,7 +90,7 @@ fn respond(stream: &mut TcpStream, response: &str) -> std::io::Result<()> {
 }
 
 fn ok_response() -> String {
-    "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_string()
+    "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_owned()
 }
 
 fn status_response(status_line: &str, headers: &[&str]) -> String {
@@ -113,9 +120,9 @@ fn service_unavailable_response_with_headers(headers: &[&str]) -> String {
 impl Drop for TestHttpServer {
     fn drop(&mut self) {
         self.shutdown.store(true, Ordering::Relaxed);
-        let _ = TcpStream::connect(self.address);
+        drop(TcpStream::connect(self.address));
         if let Some(handle) = self.handle.take() {
-            let _ = handle.join();
+            drop(handle.join());
         }
     }
 }
@@ -132,7 +139,7 @@ fn inline_links_execute_converts_links_to_reference_definitions() {
     let markdown = "See [Rust](https://www.rust-lang.org/).\n";
     let file = write_markdown_file(temp.path(), "doc.md", markdown);
 
-    book_tool::inline_links::execute(vec![temp.path().to_path_buf()]).expect("run inline-links");
+    book_tool::inline_links::execute(&[temp.path().to_path_buf()]).expect("run inline-links");
 
     let updated = fs::read_to_string(file).expect("read transformed markdown");
     assert!(
@@ -301,7 +308,7 @@ fn inline_links_reports_failed_input_and_leaves_it_unchanged() {
     let invalid_file = temp.path().join("invalid.md");
     fs::write(&invalid_file, [0xff, 0xfe, 0x00]).expect("write invalid UTF-8 Markdown");
 
-    let error = book_tool::inline_links::execute(vec![temp.path().to_path_buf()])
+    let error = book_tool::inline_links::execute(&[temp.path().to_path_buf()])
         .expect_err("incomplete inline-link processing must fail");
     assert!(error.to_string().contains("incomplete"));
 
@@ -596,11 +603,11 @@ fn refdefs_audit_preserves_definitions_used_in_additional_sources() {
         .as_array()
         .expect("outside-scope use array");
     assert_eq!(outside_uses.len(), 1);
-    assert_eq!(outside_uses[0]["line"], 1);
+    assert_eq!(outside_uses[0]["line"], 1_u64);
     assert!(
         outside_uses[0]["path"]
             .as_str()
-            .unwrap()
+            .expect("input should parse")
             .ends_with("draft.md")
     );
 

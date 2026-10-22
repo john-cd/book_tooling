@@ -1,7 +1,7 @@
 // TODO Reviewed ??-??-2026
 use std::collections::HashSet;
 
-use crate::ast::*;
+use crate::ast::{AutolinkData, InlineImageData, InlineLinkData, ReferenceDefinitionData};
 use crate::visit::Visitor;
 
 /// A visitor that extracts all unique external URLs from a Markdown document.
@@ -13,11 +13,12 @@ pub struct LinkExtractor<'a> {
 
 impl<'a> LinkExtractor<'a> {
     /// Creates an empty link extractor.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Helper to store only external HTTP/HTTPS links
+    /// Helper to store only external HTTP/HTTPS links.
     fn add_link(&mut self, url: &'a str) {
         if url.starts_with("http://") || url.starts_with("https://") {
             self.external_links.insert(url);

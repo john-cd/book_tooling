@@ -1,18 +1,23 @@
 // TODO Reviewed ??-??-2026
+//! Command-line entry point for `book_tool`, a set of maintenance tools for mdBook sources.
+
 use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::Parser;
 use clap::Subcommand;
 
+/// Command-line arguments of `book_tool`.
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 #[command(propagate_version = true)]
 struct Cli {
+    /// The subcommand to run.
     #[command(subcommand)]
     command: Commands,
 }
 
+/// The `book_tool` subcommands.
 #[derive(Subcommand)]
 enum Commands {
     /// Process custom directives (e.g., {{cat rust}}) in Markdown files.
@@ -104,7 +109,7 @@ async fn main() -> Result<()> {
             protected_definition_files,
         } => {
             book_tool::refdefs::audit(
-                directories.clone(),
+                directories,
                 report,
                 *delete,
                 additional_use_directories.clone(),
@@ -112,16 +117,16 @@ async fn main() -> Result<()> {
             )?;
         }
         Commands::InlineLinks { directories } => {
-            book_tool::inline_links::execute(directories.clone())?;
+            book_tool::inline_links::execute(directories)?;
         }
         Commands::Search { query, directories } => {
-            book_tool::search::execute(query.clone(), directories.clone())?;
+            book_tool::search::execute(query, directories)?;
         }
         Commands::ExtractComments {
             directories,
             output,
         } => {
-            book_tool::extract_comments::execute(directories.clone(), output.clone())?;
+            book_tool::extract_comments::execute(directories, output)?;
         }
     }
 

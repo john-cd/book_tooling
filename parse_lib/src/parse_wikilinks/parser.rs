@@ -1,18 +1,18 @@
 // TODO Reviewed ??-??-2026
 use winnow::ModalResult;
-use winnow::Parser;
+use winnow::Parser as _;
 use winnow::Result;
 use winnow::combinator::alt;
 use winnow::combinator::delimited;
 use winnow::combinator::opt;
 use winnow::combinator::seq;
 use winnow::error::ErrMode;
-use winnow::error::StrContext::*;
-use winnow::error::StrContextValue::*;
+use winnow::error::StrContext::{Expected, Label};
+use winnow::error::StrContextValue::Description;
 use winnow::token::take_until;
 use winnow::token::take_while;
 
-use crate::ast::*;
+use crate::ast::{Element, WikiLinkData};
 
 /// Parses the inner content of a wikilink, which can be either a simple target
 /// or a target and a display text separated by a pipe.
@@ -47,6 +47,7 @@ fn parse_wikilink_inner<'s>(input: &mut &'s str) -> Result<(&'s str, Option<&'s 
     alt((piped_inner, simple_inner)).parse_next(input)
 }
 
+/// A wikilink as raw string slices: `((target, display), text_immediately_after)`.
 type RawWikilink<'s> = ((&'s str, Option<&'s str>), Option<&'s str>);
 
 /// Parses a wikilink in the format `[[target]]` or `[[target | display]]`.
@@ -59,19 +60,21 @@ fn parse_wikilink_to_strings<'s>(input: &mut &'s str) -> Result<RawWikilink<'s>>
         .context(Label("text immediately after wikilink"))
         .context(Expected(Description("alphanumeric characters")));
 
-    let (inner, immediately_after) = (
+    (
         delimited("[[", parse_wikilink_inner, "]]"),
         immediately_after,
     )
         .verify(|(inner, _)| !inner.0.is_empty() || inner.1.is_some())
-        .parse_next(input)?;
-
-    Ok((inner, immediately_after))
+        .parse_next(input)
 }
 
 /// Parses a wikilink in the format `[[target]]` or `[[target | display]]`.
 /// It also captures any alphanumeric characters immediately after the closing brackets,
 /// which become part of the displayed link text.
+///
+/// # Errors
+///
+/// Returns a backtrack error if the input does not begin with a wikilink.
 pub fn parse_wikilink<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     parse_wikilink_to_strings
         .map(|((target, display), immediately_after)| {
@@ -82,7 +85,7 @@ pub fn parse_wikilink<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
             })
         })
         .context(Label("wiki link"))
-        .context(Expected(Description(r#"[[page | display_text]]"#)))
+        .context(Expected(Description("[[page | display_text]]")))
         .parse_next(input)
         .map_err(ErrMode::Backtrack)
 }
@@ -273,7 +276,7 @@ mod tests {
     fn fails_on_invalid_format() {
         let input = "[[Incomplete";
         let result = parse_wikilink.parse_peek(input);
-        assert!(result.is_err());
+        result.expect_err("input should be rejected");
     }
 
     // [[]]
@@ -281,7 +284,7 @@ mod tests {
     fn test_fails_on_empty_brackets() {
         let input = "[[]]";
         let result = parse_wikilink.parse_peek(input);
-        assert!(result.is_err());
+        result.expect_err("input should be rejected");
     }
 
     // [[|title7]]
@@ -301,8 +304,7 @@ mod tests {
         for input in inputs {
             assert!(
                 parse_wikilink.parse_peek(input).is_err(),
-                "Expected failure for empty target: {}",
-                input
+                "Expected failure for empty target: {input}"
             );
         }
     }

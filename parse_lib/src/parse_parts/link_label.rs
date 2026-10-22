@@ -10,19 +10,19 @@
 //! TODO Reviewed ??-??-2026
 
 use winnow::ModalResult;
-use winnow::Parser;
+use winnow::Parser as _;
 use winnow::combinator::alt;
 use winnow::combinator::delimited;
 use winnow::combinator::repeat;
-use winnow::error::StrContext::*;
-use winnow::error::StrContextValue::*;
+use winnow::error::StrContext::{Expected, Label};
+use winnow::error::StrContextValue::Description;
 use winnow::token::none_of;
 use winnow::token::take_while;
 
 /// Parses link label.
 ///
 /// Example: "[my label]" -> "my label".
-pub fn parse_link_label<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+pub(crate) fn parse_link_label<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     // According to spec, link labels can contain escaped brackets.
     // However, they cannot contain unescaped brackets.
     let label_content = repeat::<_, _, (), _, _>(
@@ -49,7 +49,6 @@ pub fn parse_link_label<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 
 #[cfg(test)]
 mod tests {
-    use winnow::Parser;
 
     use super::*;
 
@@ -87,33 +86,41 @@ mod tests {
     #[test]
     fn test_parse_link_label_fails_on_empty() {
         let mut input = "[]";
-        assert!(parse_link_label.parse_next(&mut input).is_err());
+        parse_link_label
+            .parse_next(&mut input)
+            .expect_err("input should be rejected");
     }
 
     #[test]
     fn test_parse_link_label_fails_on_whitespace_only() {
         let mut input = "[   ]";
-        assert!(parse_link_label.parse_next(&mut input).is_err());
+        parse_link_label
+            .parse_next(&mut input)
+            .expect_err("input should be rejected");
     }
 
     #[test]
     fn test_parse_link_label_fails_on_unescaped_bracket() {
         let mut input = "[my [unescaped] label]";
-        assert!(parse_link_label.parse_next(&mut input).is_err());
+        parse_link_label
+            .parse_next(&mut input)
+            .expect_err("input should be rejected");
     }
 
     #[test]
     fn test_parse_link_label_fails_on_too_long() {
         let long_string = "a".repeat(1000);
-        let input_string = format!("[{}]", long_string);
+        let input_string = format!("[{long_string}]");
         let mut input_ref = input_string.as_str();
-        assert!(parse_link_label.parse_next(&mut input_ref).is_err());
+        parse_link_label
+            .parse_next(&mut input_ref)
+            .expect_err("input should be rejected");
     }
 
     #[test]
     fn test_parse_link_label_exact_max_length() {
         let max_string = "a".repeat(999);
-        let input_string = format!("[{}]", max_string);
+        let input_string = format!("[{max_string}]");
         let mut input_ref = input_string.as_str();
         assert_eq!(
             parse_link_label.parse_next(&mut input_ref),
