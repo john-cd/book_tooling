@@ -230,6 +230,38 @@ async fn link_check_execute_retries_invalid_retry_after_responses() {
         .expect("run link-check with invalid retry-after");
 }
 
+/// A server that rejects `HEAD` with 405 is retried with `GET` and counts as healthy.
+#[tokio::test]
+async fn link_check_execute_falls_back_to_get_when_head_is_not_allowed() {
+    let server = TestHttpServer::spawn_with_responses(vec![
+        status_response("405 Method Not Allowed", &[]),
+        ok_response(),
+    ]);
+    let temp = tempdir().expect("create temp dir");
+    let markdown = format!("[head-hostile]({})\n", server.url("/no-head"));
+    write_markdown_file(temp.path(), "doc.md", &markdown);
+
+    book_tool::link_check::execute(vec![temp.path().to_path_buf()], false, false)
+        .await
+        .expect("GET fallback should succeed");
+}
+
+/// Redirects are followed to their final destination.
+#[tokio::test]
+async fn link_check_execute_follows_redirects() {
+    let server = TestHttpServer::spawn_with_responses(vec![
+        status_response("302 Found", &["Location: /final"]),
+        ok_response(),
+    ]);
+    let temp = tempdir().expect("create temp dir");
+    let markdown = format!("[moved]({})\n", server.url("/old"));
+    write_markdown_file(temp.path(), "doc.md", &markdown);
+
+    book_tool::link_check::execute(vec![temp.path().to_path_buf()], false, false)
+        .await
+        .expect("redirected link should verify");
+}
+
 #[tokio::test]
 async fn link_check_execute_fails_after_max_retry_exhaustion() {
     let server = TestHttpServer::spawn_with_responses(vec![retry_after_response(0); 8]);
