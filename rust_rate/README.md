@@ -15,7 +15,7 @@
 - `crawler`: GitHub API client and response models.
 - `patterns`: simple crate-specific source analysis.
 - `stats`: usage and category aggregation from Cargo manifests.
-- `rust_rate`: crates.io summary workflow.
+- `crates_io`: crates.io summary workflow (`fetch_summary`, `validate_crate_name`, `execute`).
 - `templates`: Markdown badge and link rendering helpers.
 - `utils`: shared test helpers.
 
@@ -24,7 +24,7 @@
 - `GithubCrawler::new(token)`, `search_cargo_tomls(query)`, and `download_content(url)`.
 - `PatternAnalyzer::new()` and `analyze_source(content, crate_name)`.
 - `CrateStats::new()`, `process_cargo_toml(content)`, and `print_summary()`.
-- `rust_rate::execute(crate_name)` for a simple crates.io summary workflow.
+- `crates_io::execute(crate_name)` for a simple crates.io summary workflow.
 - `templates::{DestinationKind, render_badge, render_link}` and `utils::{TestCase, test_with}`.
 
 ## Usage
@@ -32,7 +32,8 @@
 Set your `GITHUB_TOKEN` environment variable for higher rate limits.
 
 ```bash
-cargo run -p rust_rate
+cargo run -p rust_rate -- stats anyhow --limit 5
+cargo run -p rust_rate -- crates-io anyhow
 ```
 
 ## Documentation

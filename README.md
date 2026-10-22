@@ -49,7 +49,7 @@ This workspace provides a suite of tools to automate the management and enrichme
 - `crawler`: GitHub API client and response types.
 - `patterns`: source-pattern analysis helpers.
 - `stats`: Cargo manifest aggregation helpers.
-- `rust_rate`: crates.io summary workflow.
+- `crates_io`: crates.io summary workflow.
 - `templates`: Markdown badge/link rendering helpers.
 - `utils`: shared test helpers.
 
@@ -73,7 +73,7 @@ This workspace provides a suite of tools to automate the management and enrichme
 
 - Crawling surface: `GithubCrawler`, `GithubSearchResponse`, `GithubItem`, and `GithubRepo`.
 - Analysis surface: `PatternAnalyzer` and `CrateStats`.
-- Workflow surface: `rust_rate::execute(crate_name)`.
+- Workflow surface: `rust_rate::crates_io::execute(crate_name)`.
 - Formatting/test helpers: `templates::{DestinationKind, render_badge, render_link}` and `utils::{TestCase, test_with}`.
 
 ## `book_tool` Usage
