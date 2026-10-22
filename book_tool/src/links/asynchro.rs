@@ -3,6 +3,7 @@
 //! TODO Reviewed ??-??-2026
 
 use std::time::Duration;
+use std::time::SystemTime;
 
 use anyhow::Context as _;
 use reqwest::Client;
@@ -38,16 +39,30 @@ impl UrlCheck {
 /// Longest pause honoured between retries, whatever the server asks for.
 const MAX_RETRY_DELAY: Duration = Duration::from_secs(30);
 
+/// How long a single request may take before it counts as failed.
+const DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// Parses a `Retry-After` value, either delta-seconds or an HTTP-date, relative to `now`.
+///
+/// A date in the past means "retry now" and yields a zero delay.
+fn parse_retry_after(value: &str, now: SystemTime) -> Option<Duration> {
+    let value = value.trim();
+    if let Ok(seconds) = value.parse::<u64>() {
+        return Some(Duration::from_secs(seconds));
+    }
+    let date = httpdate::parse_http_date(value).ok()?;
+    Some(date.duration_since(now).unwrap_or_default())
+}
+
 /// Chooses how long to wait before retrying a throttled request.
 ///
-/// A numeric `Retry-After` header wins; a missing or unusable one (including the HTTP-date form)
-/// falls back to exponential backoff (1 s, 2 s, 4 s, ...). The result never exceeds [`MAX_RETRY_DELAY`].
-fn retry_delay(headers: &HeaderMap, attempt: usize) -> Duration {
+/// A usable `Retry-After` header (seconds or HTTP-date) wins; a missing or malformed one falls back
+/// to exponential backoff (1 s, 2 s, 4 s, ...). The result never exceeds [`MAX_RETRY_DELAY`].
+fn retry_delay(headers: &HeaderMap, attempt: usize, now: SystemTime) -> Duration {
     let requested = headers
         .get(reqwest::header::RETRY_AFTER)
         .and_then(|value| value.to_str().ok())
-        .and_then(|value| value.trim().parse::<u64>().ok())
-        .map(Duration::from_secs);
+        .and_then(|value| parse_retry_after(value, now));
     let backoff = Duration::from_secs(1_u64 << attempt.min(5));
     requested.unwrap_or(backoff).min(MAX_RETRY_DELAY)
 }
@@ -66,8 +81,17 @@ impl AsyncLinkChecker {
     ///
     /// Returns an error if the HTTP client cannot be built.
     pub fn new() -> anyhow::Result<Self> {
+        Self::with_timeout(DEFAULT_TIMEOUT)
+    }
+
+    /// Creates a checker whose requests fail after `timeout`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP client cannot be built.
+    pub fn with_timeout(timeout: Duration) -> anyhow::Result<Self> {
         let client = Client::builder()
-            .timeout(Duration::from_secs(10))
+            .timeout(timeout)
             .user_agent("book-tooling-link-checker")
             .build()
             .context("Failed to build HTTP client for link checking")?;
@@ -148,7 +172,7 @@ impl AsyncLinkChecker {
                             | reqwest::StatusCode::SERVICE_UNAVAILABLE
                     ) && retries < MAX_RETRIES
                     {
-                        let delay = retry_delay(resp.headers(), retries);
+                        let delay = retry_delay(resp.headers(), retries, SystemTime::now());
 
                         warn!(
                             "Retrying {} after {} response from {} in {}s",
@@ -186,6 +210,9 @@ mod tests {
 
     use super::*;
 
+    /// A fixed clock reading for tests that do not use HTTP-dates.
+    const EPOCH_2026: SystemTime = SystemTime::UNIX_EPOCH;
+
     /// Builds headers carrying a single `Retry-After` value.
     fn headers_with_retry_after(value: &str) -> HeaderMap {
         let mut headers = HeaderMap::new();
@@ -200,7 +227,7 @@ mod tests {
     #[test]
     fn numeric_retry_after_is_honoured() {
         assert_eq!(
-            retry_delay(&headers_with_retry_after("7"), 0),
+            retry_delay(&headers_with_retry_after("7"), 0, EPOCH_2026),
             Duration::from_secs(7)
         );
     }
@@ -209,7 +236,7 @@ mod tests {
     #[test]
     fn oversized_retry_after_is_capped() {
         assert_eq!(
-            retry_delay(&headers_with_retry_after("86400"), 0),
+            retry_delay(&headers_with_retry_after("86400"), 0, EPOCH_2026),
             MAX_RETRY_DELAY
         );
     }
@@ -217,16 +244,77 @@ mod tests {
     /// Without a usable `Retry-After`, the delay doubles per attempt up to the cap.
     #[test]
     fn missing_or_unusable_retry_after_backs_off_exponentially() {
-        assert_eq!(retry_delay(&HeaderMap::new(), 0), Duration::from_secs(1));
-        assert_eq!(retry_delay(&HeaderMap::new(), 2), Duration::from_secs(4));
-        assert_eq!(retry_delay(&HeaderMap::new(), 40), Duration::from_secs(30));
+        assert_eq!(
+            retry_delay(&HeaderMap::new(), 0, EPOCH_2026),
+            Duration::from_secs(1)
+        );
+        assert_eq!(
+            retry_delay(&HeaderMap::new(), 2, EPOCH_2026),
+            Duration::from_secs(4)
+        );
+        assert_eq!(
+            retry_delay(&HeaderMap::new(), 40, EPOCH_2026),
+            Duration::from_secs(30)
+        );
+        assert_eq!(
+            retry_delay(&headers_with_retry_after("soon"), 1, EPOCH_2026),
+            Duration::from_secs(2)
+        );
+    }
+
+    /// An HTTP-date `Retry-After` is measured from the supplied clock.
+    #[test]
+    fn http_date_retry_after_is_relative_to_now() {
+        let now = httpdate::parse_http_date("Wed, 21 Oct 2026 07:27:50 GMT").expect("valid date");
         assert_eq!(
             retry_delay(
                 &headers_with_retry_after("Wed, 21 Oct 2026 07:28:00 GMT"),
-                1
+                0,
+                now
             ),
-            Duration::from_secs(2)
+            Duration::from_secs(10)
         );
+    }
+
+    /// An HTTP-date in the past means retry immediately; a distant one is capped.
+    #[test]
+    fn past_and_distant_http_dates_are_clamped() {
+        let now = httpdate::parse_http_date("Wed, 21 Oct 2026 07:28:00 GMT").expect("valid date");
+        assert_eq!(
+            retry_delay(
+                &headers_with_retry_after("Wed, 21 Oct 2026 07:00:00 GMT"),
+                3,
+                now
+            ),
+            Duration::ZERO
+        );
+        assert_eq!(
+            retry_delay(
+                &headers_with_retry_after("Thu, 22 Oct 2026 07:28:00 GMT"),
+                0,
+                now
+            ),
+            MAX_RETRY_DELAY
+        );
+    }
+
+    /// A server that accepts the connection but never answers makes the check fail on timeout.
+    #[tokio::test]
+    async fn unresponsive_server_fails_with_a_transport_error() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind");
+        let address = listener.local_addr().expect("local address");
+        let _held = std::thread::spawn(move || {
+            let _connections = listener.incoming().take(2).collect::<Vec<_>>();
+            std::thread::sleep(Duration::from_secs(2));
+        });
+        let checker = AsyncLinkChecker::with_timeout(Duration::from_millis(200)).expect("client");
+        let url = Url::parse(&format!("http://{address}/")).expect("url");
+
+        let result = checker.check_url(url).await;
+
+        assert!(!result.success);
+        assert_eq!(result.status, None);
+        assert!(result.error.is_some(), "expected a transport error");
     }
 
     /// `describe` reports the transport error when present, otherwise the HTTP status.
