@@ -1,2 +1,5 @@
 <!-- TODO Reviewed ??-??-2026 -->
-# TODO
+
+# Tasks
+
+Track tasks, priorities, and progress in [GitHub Issues](https://github.com/john-cd/book_tooling/issues).
