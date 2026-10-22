@@ -151,3 +151,5 @@ rust-project.json
 *.msm
 *.msp
 *.txz
+# Local snapshot of registered worktrees and build-cache usage.
+WORKTREES.md
