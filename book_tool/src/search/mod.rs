@@ -2,6 +2,7 @@
 //!
 //! TODO Reviewed ??-??-2026
 
+use std::ops::Range;
 use std::path::PathBuf;
 
 use anyhow::Result;
@@ -11,6 +12,52 @@ use parse_lib::visit::Visitor as _;
 use crate::common::Scope;
 use crate::common::walk_parsed_markdown_files;
 use crate::common::warn_and_continue_on_parse_failure;
+
+/// Number of bytes of context shown on each side of a match.
+const SNIPPET_CONTEXT_BYTES: usize = 30;
+
+/// Returns the byte range of the first case-insensitive occurrence of `query` in `text`.
+///
+/// Characters are compared after Unicode lowercasing, but the range indexes `text` itself, so it
+/// stays valid when lowercasing changes a character's UTF-8 length (for example `İ`).
+fn find_case_insensitive(text: &str, query: &str) -> Option<Range<usize>> {
+    let folded_query: Vec<char> = query.chars().flat_map(char::to_lowercase).collect();
+    if folded_query.is_empty() {
+        return None;
+    }
+
+    text.char_indices().find_map(|(start, _)| {
+        let mut matched = 0_usize;
+        let mut end = start;
+        for character in text.get(start..)?.chars() {
+            for lowered in character.to_lowercase() {
+                if folded_query.get(matched) != Some(&lowered) {
+                    return None;
+                }
+                matched += 1;
+            }
+            end += character.len_utf8();
+            if matched == folded_query.len() {
+                return Some(start..end);
+            }
+        }
+        None
+    })
+}
+
+/// Returns a one-line snippet of `text` around the first case-insensitive match of `query`.
+fn find_snippet(text: &str, query: &str) -> Option<String> {
+    let matched = find_case_insensitive(text, query)?;
+    let mut start = matched.start.saturating_sub(SNIPPET_CONTEXT_BYTES);
+    while !text.is_char_boundary(start) {
+        start -= 1;
+    }
+    let mut end = (matched.end + SNIPPET_CONTEXT_BYTES).min(text.len());
+    while !text.is_char_boundary(end) {
+        end += 1;
+    }
+    Some(text.get(start..end)?.replace('\n', " "))
+}
 
 /// Searches Markdown files using plain-text extraction and prints contextual snippets.
 ///
@@ -28,7 +75,6 @@ pub fn execute(query: &str, directories: &[PathBuf]) -> Result<()> {
     );
 
     let scope = Scope::default();
-    let query_lower = query.to_lowercase();
     let mut matched_files = 0_usize;
 
     walk_parsed_markdown_files(
@@ -38,27 +84,13 @@ pub fn execute(query: &str, directories: &[PathBuf]) -> Result<()> {
             let mut extractor = PlainTextExtractor::new();
             extractor.visit_document(doc);
 
-            let plain_text = extractor.text.to_lowercase();
-            if let Some(index) = plain_text.find(&query_lower) {
+            if let Some(snippet) = find_snippet(&extractor.text, query) {
                 matched_files += 1;
                 tracing::info!(
                     path = %path.display(),
                     query = %query,
                     "Search query matched file"
                 );
-
-                // Extract a small snippet surrounding the match for context
-                let text = &extractor.text;
-                let mut start = index.saturating_sub(30);
-                while !text.is_char_boundary(start) {
-                    start -= 1;
-                }
-                let mut end = (index + query.len() + 30).min(text.len());
-                while !text.is_char_boundary(end) {
-                    end += 1;
-                }
-                let snippet = text.get(start..end).unwrap_or_default().replace('\n', " ");
-
                 println!("📄 {}: ...{}...", path.display(), snippet.trim());
             }
 
@@ -74,4 +106,38 @@ pub fn execute(query: &str, directories: &[PathBuf]) -> Result<()> {
         tracing::info!(query = %query, matched_files, "Completed plain-text search workflow");
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn matching_is_case_insensitive_and_reports_original_offsets() {
+        assert_eq!(find_case_insensitive("Hello World", "WORLD"), Some(6..11));
+        assert_eq!(find_case_insensitive("Hello World", "xyz"), None);
+        assert_eq!(find_case_insensitive("Hello", ""), None);
+    }
+
+    #[test]
+    fn offsets_stay_valid_when_lowercasing_changes_byte_length() {
+        // `İ` (2 bytes) lowercases to `i̇` (3 bytes), which shifts every later offset in a lowercased copy.
+        let text = "\u{130}\u{130}\u{130} needle here";
+        let range = find_case_insensitive(text, "NEEDLE").expect("needle should match");
+        assert_eq!(text.get(range), Some("needle"));
+    }
+
+    #[test]
+    fn snippets_are_cut_on_character_boundaries() {
+        let text = format!("{}needle{}", "\u{e9}".repeat(40), "\u{fc}".repeat(40));
+        let snippet = find_snippet(&text, "needle").expect("needle should match");
+        assert!(snippet.contains("needle"));
+        assert!(snippet.starts_with('\u{e9}') && snippet.ends_with('\u{fc}'));
+    }
+
+    #[test]
+    fn snippets_replace_newlines_with_spaces() {
+        let snippet = find_snippet("one\ntwo needle\nthree", "needle").expect("match");
+        assert_eq!(snippet, "one two needle three");
+    }
 }

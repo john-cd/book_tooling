@@ -34,7 +34,6 @@ fmt2io = "1.0.0"
 futures = "0.3.34"
 futures-util = "0.3.34"
 memmap2 = "0.9.12"
-moka = { version = "0.12.16", features = ["future"] }
 multimap = "0.10.1"
 parse_lib = { path = "./parse_lib" }
 rayon = "1.12.0"

@@ -198,7 +198,8 @@ pub async fn execute(
             tracing::info!("OK: {}", url);
         } else {
             broken_links += 1;
-            tracing::error!("BROKEN: {} (Error: {:?})", url, result.error);
+            // Printed directly so the evidence survives any tracing filter.
+            eprintln!("BROKEN: {url} ({})", result.describe());
         }
     }
 

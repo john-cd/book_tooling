@@ -14,7 +14,6 @@
 use winnow::ModalResult;
 use winnow::Parser as _;
 use winnow::combinator::alt;
-use winnow::combinator::cut_err;
 use winnow::combinator::delimited;
 use winnow::combinator::repeat;
 use winnow::error::ContextError;
@@ -66,7 +65,7 @@ fn parse_balanced_parentheses<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     delimited(
         "(",
         parse_balanced_parentheses_content,
-        cut_err(")"), // Use cut_err to ensure ')' is present if '(' was matched.
+        ")", // An unmatched `(` backtracks so the text stays literal.
     )
     .take()
     .context(Label("balanced pair of unescaped parentheses"))
@@ -79,7 +78,7 @@ pub(crate) fn parse_non_empty_sequence<'s>(input: &mut &'s str) -> ModalResult<&
     winnow::combinator::peek(any.verify(|c| *c != '<' && *c != ' ' && *c != ')'))
         .parse_next(input)?;
 
-    repeat::<_, _, (), _, _>(
+    let destination = repeat::<_, _, (), _, _>(
         1..,
         alt((
             parse_balanced_parentheses.void(),
@@ -87,7 +86,13 @@ pub(crate) fn parse_non_empty_sequence<'s>(input: &mut &'s str) -> ModalResult<&
         )),
     )
     .take()
-    .parse_next(input)
+    .parse_next(input)?;
+
+    // Parsing stopped at an unmatched `(`: this is not a valid destination, so let the caller keep the text literal.
+    if input.starts_with('(') {
+        return Err(ErrMode::Backtrack(ContextError::new()));
+    }
+    Ok(destination)
 }
 
 #[cfg(test)]

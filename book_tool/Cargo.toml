@@ -15,7 +15,6 @@ directives = []
 cli = [
     "directives",
     "dep:clap",
-    "dep:moka",
     "dep:rayon",
     "dep:reqwest",
     "dep:serde_json",
@@ -39,7 +38,6 @@ tokio = { workspace = true, features = ["macros", "rt-multi-thread"], optional =
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"], optional = true }
 url = { workspace = true, optional = true }
-moka = { workspace = true, optional = true }
 rayon = { workspace = true, optional = true }
 walkdir = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

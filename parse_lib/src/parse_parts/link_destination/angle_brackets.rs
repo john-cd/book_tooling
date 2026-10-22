@@ -8,7 +8,6 @@
 
 use winnow::Result;
 use winnow::combinator::alt;
-use winnow::combinator::cut_err;
 use winnow::combinator::delimited;
 use winnow::combinator::fail;
 use winnow::combinator::repeat;
@@ -61,7 +60,7 @@ fn parse_content_chars<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 /// Parse link destination between angle brackets: '<' followed by zero or more `parse_content_char` sequences, followed by '>'.
 /// Returns the content between the angle brackets.
 pub(crate) fn parse_angle_brackets<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    delimited("<", parse_content_chars, cut_err(">"))
+    delimited("<", parse_content_chars, ">")
         .context(Label("link destination between angle brackets"))
         .context(Expected(Description(
             "< followed by zero or more content characters, followed by >",
