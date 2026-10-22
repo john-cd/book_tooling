@@ -55,7 +55,6 @@ pub fn delete_unused_refdefs<S: BuildHasher>(
 ) -> Result<String> {
     struct RemovalCollector<'a, S> {
         source: &'a str,
-        source_base: usize,
         unused: &'a HashSet<String, S>,
         ranges: Vec<Range<usize>>,
         error: Option<anyhow::Error>,
@@ -63,21 +62,8 @@ pub fn delete_unused_refdefs<S: BuildHasher>(
 
     impl<S> RemovalCollector<'_, S> {
         fn source_range(&self, fragment: &str) -> Result<Range<usize>> {
-            let start = fragment
-                .as_ptr()
-                .addr()
-                .checked_sub(self.source_base)
-                .context("Reference definition does not belong to its source document")?;
-            let end = start
-                .checked_add(fragment.len())
-                .context("Reference definition source range overflowed")?;
-            if end > self.source.len()
-                || !self.source.is_char_boundary(start)
-                || !self.source.is_char_boundary(end)
-            {
-                bail!("Reference definition source range is outside its document");
-            }
-            Ok(start..end)
+            parse_lib::source_span(self.source, fragment)
+                .context("Reference definition does not belong to its source document")
         }
     }
 
@@ -132,7 +118,6 @@ pub fn delete_unused_refdefs<S: BuildHasher>(
 
     let mut collector = RemovalCollector {
         source: doc.source,
-        source_base: doc.source.as_ptr().addr(),
         unused: unused_labels,
         ranges: Vec::new(),
         error: None,

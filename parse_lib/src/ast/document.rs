@@ -49,6 +49,14 @@ impl<'s> Document<'s> {
     //     &mut self.elements
     // }
 
+    /// Returns the byte range of `fragment` in [`Document::source`], if it borrows from it.
+    ///
+    /// See [`crate::source_span::source_span`].
+    #[must_use]
+    pub fn span_of(&self, fragment: &str) -> Option<std::ops::Range<usize>> {
+        crate::source_span::source_span(self.source, fragment)
+    }
+
     /// Returns true if the document has no elements.
     #[must_use]
     pub fn is_empty(&self) -> bool {

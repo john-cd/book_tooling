@@ -8,7 +8,6 @@ use std::path::Path;
 
 use anyhow::Context as _;
 use anyhow::Result;
-use anyhow::bail;
 use parse_lib::visit::Visitable as _;
 use parse_lib::visit::Visitor;
 use parse_lib::{
@@ -61,8 +60,6 @@ pub(super) struct ReferenceOccurrences {
 struct OccurrenceCollector<'source> {
     /// The source text being scanned.
     source: &'source str,
-    /// Address of the start of `source`, used to turn parsed fragments into byte offsets.
-    source_base: usize,
     /// The reference definitions and uses in the file.
     occurrences: ReferenceOccurrences,
     /// The first error hit while locating a fragment; later recording stops once it is set.
@@ -72,20 +69,9 @@ struct OccurrenceCollector<'source> {
 impl OccurrenceCollector<'_> {
     /// Returns the 1-based line and column of `fragment` within the source.
     fn location(&self, fragment: &str) -> Result<(usize, usize)> {
-        let start = fragment
-            .as_ptr()
-            .addr()
-            .checked_sub(self.source_base)
-            .context("Reference label does not belong to its source document")?;
-        let end = start
-            .checked_add(fragment.len())
-            .context("Reference label source range overflowed")?;
-        if end > self.source.len()
-            || !self.source.is_char_boundary(start)
-            || !self.source.is_char_boundary(end)
-        {
-            bail!("Reference label source range is outside its document");
-        }
+        let start = parse_lib::source_span(self.source, fragment)
+            .context("Reference label does not belong to its source document")?
+            .start;
 
         let prefix = self.source.get(..start).unwrap_or_default();
         let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
@@ -385,7 +371,6 @@ pub(super) fn collect_reference_occurrences(
         .with_context(|| format!("Failed to parse Markdown file {}", path.display()))?;
     let mut collector = OccurrenceCollector {
         source,
-        source_base: source.as_ptr().addr(),
         occurrences: ReferenceOccurrences::default(),
         error: None,
     };
