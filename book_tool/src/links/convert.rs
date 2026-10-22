@@ -37,10 +37,11 @@ pub struct InlineLinkConversion {
     pub stats: InlineLinkConversionStats,
 }
 
-/// Converts inline links and autolinks into reference-style links for a parsed document.
+/// Converts untitled inline links and autolinks into reference-style links for a parsed document.
 ///
-/// Existing reference definitions are reused when possible. New definitions are appended to
-/// the end of the rendered Markdown in ascending numeric-label order.
+/// Existing reference definitions are reused when possible. Titled inline links remain unchanged
+/// because converting them without a title-aware definition could drop their hover text. New
+/// definitions are appended to the end of the rendered Markdown in ascending numeric-label order.
 pub fn convert_inline_links_to_reference_definitions(
     doc: &parse_lib::Document,
 ) -> InlineLinkConversion {
@@ -129,6 +130,11 @@ impl LabelRegistry {
             self.preserved_issue_links
                 .set(self.preserved_issue_links.get() + 1);
             tracing::trace!(url = link.url, "Preserving issue link as inline link");
+            return format!("[{}]({})", link.text, link.url);
+        }
+
+        if link.title.is_some() {
+            tracing::trace!(url = link.url, "Preserving titled inline link");
             return format!("[{}]({})", link.text, link.url);
         }
 
