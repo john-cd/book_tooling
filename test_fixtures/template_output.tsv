@@ -1,0 +1,8 @@
+# destination	name	badge	link
+category	api%2Fbindings	[![api%2Fbindings][cat~api%2Fbindings~badge]][cat~api%2Fbindings]{{hi:api%2Fbindings}}	[api%2Fbindings][cat~api%2Fbindings]↗{{hi:api%2Fbindings}}
+crate	serde	[![serde][p~serde~crate~badge]][p~serde~crate]{{hi:serde}}	[serde][p~serde~crate]↗{{hi:serde}}
+docs	serde	[![serde][c~serde~docs~badge]][c~serde~docs]{{hi:serde}}	[serde][c~serde~docs]↗{{hi:serde}}
+github-repo	john-cd/rust_howto	[![john-cd/rust_howto][c~john-cd/rust_howto~repo~badge]][c~john-cd/rust_howto~repo]{{hi:john-cd/rust_howto}}	[john-cd/rust_howto][c~john-cd/rust_howto~repo]↗{{hi:john-cd/rust_howto}}
+lib-rs	serde	[![serde][c~serde~lib.rs~badge]][c~serde~lib.rs]{{hi:serde}}	[serde][c~serde~lib.rs]↗{{hi:serde}}
+crates-io	serde	[![serde][c~serde~crates.io~badge]][c~serde~crates.io]{{hi:serde}}	[serde][c~serde~crates.io]↗{{hi:serde}}
+web	serde	[![serde][c~serde~website~badge]][c~serde~website]{{hi:serde}}	[serde][c~serde~website]↗{{hi:serde}}

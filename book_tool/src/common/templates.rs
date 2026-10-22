@@ -89,3 +89,82 @@ pub fn render_link(kind: &DestinationKind, name: &str) -> String {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::io;
+
+    use super::*;
+
+    /// Verifies every destination matches the shared Markdown output contract.
+    #[test]
+    fn template_outputs_match_shared_destination_fixtures() -> Result<(), Box<dyn std::error::Error>>
+    {
+        for line in include_str!("../../../test_fixtures/template_output.tsv").lines() {
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+
+            let mut fields = line.split('\t');
+            let kind_name = fields
+                .next()
+                .ok_or_else(|| io::Error::other("fixture is missing a destination kind"))?;
+            let kind = match kind_name {
+                "category" => DestinationKind::Category,
+                "crate" => DestinationKind::Crate,
+                "docs" => DestinationKind::Docs,
+                "github-repo" => DestinationKind::GithubRepo,
+                "lib-rs" => DestinationKind::LibRs,
+                "crates-io" => DestinationKind::CratesIo,
+                "web" => DestinationKind::Web,
+                other => {
+                    return Err(
+                        io::Error::other(format!("unknown destination kind: {other}")).into(),
+                    );
+                }
+            };
+            let name = fields
+                .next()
+                .ok_or_else(|| io::Error::other("fixture is missing a destination name"))?;
+            let expected_badge = fields
+                .next()
+                .ok_or_else(|| io::Error::other("fixture is missing a badge expectation"))?;
+            let expected_link = fields
+                .next()
+                .ok_or_else(|| io::Error::other("fixture is missing a link expectation"))?;
+            if fields.next().is_some() {
+                return Err(io::Error::other("fixture contains extra fields").into());
+            }
+
+            assert_eq!(
+                render_badge(&kind, name),
+                expected_badge,
+                "kind: {kind_name}"
+            );
+            assert_eq!(render_link(&kind, name), expected_link, "kind: {kind_name}");
+        }
+        Ok(())
+    }
+
+    /// Verifies independent badge text, pre-encoded category slugs, and empty values are stable.
+    #[test]
+    fn category_badge_preserves_encoded_slug_and_separate_punctuation_text() {
+        assert_eq!(
+            render_badge_with_text(
+                &DestinationKind::Category,
+                "api%2Fbindings",
+                "C++ / FFI",
+                "API bindings (C++)",
+            ),
+            "[![C++ / FFI][cat~api%2Fbindings~badge]][cat~api%2Fbindings]{{hi:API bindings (C++)}}"
+        );
+        assert_eq!(
+            render_badge(&DestinationKind::Category, ""),
+            "[![][cat~~badge]][cat~]{{hi:}}"
+        );
+        assert_eq!(
+            render_link(&DestinationKind::Category, ""),
+            "[][cat~]↗{{hi:}}"
+        );
+    }
+}
