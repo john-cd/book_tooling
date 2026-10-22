@@ -21,7 +21,7 @@ impl PatternAnalyzer {
         // Example patterns for common crates
         patterns.insert(
             "serde".to_owned(),
-            Regex::new(r"#\[derive\(.*Serialize.*\)\b")
+            Regex::new(r"#\[derive\([^)]*\bSerialize\b[^)]*\)\]")
                 .context("Failed to compile serde pattern")?,
         );
         patterns.insert(
@@ -31,7 +31,8 @@ impl PatternAnalyzer {
         );
         patterns.insert(
             "anyhow".to_owned(),
-            Regex::new(r"Result<.*>\s*\{").context("Failed to compile anyhow pattern")?,
+            Regex::new(r"->\s*(?:anyhow::)?Result<[^{;]*>\s*\{")
+                .context("Failed to compile anyhow pattern")?,
         );
 
         Ok(Self { patterns })
@@ -90,5 +91,25 @@ mod tests {
             .expect("analyze source with escaped crate name");
 
         assert!(patterns.contains(&"Import of foo[bar".to_owned()));
+    }
+
+    #[test]
+    fn test_serde_and_anyhow_patterns_are_specific() {
+        let analyzer = PatternAnalyzer::new().expect("create analyzer");
+        let serde = analyzer
+            .analyze_source(
+                "#[derive(Debug, Serialize, Deserialize)]\nstruct A;\n#[derive(Debug)]\nstruct B; // Serialize",
+                "serde",
+            )
+            .expect("analyze source");
+        assert_eq!(serde, ["#[derive(Debug, Serialize, Deserialize)]"]);
+
+        let anyhow = analyzer
+            .analyze_source(
+                "fn a() -> anyhow::Result<()> {\n}\nfn b() -> Option<Result<u8>> { None }",
+                "anyhow",
+            )
+            .expect("analyze source");
+        assert_eq!(anyhow, ["-> anyhow::Result<()> {"]);
     }
 }

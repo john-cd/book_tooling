@@ -1317,6 +1317,7 @@ name = "rust_rate"
 version = "0.1.3"
 dependencies = [
  "anyhow",
+ "clap",
  "futures",
  "regex",
  "reqwest",

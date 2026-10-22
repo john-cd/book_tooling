@@ -77,8 +77,8 @@ The project is organized as a Rust workspace optimized for high-performance Mark
   - `PatternAnalyzer`.
 - `stats`
   - `CrateStats`.
-- `rust_rate`
-  - `execute`: crates.io summary workflow.
+- `crates_io`
+  - `fetch_summary`, `validate_crate_name`, `execute`: crates.io summary workflow.
 - `templates`
   - `DestinationKind`, `render_badge`, `render_link`.
 - `utils`
