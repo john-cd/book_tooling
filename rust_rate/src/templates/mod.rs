@@ -57,6 +57,10 @@ impl DestinationKind {
 /// Example: `render_badge(DestinationKind::CratesIo, "anyhow")`
 /// produces: `[![anyhow][p~anyhow~crates.io~badge]][p~anyhow~crates.io]{{hi:anyhow}}`
 pub fn render_badge(kind: &DestinationKind, name: &str) -> String {
+    if *kind == DestinationKind::Category {
+        return format!("[![{name}][cat~{name}~badge]][cat~{name}]{{{{hi:{name}}}}}");
+    }
+
     let prefix = kind.prefix();
     let label = kind.label();
     format!("[![{name}][{prefix}~{name}~{label}~badge]][{prefix}~{name}~{label}]{{{{hi:{name}}}}}")
