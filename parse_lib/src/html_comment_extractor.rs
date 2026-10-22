@@ -31,6 +31,7 @@ mod tests {
     use super::*;
     use crate::parse_document;
 
+    /// Covers html comment extraction.
     #[test]
     fn test_html_comment_extraction() {
         let input = "Hello <!-- TODO: fix this section --> world!";

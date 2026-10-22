@@ -33,6 +33,7 @@ fn collect_active_external_links(
     }
 
     impl ActiveLinkCollector<'_> {
+        /// Adds `url` to the collected set when it parses as an http or https URL.
         fn add_url(&mut self, url: &str) {
             if let Ok(parsed) = Url::parse(url)
                 && matches!(parsed.scheme(), "http" | "https")
@@ -43,18 +44,22 @@ fn collect_active_external_links(
     }
 
     impl<'ast> Visitor<'ast> for ActiveLinkCollector<'_> {
+        /// Collects the destination of an inline link.
         fn visit_inline_link(&mut self, data: &'ast InlineLinkData<'ast>) {
             self.add_url(data.url);
         }
 
+        /// Collects the destination of an autolink.
         fn visit_autolink(&mut self, data: &'ast AutolinkData<'ast>) {
             self.add_url(data.url);
         }
 
+        /// Collects the source URL of an inline image.
         fn visit_inline_image(&mut self, data: &'ast InlineImageData<'ast>) {
             self.add_url(data.url);
         }
 
+        /// Collects the destination of a reference definition unless it is unused.
         fn visit_reference_definition(&mut self, data: &'ast ReferenceDefinitionData<'ast>) {
             if self.unused_refdefs.is_some_and(|unused| {
                 unused.iter().any(|label| {

@@ -86,6 +86,7 @@ mod tests {
 
     use super::*;
 
+    /// Replacing an existing or new file leaves look-alike neighbouring files untouched.
     #[test]
     fn atomic_replace_handles_existing_and_new_files_without_clobbering_neighbors() -> Result<()> {
         let temp = tempdir()?;
@@ -107,6 +108,7 @@ mod tests {
         Ok(())
     }
 
+    /// Replacement keeps the original file mode.
     #[cfg(unix)]
     #[test]
     fn atomic_replace_preserves_permissions() -> Result<()> {
@@ -123,6 +125,7 @@ mod tests {
         Ok(())
     }
 
+    /// Symbolic-link destinations are refused and their targets stay unchanged.
     #[cfg(unix)]
     #[test]
     fn atomic_replace_rejects_symlinks_without_touching_the_target() -> Result<()> {

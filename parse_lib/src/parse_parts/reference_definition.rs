@@ -48,6 +48,7 @@ pub fn parse_link_reference_definition<'s>(input: &mut &'s str) -> ModalResult<E
 mod tests {
     use super::*;
 
+    /// Covers parse reference definition simple.
     #[test]
     fn test_parse_reference_definition_simple() {
         let mut input = "[my-label]: https://example.com";
@@ -62,6 +63,7 @@ mod tests {
         assert_eq!(input, "");
     }
 
+    /// Covers parse reference definition with title and newlines.
     #[test]
     fn test_parse_reference_definition_with_title_and_newlines() {
         let mut input = "[my-label]: \n  <https://example.com> \n  \"A Title\"";
@@ -75,6 +77,7 @@ mod tests {
         );
     }
 
+    /// Covers parse reference definition fails missing colon.
     #[test]
     fn test_parse_reference_definition_fails_missing_colon() {
         let mut input = "[my-label] https://example.com";

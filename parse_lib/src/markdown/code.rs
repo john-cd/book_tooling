@@ -69,6 +69,7 @@ mod tests {
 
     // --- Tests for parse_code_span ---
 
+    /// Covers parse code span basic.
     #[test]
     fn test_parse_code_span_basic() {
         assert_eq!(
@@ -82,6 +83,7 @@ mod tests {
         );
     }
 
+    /// Covers parse code span empty content.
     #[test]
     fn test_parse_code_span_empty_content() {
         assert_eq!(
@@ -90,6 +92,7 @@ mod tests {
         );
     }
 
+    /// Covers parse code span with trailing text.
     #[test]
     fn test_parse_code_span_with_trailing_text() {
         assert_eq!(
@@ -103,21 +106,25 @@ mod tests {
         );
     }
 
+    /// Covers parse code span no closing backtick.
     #[test]
     fn test_parse_code_span_no_closing_backtick() {
         parse_code_span(&mut "`unclosed span").expect_err("input should be rejected");
     }
 
+    /// Covers parse code span no opening backtick.
     #[test]
     fn test_parse_code_span_no_opening_backtick() {
         parse_code_span(&mut "no opening backtick`").expect_err("input should be rejected");
     }
 
+    /// Covers parse code span only backticks.
     #[test]
     fn test_parse_code_span_only_backticks() {
         parse_code_span(&mut "`").expect_err("input should be rejected");
     }
 
+    /// Covers parse code span not a code span.
     #[test]
     fn test_parse_code_span_not_a_code_span() {
         parse_code_span(&mut "just plain text").expect_err("input should be rejected");
@@ -125,6 +132,7 @@ mod tests {
 
     // --- Tests for parse_fenced_code_block ---
 
+    /// Covers parse fenced code block basic.
     #[test]
     fn test_parse_fenced_code_block_basic() {
         let input = "```rust\nfn main() {\n    println!(\"Hello\");\n}\n```";
@@ -138,6 +146,7 @@ mod tests {
         );
     }
 
+    /// Covers parse fenced code block empty content.
     #[test]
     fn test_parse_fenced_code_block_empty_content() {
         assert_eq!(
@@ -152,6 +161,7 @@ mod tests {
         );
     }
 
+    /// Covers parse fenced code block with trailing text.
     #[test]
     fn test_parse_fenced_code_block_with_trailing_text() {
         let input = "```rust,editable\nprintln!(\"hi\");\n``` more text";
@@ -165,16 +175,19 @@ mod tests {
         );
     }
 
+    /// Covers parse fenced code block no closing delimiter.
     #[test]
     fn test_parse_fenced_code_block_no_closing_delimiter() {
         parse_fenced_code_block(&mut "```unclosed block").expect_err("input should be rejected");
     }
 
+    /// Covers parse fenced code block no opening delimiter.
     #[test]
     fn test_parse_fenced_code_block_no_opening_delimiter() {
         parse_fenced_code_block(&mut "unopened block```").expect_err("input should be rejected");
     }
 
+    /// Covers parse fenced code block inner triple backticks.
     #[test]
     fn test_parse_fenced_code_block_inner_triple_backticks() {
         // `take_until` stops at the *first* closing delimiter.
@@ -190,16 +203,19 @@ mod tests {
         );
     }
 
+    /// Covers parse fenced code block only delimiters.
     #[test]
     fn test_parse_fenced_code_block_only_delimiters() {
         parse_fenced_code_block(&mut "```").expect_err("input should be rejected");
     }
 
+    /// Covers parse fenced code block not a code block.
     #[test]
     fn test_parse_fenced_code_block_not_a_code_block() {
         parse_fenced_code_block(&mut "plain text").expect_err("input should be rejected");
     }
 
+    /// Covers parse fenced code block contains single backticks.
     #[test]
     fn test_parse_fenced_code_block_contains_single_backticks() {
         let input = "```\ncode with `single` backticks\n```";

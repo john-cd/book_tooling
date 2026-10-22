@@ -133,6 +133,7 @@ fn write_markdown_file(root: &Path, name: &str, content: &str) -> std::path::Pat
     path
 }
 
+/// Inline links execute converts links to reference definitions.
 #[test]
 fn inline_links_execute_converts_links_to_reference_definitions() {
     let temp = tempdir().expect("create temp dir");
@@ -152,6 +153,7 @@ fn inline_links_execute_converts_links_to_reference_definitions() {
     );
 }
 
+/// Directives execute expands example directives.
 #[test]
 fn directives_execute_expands_example_directives() {
     let temp = tempdir().expect("create temp dir");
@@ -163,6 +165,7 @@ fn directives_execute_expands_example_directives() {
     assert_eq!(updated, "{{#include examples/demo.md}}\n");
 }
 
+/// Link check execute skips deleted unused reference definitions.
 #[tokio::test]
 async fn link_check_execute_skips_deleted_unused_reference_definitions() {
     let server = TestHttpServer::spawn();
@@ -188,6 +191,7 @@ async fn link_check_execute_skips_deleted_unused_reference_definitions() {
     );
 }
 
+/// Link check execute retries retry after responses.
 #[tokio::test]
 async fn link_check_execute_retries_retry_after_responses() {
     let server = TestHttpServer::spawn_with_responses(vec![retry_after_response(0), ok_response()]);
@@ -200,6 +204,7 @@ async fn link_check_execute_retries_retry_after_responses() {
         .expect("run link-check with retry");
 }
 
+/// Link check execute retries service unavailable without retry after.
 #[tokio::test]
 async fn link_check_execute_retries_service_unavailable_without_retry_after() {
     let server = TestHttpServer::spawn_with_responses(vec![
@@ -215,6 +220,7 @@ async fn link_check_execute_retries_service_unavailable_without_retry_after() {
         .expect("run link-check with missing retry-after");
 }
 
+/// Link check execute retries invalid retry after responses.
 #[tokio::test]
 async fn link_check_execute_retries_invalid_retry_after_responses() {
     let server = TestHttpServer::spawn_with_responses(vec![
@@ -262,6 +268,7 @@ async fn link_check_execute_follows_redirects() {
         .expect("redirected link should verify");
 }
 
+/// Link check execute fails after max retry exhaustion.
 #[tokio::test]
 async fn link_check_execute_fails_after_max_retry_exhaustion() {
     let server = TestHttpServer::spawn_with_responses(vec![retry_after_response(0); 8]);
@@ -279,6 +286,7 @@ async fn link_check_execute_fails_after_max_retry_exhaustion() {
     );
 }
 
+/// Link check cli rejects delete without refdefs.
 #[test]
 fn link_check_cli_rejects_delete_without_refdefs() {
     let temp = tempdir().expect("create temp dir");
@@ -303,6 +311,7 @@ fn link_check_cli_rejects_delete_without_refdefs() {
     assert!(stderr.contains("refdefs"), "link-check stderr: {stderr}");
 }
 
+/// Directives cli fails for invalid config.
 #[test]
 fn directives_cli_fails_for_invalid_config() {
     let temp = tempdir().expect("create temp dir");
@@ -329,6 +338,7 @@ fn directives_cli_fails_for_invalid_config() {
     assert!(stderr.contains("config"), "directives stderr: {stderr}");
 }
 
+/// Inline links reports failed input and leaves it unchanged.
 #[test]
 fn inline_links_reports_failed_input_and_leaves_it_unchanged() {
     let temp = tempdir().expect("create temp dir");
@@ -356,6 +366,7 @@ fn inline_links_reports_failed_input_and_leaves_it_unchanged() {
     );
 }
 
+/// Directives cli reports mixed corpus failures and preserves bad input.
 #[test]
 fn directives_cli_reports_mixed_corpus_failures_and_preserves_bad_input() {
     let temp = tempdir().expect("create temp dir");
@@ -390,6 +401,7 @@ fn directives_cli_reports_mixed_corpus_failures_and_preserves_bad_input() {
     );
 }
 
+/// Search cli reports plain text matches.
 #[test]
 fn search_cli_reports_plain_text_matches() {
     let temp = tempdir().expect("create temp dir");
@@ -425,6 +437,7 @@ fn search_cli_reports_plain_text_matches() {
     );
 }
 
+/// Extract comments cli writes output file.
 #[test]
 fn extract_comments_cli_writes_output_file() {
     let temp = tempdir().expect("create temp dir");
@@ -462,6 +475,7 @@ fn extract_comments_cli_writes_output_file() {
     );
 }
 
+/// Refdefs audit reports uses before idempotent cleanup.
 #[test]
 fn refdefs_audit_reports_uses_before_idempotent_cleanup() {
     let temp = tempdir().expect("create temp dir");
@@ -571,6 +585,7 @@ fn refdefs_audit_reports_uses_before_idempotent_cleanup() {
     );
 }
 
+/// Refdefs audit preserves definitions used in additional sources.
 #[test]
 fn refdefs_audit_preserves_definitions_used_in_additional_sources() {
     let temp = tempdir().expect("create temp dir");

@@ -96,6 +96,7 @@ pub fn parse_inline_link<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
 mod tests {
     use super::*;
 
+    /// Covers parse inline link simple.
     #[test]
     fn test_parse_inline_link_simple() {
         let mut input = "[my link](https://example.com)";
@@ -110,6 +111,7 @@ mod tests {
         assert_eq!(input, "");
     }
 
+    /// Covers parse inline link with title.
     #[test]
     fn test_parse_inline_link_with_title() {
         let mut input = "[my link](https://example.com \"A Title\")";

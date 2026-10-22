@@ -134,6 +134,7 @@ pub async fn execute(crate_name: &str) -> Result<()> {
 mod tests {
     use super::*;
 
+    /// Typical crate names pass validation.
     #[test]
     fn valid_crate_names_are_accepted() {
         for name in ["anyhow", "serde_json", "tree-sitter", "a1"] {
@@ -141,6 +142,7 @@ mod tests {
         }
     }
 
+    /// Empty, path-like, non-ASCII and over-long names fail validation.
     #[test]
     fn invalid_crate_names_are_rejected() {
         for name in ["", "1abc", "a/b", "a b", "a?b=c", "..", "caf\u{e9}"] {

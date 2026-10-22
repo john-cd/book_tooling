@@ -70,6 +70,7 @@ impl PatternAnalyzer {
 mod tests {
     use super::*;
 
+    /// Imports and `Result` returns are detected for `anyhow`.
     #[test]
     fn test_analyze_source() {
         let analyzer = PatternAnalyzer::new().expect("create analyzer");
@@ -86,6 +87,7 @@ mod tests {
         assert!(patterns.iter().any(|pattern| pattern.contains("Result")));
     }
 
+    /// Regex metacharacters in a crate name are escaped.
     #[test]
     fn test_analyze_source_escapes_dynamic_crate_name() {
         let analyzer = PatternAnalyzer::new().expect("create analyzer");
@@ -96,6 +98,7 @@ mod tests {
         assert!(patterns.contains(&"Import of foo[bar".to_owned()));
     }
 
+    /// The serde and anyhow patterns ignore look-alike text.
     #[test]
     fn test_serde_and_anyhow_patterns_are_specific() {
         let analyzer = PatternAnalyzer::new().expect("create analyzer");

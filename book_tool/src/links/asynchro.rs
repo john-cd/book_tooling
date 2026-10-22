@@ -196,6 +196,7 @@ mod tests {
         headers
     }
 
+    /// A numeric `Retry-After` value sets the delay.
     #[test]
     fn numeric_retry_after_is_honoured() {
         assert_eq!(
@@ -204,6 +205,7 @@ mod tests {
         );
     }
 
+    /// A very large `Retry-After` value is capped.
     #[test]
     fn oversized_retry_after_is_capped() {
         assert_eq!(
@@ -212,6 +214,7 @@ mod tests {
         );
     }
 
+    /// Without a usable `Retry-After`, the delay doubles per attempt up to the cap.
     #[test]
     fn missing_or_unusable_retry_after_backs_off_exponentially() {
         assert_eq!(retry_delay(&HeaderMap::new(), 0), Duration::from_secs(1));
@@ -226,6 +229,7 @@ mod tests {
         );
     }
 
+    /// `describe` reports the transport error when present, otherwise the HTTP status.
     #[test]
     fn describe_prefers_transport_errors_then_status() {
         let failed = UrlCheck {
