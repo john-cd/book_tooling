@@ -4,6 +4,8 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
+use book_tool::common::Scope;
+use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
 
@@ -15,6 +17,24 @@ struct Cli {
     /// The subcommand to run.
     #[command(subcommand)]
     command: Commands,
+}
+
+/// Options that choose which files a command processes.
+#[derive(Args)]
+struct ScopeArgs {
+    /// File extension to process; repeat for several (default: `md`).
+    #[arg(long = "extension", value_name = "EXT")]
+    extensions: Vec<String>,
+    /// File name to skip in addition to the defaults (`refs.incl.md`, `SUMMARY.md`); repeatable.
+    #[arg(long = "exclude", value_name = "NAME")]
+    excluded_filenames: Vec<String>,
+}
+
+impl ScopeArgs {
+    /// Builds the [`Scope`] these options describe.
+    fn to_scope(&self) -> Scope {
+        Scope::with_overrides(&self.extensions, &self.excluded_filenames)
+    }
 }
 
 /// The `book_tool` subcommands.
@@ -40,6 +60,9 @@ enum Commands {
         /// Delete unused reference definitions if --refdefs is set.
         #[arg(short, long, requires = "refdefs")]
         delete: bool,
+        /// Which files to check.
+        #[command(flatten)]
+        scope: ScopeArgs,
     },
     /// Audit reference-definition provenance and uses, then optionally delete proven-unused entries.
     RefdefsAudit {
@@ -64,6 +87,9 @@ enum Commands {
         /// Directories to process.
         #[arg(required = true)]
         directories: Vec<PathBuf>,
+        /// Which files to convert.
+        #[command(flatten)]
+        scope: ScopeArgs,
     },
     /// Search for text across Markdown files, ignoring formatting.
     Search {
@@ -73,6 +99,9 @@ enum Commands {
         /// Directories to search.
         #[arg(required = true)]
         directories: Vec<PathBuf>,
+        /// Which files to search.
+        #[command(flatten)]
+        scope: ScopeArgs,
     },
     /// Extract HTML comments from Markdown files into a single file for auditing.
     ExtractComments {
@@ -82,6 +111,9 @@ enum Commands {
         /// Output file path.
         #[arg(short, long, required = true)]
         output: PathBuf,
+        /// Which files to scan.
+        #[command(flatten)]
+        scope: ScopeArgs,
     },
 }
 
@@ -105,8 +137,15 @@ async fn main() -> Result<()> {
             directories,
             refdefs,
             delete,
+            scope,
         } => {
-            book_tool::link_check::execute(directories.clone(), *refdefs, *delete).await?;
+            book_tool::link_check::execute(
+                directories.clone(),
+                *refdefs,
+                *delete,
+                &scope.to_scope(),
+            )
+            .await?;
         }
         Commands::RefdefsAudit {
             directories,
@@ -123,17 +162,22 @@ async fn main() -> Result<()> {
                 protected_definition_files.clone(),
             )?;
         }
-        Commands::InlineLinks { directories } => {
-            book_tool::inline_links::execute(directories)?;
+        Commands::InlineLinks { directories, scope } => {
+            book_tool::inline_links::execute(directories, &scope.to_scope())?;
         }
-        Commands::Search { query, directories } => {
-            book_tool::search::execute(query, directories)?;
+        Commands::Search {
+            query,
+            directories,
+            scope,
+        } => {
+            book_tool::search::execute(query, directories, &scope.to_scope())?;
         }
         Commands::ExtractComments {
             directories,
             output,
+            scope,
         } => {
-            book_tool::extract_comments::execute(directories, output)?;
+            book_tool::extract_comments::execute(directories, output, &scope.to_scope())?;
         }
     }
 

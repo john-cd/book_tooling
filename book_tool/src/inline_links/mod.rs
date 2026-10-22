@@ -20,19 +20,18 @@ use crate::links::convert_inline_links_to_reference_definitions;
 /// # Errors
 ///
 /// Returns an error if a directory cannot be traversed or a file cannot be converted or rewritten.
-pub fn execute(directories: &[PathBuf]) -> Result<()> {
+pub fn execute(directories: &[PathBuf], scope: &Scope) -> Result<()> {
     tracing::info!(
         directory_count = directories.len(),
         "Starting inline-link conversion workflow"
     );
 
-    let scope = Scope::default();
     let mut processed_files = 0_usize;
     let mut total_stats = InlineLinkConversionStats::default();
 
     walk_parsed_markdown_files(
         directories,
-        &scope,
+        scope,
         |path, doc| {
             if !doc.source.contains("http") && !doc.source.contains('[') {
                 return Ok(());
