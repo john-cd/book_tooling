@@ -13,7 +13,7 @@ use anyhow::bail;
 use walkdir::WalkDir;
 
 /// Defines what files should be processed based on their extension and filename.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Scope {
     /// Extensions to process (e.g., "md", "txt").
     pub included_extensions: Vec<OsString>,
@@ -28,6 +28,29 @@ impl Default for Scope {
             included_extensions: vec![OsString::from("md")],
             excluded_filenames: vec![OsString::from("refs.incl.md"), OsString::from("SUMMARY.md")],
         }
+    }
+}
+
+impl Scope {
+    /// Returns the default scope adjusted by command-line style overrides.
+    ///
+    /// A non-empty `extensions` list replaces the default extensions (leading dots are
+    /// ignored); `excluded_filenames` are added to the default exclusions.
+    #[must_use]
+    pub fn with_overrides<S: AsRef<str>>(extensions: &[S], excluded_filenames: &[S]) -> Self {
+        let mut scope = Self::default();
+        if !extensions.is_empty() {
+            scope.included_extensions = extensions
+                .iter()
+                .map(|extension| OsString::from(extension.as_ref().trim_start_matches('.')))
+                .collect();
+        }
+        scope.excluded_filenames.extend(
+            excluded_filenames
+                .iter()
+                .map(|name| OsString::from(name.as_ref())),
+        );
+        scope
     }
 }
 
@@ -238,5 +261,53 @@ mod tests {
 
         assert!(error.to_string().contains("traverse"));
         Ok(())
+    }
+
+    /// Overrides replace the extensions and extend the exclusions.
+    #[test]
+    fn scope_overrides_replace_extensions_and_extend_exclusions() {
+        let none: [&str; 0] = [];
+        let default = Scope::with_overrides(&none, &none);
+        assert_eq!(
+            default.included_extensions,
+            Scope::default().included_extensions
+        );
+        assert_eq!(
+            default.excluded_filenames,
+            Scope::default().excluded_filenames
+        );
+
+        let custom = Scope::with_overrides(&[".txt", "markdown"], &["skip.md"]);
+        assert_eq!(
+            custom.included_extensions,
+            vec![OsString::from("txt"), OsString::from("markdown")]
+        );
+        assert!(
+            custom
+                .excluded_filenames
+                .contains(&OsString::from("skip.md"))
+        );
+        assert!(
+            custom
+                .excluded_filenames
+                .contains(&OsString::from("SUMMARY.md"))
+        );
+    }
+
+    /// A custom scope selects files by extension and skips excluded names.
+    #[test]
+    fn custom_scope_filters_walked_files() {
+        let temp = tempfile::tempdir().expect("temp dir");
+        for name in ["a.txt", "b.md", "skip.txt"] {
+            std::fs::write(temp.path().join(name), "x").expect("write");
+        }
+        let scope = Scope::with_overrides(&["txt"], &["skip.txt"]);
+        let mut seen = Vec::new();
+        walk_directories_and_process_files([temp.path()], &scope, |path| {
+            seen.push(path.file_name().expect("file name").to_owned());
+            Ok(())
+        })
+        .expect("walk");
+        assert_eq!(seen, vec![OsString::from("a.txt")]);
     }
 }

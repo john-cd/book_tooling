@@ -15,6 +15,7 @@ directives = []
 cli = [
     "directives",
     "dep:clap",
+    "dep:httpdate",
     "dep:rayon",
     "dep:reqwest",
     "dep:serde_json",
@@ -31,6 +32,7 @@ required-features = ["cli"]
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true, features = ["derive"], optional = true }
+httpdate = { workspace = true, optional = true }
 parse_lib = { workspace = true }
 reqwest = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
