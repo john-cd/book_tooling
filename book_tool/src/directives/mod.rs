@@ -438,4 +438,27 @@ mod tests {
         assert!(error.to_string().contains("#unknown"));
         assert!(error.to_string().contains("#example"));
     }
+
+    /// Verifies disabled custom directives, native helpers, code spans, and untouched Markdown survive.
+    #[test]
+    fn disabled_families_preserve_native_helpers_and_unrelated_source() {
+        let source = concat!(
+            "# Original heading\n\n",
+            "{{docs serde}} {{#crate serde}} {{#include refs.incl.md}}\n",
+            "`{{!web https://example.com}}`\n",
+            "```md\n{{#categories filesystem}}\n```\n"
+        );
+        let config = Config {
+            process_crate_block_directives: false,
+            process_example_directives: false,
+            process_link_and_badge_directives: false,
+            process_wikilinks: false,
+            ..Config::default()
+        };
+
+        assert_eq!(
+            process_markdown(source, &config).expect("render with custom families disabled"),
+            source
+        );
+    }
 }
