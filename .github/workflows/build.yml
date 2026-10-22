@@ -27,6 +27,7 @@ jobs:
       # Local Cargo paths point to developer-specific volumes; CI uses runner-local paths.
       CARGO_TARGET_DIR: target
       CARGO_BUILD_BUILD_DIR: target/build
+      SCCACHE_DIR: ${{ runner.temp }}/sccache
     steps:
       # Checks out your repository under $GITHUB_WORKSPACE
       - name: Code checkout (clones the Git repository)
@@ -51,6 +52,16 @@ jobs:
       - name: Install `cargo binstall`
         if: runner.os == 'Linux'
         run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+
+      - name: Install `cargo binstall` (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Set-ExecutionPolicy Unrestricted -Scope Process; iex (iwr "https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.ps1").Content
+
+      - name: Install sccache
+        env:
+          RUSTC_WRAPPER: ''
+        run: cargo binstall --version 0.18.0 --no-confirm --secure sccache
 
       - name: Install Nextest
         if: runner.os == 'Linux'

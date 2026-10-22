@@ -1,8 +1,14 @@
 # TODO Reviewed ??-??-2026
 
 [build]
+rustc-wrapper = "sccache"
+incremental = false
 target-dir = "D:/target/book_tooling/main"
 build-dir = "C:/code_build/book_tooling/main"
+
+[env]
+# Just and Cargo share the persistent local compiler cache; process overrides remain supported.
+SCCACHE_DIR = "D:/sccache"
 
 ## "ci" is used by the Github Action CD/CI workflow -  no need to optimize heavily
 ## This profile is optimized for fast compilation and testing in CI.
