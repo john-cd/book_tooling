@@ -1,5 +1,6 @@
-// TODO Reviewed ??-??-2026
 //! Parsers for custom `{{ ... }}` directives.
+//!
+//! TODO Reviewed ??-??-2026
 
 use winnow::ModalResult;
 use winnow::Parser;
@@ -200,6 +201,7 @@ mod tests {
         );
         assert!(input.is_empty());
     }
+
     /// Verifies category destinations require a name and preserve punctuation and URL escapes.
     #[test]
     fn category_links_and_badges_parse_encoded_names_and_reject_empty_names() {

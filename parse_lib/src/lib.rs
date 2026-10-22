@@ -1,4 +1,3 @@
-// TODO Reviewed ??-??-2026
 //! # parse_lib
 //!
 //! A high-performance, non-destructive Markdown parser and transformation library.
@@ -18,6 +17,8 @@
 //! - Renderers such as [`html_renderer`] and [`markdown_renderer`].
 //! - Parser entry points in [`markdown`], [`parse_directives`], [`parse_hidden`],
 //!   [`parse_urls`], [`parse_wikilinks`], and [`parse_document`].
+//!
+//! TODO Reviewed ??-??-2026
 
 // --- Core & Traits ---
 /// Abstract syntax tree types for Markdown documents and custom extensions.

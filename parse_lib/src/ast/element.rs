@@ -1,4 +1,3 @@
-// TODO Reviewed ??-??-2026
 //! - Naked URLs: `http://...` or `https://...` optionally between < and >,
 //! - Inline links: `[...](...)`,
 //! - Reference-style links: `[...][...]`,
@@ -8,6 +7,9 @@
 //! - Hidden sections: <div class="hidden"> </div>
 //!
 //! Data structures representing Markdown elements in the AST.
+//!
+//! TODO Reviewed ??-??-2026
+
 use super::DirectiveData;
 
 /// Data for an autolink (e.g., `<https://example.com>` or `https://example.com`).

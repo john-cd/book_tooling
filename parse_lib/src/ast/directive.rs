@@ -1,5 +1,6 @@
-// TODO Reviewed ??-??-2026
 //! The model for link / badge / crate block / example block directives.
+//!
+//! TODO Reviewed ??-??-2026
 
 use std::fmt::Display;
 

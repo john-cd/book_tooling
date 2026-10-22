@@ -61,6 +61,7 @@ pub fn parse_hidden_html_div<'s>(input: &mut &'s str) -> ModalResult<Element<'s>
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn test_parse_simple_hidden_div() {
         let input = r#"<div class="hidden">some content</div>"#;

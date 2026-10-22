@@ -39,8 +39,10 @@ fn matching_parenthesis(source: &str, open: usize) -> Option<usize> {
 /// of wikilinks and other link types through callback functions.
 /// Resolver used to rewrite wikilinks while rendering Markdown.
 pub type WikiLinkResolver = Box<dyn for<'b> FnMut(&WikiLinkData<'b>) -> String>;
+
 /// Resolver used to rewrite inline links while rendering Markdown.
 pub type InlineLinkResolver = Box<dyn for<'b> FnMut(&InlineLinkData<'b>) -> String>;
+
 /// Resolver used to rewrite autolinks while rendering Markdown.
 pub type AutolinkResolver = Box<dyn for<'b> FnMut(&AutolinkData<'b>) -> String>;
 
