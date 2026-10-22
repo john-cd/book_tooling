@@ -91,3 +91,6 @@ devcontainer.json linguist-language=JSON-with-Comments
 .gitattributes export-ignore
 .gitignore     export-ignore
 .gitkeep       export-ignore
+
+# Fixture that must keep its CRLF line endings
+test_fixtures/markdown/crlf.md -text
