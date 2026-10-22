@@ -381,11 +381,10 @@ fn implicit_reference_uses(source: &str) -> Vec<(&str, ReferenceUseKind)> {
                 if line
                     .get(index..)
                     .is_some_and(|suffix| suffix.starts_with("[["))
+                    && let Some(end) = line.get(index..).and_then(|suffix| suffix.find("]]"))
                 {
-                    if let Some(end) = line.get(index..).and_then(|suffix| suffix.find("]]")) {
-                        index += end + 2;
-                        continue;
-                    }
+                    index += end + 2;
+                    continue;
                 }
 
                 if let Some((label_start, label_end, close)) = bracket_contents(line, index) {

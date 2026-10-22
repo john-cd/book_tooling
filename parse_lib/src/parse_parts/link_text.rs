@@ -47,7 +47,6 @@ pub(crate) fn parse_link_text<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 
 #[cfg(test)]
 mod tests {
-    use winnow::Parser as _;
 
     use super::*;
 

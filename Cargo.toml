@@ -727,7 +727,8 @@ disallowed_script_idents = "warn"
 doc_include_without_cfg = "warn"
 
 # Checks for doc comments whose paragraphs do not end with a period or another punctuation mark.
-doc_paragraphs_missing_punctuation = "warn"
+# Relaxed: The human-owned 'TODO Reviewed' markers in module docs must stay verbatim.
+doc_paragraphs_missing_punctuation = "allow"
 
 # Checks for usage of if expressions with an else if branch, but without a final else branch.
 else_if_without_else = "allow"

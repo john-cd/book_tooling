@@ -131,10 +131,11 @@ fn is_paragraph_continuation(line: &str) -> bool {
     let line_content = trimmed.trim();
     if line_content.len() >= 3 {
         let mut chars = line_content.chars();
-        if let Some(first_char) = chars.next() {
-            if matches!(first_char, '*' | '-' | '_') && chars.all(|c| c == first_char || c == ' ') {
-                return false;
-            }
+        if let Some(first_char) = chars.next()
+            && matches!(first_char, '*' | '-' | '_')
+            && chars.all(|c| c == first_char || c == ' ')
+        {
+            return false;
         }
     }
     // Yield to HTML comment parser

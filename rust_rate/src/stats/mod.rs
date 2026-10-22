@@ -65,11 +65,11 @@ impl CrateStats {
 
         // Categories are usually only in the crate's own Cargo.toml.
         // If we are crawling random repos, we might see categories of the apps themselves.
-        if let Some(pkg) = cargo.package {
-            if let Some(cats) = pkg.categories {
-                for cat in cats {
-                    *self.category_stats.entry(cat).or_insert(0) += 1;
-                }
+        if let Some(pkg) = cargo.package
+            && let Some(cats) = pkg.categories
+        {
+            for cat in cats {
+                *self.category_stats.entry(cat).or_insert(0) += 1;
             }
         }
     }

@@ -53,14 +53,14 @@ impl GithubCrawler {
             reqwest::header::USER_AGENT,
             reqwest::header::HeaderValue::from_static("rust-rate-crawler"),
         );
-        if let Some(secret) = token {
-            if !secret.is_empty() {
-                headers.insert(
-                    reqwest::header::AUTHORIZATION,
-                    reqwest::header::HeaderValue::from_str(&format!("token {secret}"))
-                        .context("Failed to build GitHub authorization header")?,
-                );
-            }
+        if let Some(secret) = token
+            && !secret.is_empty()
+        {
+            headers.insert(
+                reqwest::header::AUTHORIZATION,
+                reqwest::header::HeaderValue::from_str(&format!("token {secret}"))
+                    .context("Failed to build GitHub authorization header")?,
+            );
         }
 
         let client = Client::builder()
