@@ -1,5 +1,9 @@
 // TODO Reviewed ??-??-2026
-use crate::ast::*;
+use crate::ast::{
+    AutolinkData, CodeSpanData, FencedCodeBlockData, HeadingData, HtmlCommentData, InlineImageData,
+    InlineLinkData, ReferenceStyleImageData, ReferenceStyleLinkData, TaskItemData, TextData,
+    WikiLinkData,
+};
 use crate::visit::Visitor;
 
 /// A visitor that extracts pure plain text by stripping away all Markdown structural formatting.
@@ -11,6 +15,7 @@ pub struct PlainTextExtractor {
 
 impl PlainTextExtractor {
     /// Creates an empty plain-text extractor.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -82,7 +87,7 @@ mod tests {
     #[test]
     fn test_plain_text_extraction() {
         let input = "Hello world! Check out [my link](https://example.com).";
-        let doc = parse_document("test.md", None, input).unwrap();
+        let doc = parse_document("test.md", None, input).expect("input should parse");
 
         let mut extractor = PlainTextExtractor::new();
         extractor.visit_document(&doc);

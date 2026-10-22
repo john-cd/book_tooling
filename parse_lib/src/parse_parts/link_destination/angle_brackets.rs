@@ -2,7 +2,7 @@
 //!
 //! A link destination can consist of a sequence of zero or more characters between an opening < and a closing >
 //! that contains no line endings or unescaped < or > characters.
-//! <https://spec.commonmark.org/0.31.2/#link-destination>
+//! See <https://spec.commonmark.org/0.31.2/#link-destination>.
 //!
 //! TODO Reviewed ??-??-2026
 
@@ -14,8 +14,8 @@ use winnow::combinator::fail;
 use winnow::combinator::repeat;
 use winnow::error::ContextError;
 use winnow::error::ErrMode;
-use winnow::error::StrContext::*;
-use winnow::error::StrContextValue::*;
+use winnow::error::StrContext::{Expected, Label};
+use winnow::error::StrContextValue::Description;
 use winnow::prelude::*;
 use winnow::token::take_while;
 
@@ -60,7 +60,7 @@ fn parse_content_chars<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 
 /// Parse link destination between angle brackets: '<' followed by zero or more `parse_content_char` sequences, followed by '>'.
 /// Returns the content between the angle brackets.
-pub fn parse_angle_brackets<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+pub(crate) fn parse_angle_brackets<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     delimited("<", parse_content_chars, cut_err(">"))
         .context(Label("link destination between angle brackets"))
         .context(Expected(Description(
@@ -163,12 +163,12 @@ mod tests {
     #[test]
     fn test_contains_newline_error() {
         // This should fail because of the newline.
-        assert!(parse_angle_brackets(&mut "<no\nnewlines>").is_err());
+        parse_angle_brackets(&mut "<no\nnewlines>").expect_err("input should be rejected");
     }
 
     #[test]
     fn test_starts_with_invalid_char_error() {
         // This should fail because it doesn't start with '<'.
-        assert!(parse_angle_brackets(&mut "just text").is_err());
+        parse_angle_brackets(&mut "just text").expect_err("input should be rejected");
     }
 }

@@ -8,12 +8,12 @@
 //! TODO Reviewed ??-??-2026
 
 use winnow::ModalResult;
-use winnow::Parser;
+use winnow::Parser as _;
 use winnow::combinator::alt;
 use winnow::combinator::delimited;
 use winnow::combinator::repeat;
-use winnow::error::StrContext::*;
-use winnow::error::StrContextValue::*;
+use winnow::error::StrContext::{Expected, Label};
+use winnow::error::StrContextValue::Description;
 use winnow::token::none_of;
 use winnow::token::take_while;
 
@@ -38,7 +38,7 @@ fn link_text_content(input: &mut &str) -> ModalResult<()> {
 /// Parses link text.
 ///
 /// Example: "[my text]" -> "my text".
-pub fn parse_link_text<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+pub(crate) fn parse_link_text<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     delimited("[", link_text_content.take(), "]")
         .context(Label("link text"))
         .context(Expected(Description("[link text]")))
@@ -47,7 +47,7 @@ pub fn parse_link_text<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 
 #[cfg(test)]
 mod tests {
-    use winnow::Parser;
+    use winnow::Parser as _;
 
     use super::*;
 
@@ -82,7 +82,9 @@ mod tests {
     #[test]
     fn test_parse_link_text_fails_on_unbalanced_bracket() {
         let mut input = "[my [unbalanced text]";
-        assert!(parse_link_text.parse_next(&mut input).is_err());
+        parse_link_text
+            .parse_next(&mut input)
+            .expect_err("input should be rejected");
     }
 
     #[test]

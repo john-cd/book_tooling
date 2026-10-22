@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use parse_lib::plain_text_extractor::PlainTextExtractor;
-use parse_lib::visit::Visitor;
+use parse_lib::visit::Visitor as _;
 
 use crate::common::Scope;
 use crate::common::walk_parsed_markdown_files;
@@ -16,7 +16,11 @@ use crate::common::warn_and_continue_on_parse_failure;
 ///
 /// The search is case-insensitive and ignores most Markdown formatting by operating on
 /// text extracted from the parsed document rather than the raw source.
-pub fn execute(query: String, directories: Vec<PathBuf>) -> Result<()> {
+///
+/// # Errors
+///
+/// Returns an error if a directory cannot be traversed or a file cannot be read.
+pub fn execute(query: &str, directories: &[PathBuf]) -> Result<()> {
     tracing::info!(
         query = %query,
         directory_count = directories.len(),
@@ -28,7 +32,7 @@ pub fn execute(query: String, directories: Vec<PathBuf>) -> Result<()> {
     let mut matched_files = 0_usize;
 
     walk_parsed_markdown_files(
-        &directories,
+        directories,
         &scope,
         |path, doc| {
             let mut extractor = PlainTextExtractor::new();
@@ -44,9 +48,16 @@ pub fn execute(query: String, directories: Vec<PathBuf>) -> Result<()> {
                 );
 
                 // Extract a small snippet surrounding the match for context
-                let start = index.saturating_sub(30);
-                let end = (index + query.len() + 30).min(extractor.text.len());
-                let snippet = &extractor.text[start..end].replace('\n', " ");
+                let text = &extractor.text;
+                let mut start = index.saturating_sub(30);
+                while !text.is_char_boundary(start) {
+                    start -= 1;
+                }
+                let mut end = (index + query.len() + 30).min(text.len());
+                while !text.is_char_boundary(end) {
+                    end += 1;
+                }
+                let snippet = text.get(start..end).unwrap_or_default().replace('\n', " ");
 
                 println!("📄 {}: ...{}...", path.display(), snippet.trim());
             }
@@ -58,7 +69,7 @@ pub fn execute(query: String, directories: Vec<PathBuf>) -> Result<()> {
 
     if matched_files == 0 {
         tracing::info!(query = %query, "No search matches found");
-        println!("No matches found for '{}'.", query);
+        println!("No matches found for '{query}'.");
     } else {
         tracing::info!(query = %query, matched_files, "Completed plain-text search workflow");
     }

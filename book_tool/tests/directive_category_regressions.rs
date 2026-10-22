@@ -1,3 +1,5 @@
+//! Regression tests for category directives processed through the `book_tool` CLI.
+
 use std::fs;
 use std::process::Command;
 

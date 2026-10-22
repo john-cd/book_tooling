@@ -3,10 +3,10 @@
 //! TODO Reviewed ??-??-2026
 
 use std::borrow::Cow;
-use std::io::Write;
+use std::io::Write as _;
 use std::path::Path;
 
-use anyhow::Context;
+use anyhow::Context as _;
 use anyhow::Result;
 use anyhow::bail;
 use tempfile::NamedTempFile;
@@ -36,11 +36,15 @@ pub fn warn_and_continue_on_parse_failure(path: &Path, error: &anyhow::Error) {
 ///
 /// The file is only rewritten when `should_process` returns `true` and the transformed
 /// contents differ from the original text.
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be read, transformed or atomically replaced.
 pub fn process_text_file<P, C, T>(path: P, should_process: C, transform: T) -> Result<()>
 where
     P: AsRef<Path>,
     C: Fn(&str) -> bool,
-    T: FnOnce(&str) -> Cow<str>,
+    T: FnOnce(&str) -> Cow<'_, str>,
 {
     let path = path.as_ref();
     tracing::debug!(path = %path.display(), "Reading text file");
@@ -58,7 +62,9 @@ where
     tracing::debug!(path = %path.display(), "Transforming text file");
     let transformed = transform(&content);
 
-    if transformed != content {
+    if transformed == content {
+        tracing::debug!(path = %path.display(), "Transformation produced no file changes");
+    } else {
         tracing::info!(
             path = %path.display(),
             old_bytes = content.len(),
@@ -66,8 +72,6 @@ where
             "Writing updated file contents"
         );
         replace_text_file_atomically(path, transformed.as_ref())?;
-    } else {
-        tracing::debug!(path = %path.display(), "Transformation produced no file changes");
     }
 
     Ok(())
@@ -77,6 +81,10 @@ where
 ///
 /// Symbolic links and non-file destinations are rejected. A unique temporary file is removed
 /// automatically if writing or replacement fails, and the source permissions are retained.
+///
+/// # Errors
+///
+/// Returns an error if the target is a symlink, or if the temporary file cannot be written or persisted over the target.
 pub fn replace_text_file_atomically(path: &Path, contents: &str) -> Result<()> {
     let permissions = match std::fs::symlink_metadata(path) {
         Ok(metadata) if metadata.file_type().is_symlink() => {
@@ -122,6 +130,10 @@ pub fn replace_text_file_atomically(path: &Path, contents: &str) -> Result<()> {
 ///
 /// Parse failures are delegated to `on_parse_error`, leave the original file unchanged, and
 /// are returned to the caller as errors.
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be read or parsed, if processing fails, or if the file cannot be rewritten.
 pub fn process_parsed_markdown_file<P, C, T, E>(
     path: P,
     should_process: C,
@@ -188,7 +200,7 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn atomic_replace_preserves_permissions() -> Result<()> {
-        use std::os::unix::fs::PermissionsExt;
+        use std::os::unix::fs::PermissionsExt as _;
 
         let temp = tempdir()?;
         let file = temp.path().join("chapter.md");

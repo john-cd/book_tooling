@@ -1,12 +1,17 @@
 // TODO Reviewed ??-??-2026
 use super::Visitor;
-use crate::ast::*;
+use crate::ast::{
+    AutolinkData, CodeSpanData, DirectiveData, FencedCodeBlockData, HeadingData, HiddenHtmlDivData,
+    InlineImageData, InlineLinkData, ReferenceDefinitionData, ReferenceStyleImageData,
+    ReferenceStyleLinkData, TextData, WikiLinkData,
+};
 
 /// A simple visitor that prints the elements to the console.
 pub struct Debugger;
 
 impl Debugger {
     /// Construct a new Debugger.
+    #[must_use]
     pub fn new() -> Self {
         Self
     }

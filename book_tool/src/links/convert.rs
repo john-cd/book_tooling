@@ -7,6 +7,7 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::fmt::Write as _;
 
 use parse_lib::ast::AutolinkData;
 use parse_lib::ast::InlineLinkData;
@@ -14,6 +15,7 @@ use parse_lib::ast::ReferenceDefinitionData;
 use parse_lib::markdown_renderer::MarkdownRenderer;
 use parse_lib::visit::Visitor;
 
+/// URL fragment that marks links to Rust How-To issues, which stay inline.
 const ISSUE_LINK_PASSTHROUGH: &str = "github.com/john-cd/rust_howto/issues";
 
 /// Summary statistics produced while converting inline links to reference links.
@@ -44,7 +46,7 @@ pub struct InlineLinkConversion {
 /// because converting them without a title-aware definition could drop their hover text. New
 /// definitions are appended to the end of the rendered Markdown in ascending numeric-label order.
 pub fn convert_inline_links_to_reference_definitions(
-    doc: &parse_lib::Document,
+    doc: &parse_lib::Document<'_>,
 ) -> InlineLinkConversion {
     let registry = std::rc::Rc::new(LabelRegistry::from_doc(doc));
 
@@ -79,30 +81,41 @@ pub fn convert_inline_links_to_reference_definitions(
     InlineLinkConversion { markdown, stats }
 }
 
+/// Visitor that gathers the reference definitions already present in a document.
 struct ExistingRefDefCollector<'a> {
+    /// Receives each existing definition URL with its label.
     existing_url_to_label: &'a mut HashMap<String, String>,
+    /// Receives the labels of the existing definitions.
     existing_labels: &'a mut HashSet<String>,
 }
 
-impl<'a, 'ast> Visitor<'ast> for ExistingRefDefCollector<'a> {
+impl<'ast> Visitor<'ast> for ExistingRefDefCollector<'_> {
     fn visit_reference_definition(&mut self, data: &'ast ReferenceDefinitionData<'ast>) {
         self.existing_url_to_label
-            .insert(data.url.to_string(), data.label.to_string());
-        self.existing_labels.insert(data.label.to_string());
+            .insert(data.url.to_owned(), data.label.to_owned());
+        self.existing_labels.insert(data.label.to_owned());
     }
 }
 
+/// Tracks reference labels so inline links can be rewritten to reuse or allocate numeric labels.
 struct LabelRegistry {
+    /// URL-to-label mapping of the definitions already in the document.
     existing_url_to_label: HashMap<String, String>,
+    /// Every label that exists or has been allocated.
     labels_in_use: RefCell<HashSet<String>>,
+    /// Definitions allocated during this conversion, ordered by URL.
     new_url_to_label: RefCell<BTreeMap<String, String>>,
+    /// Next numeric label to try.
     next_label: Cell<usize>,
+    /// Number of times an existing definition was reused.
     reused_reference_definitions: Cell<usize>,
+    /// Number of issue links left inline.
     preserved_issue_links: Cell<usize>,
 }
 
 impl LabelRegistry {
-    fn from_doc(doc: &parse_lib::Document) -> Self {
+    /// Creates a registry seeded with the reference definitions of `doc`.
+    fn from_doc(doc: &parse_lib::Document<'_>) -> Self {
         let mut existing_url_to_label = HashMap::new();
         let mut existing_labels = HashSet::new();
 
@@ -122,10 +135,12 @@ impl LabelRegistry {
         }
     }
 
+    /// Returns the number of definitions that existed before the conversion.
     fn existing_reference_count(&self) -> usize {
         self.existing_url_to_label.len()
     }
 
+    /// Renders an inline link as a reference-style link; issue links and titled links stay inline.
     fn render_inline_link(&self, link: &InlineLinkData<'_>) -> String {
         if should_preserve_issue_link(link.url) {
             self.preserved_issue_links
@@ -143,6 +158,7 @@ impl LabelRegistry {
         format!("[{}][{}]", link.text, label)
     }
 
+    /// Renders an autolink as a reference-style link; issue links stay as autolinks.
     fn render_autolink(&self, link: &AutolinkData<'_>) -> String {
         if should_preserve_issue_link(link.url) {
             self.preserved_issue_links
@@ -155,6 +171,7 @@ impl LabelRegistry {
         format!("[{}][{}]", link.url, label)
     }
 
+    /// Returns the label for `url`, reusing an existing or earlier allocated one, or allocating a new one.
     fn label_for_url(&self, url: &str) -> String {
         if let Some(label) = self.existing_url_to_label.get(url) {
             self.reused_reference_definitions
@@ -176,10 +193,11 @@ impl LabelRegistry {
         tracing::trace!(url, label, "Allocated new reference definition label");
         self.new_url_to_label
             .borrow_mut()
-            .insert(url.to_string(), label.clone());
+            .insert(url.to_owned(), label.clone());
         label
     }
 
+    /// Allocates the next numeric label that is not yet in use.
     fn allocate_label(&self) -> String {
         loop {
             let candidate = self.next_label.get();
@@ -196,6 +214,7 @@ impl LabelRegistry {
         }
     }
 
+    /// Appends the newly allocated definitions to `markdown` and returns the conversion statistics.
     fn finish(&self, markdown: &mut String) -> InlineLinkConversionStats {
         let mut stats = InlineLinkConversionStats {
             existing_reference_definitions: self.existing_url_to_label.len(),
@@ -216,7 +235,7 @@ impl LabelRegistry {
             stats.appended_reference_definitions = sorted_refdefs.len();
 
             for (_, label, url) in sorted_refdefs {
-                markdown.push_str(&format!("[{}]: {}\n", label, url));
+                let _unused = writeln!(markdown, "[{label}]: {url}");
             }
         }
 
@@ -224,6 +243,7 @@ impl LabelRegistry {
     }
 }
 
+/// Returns whether `url` points to a Rust How-To issue, whose links stay inline.
 fn should_preserve_issue_link(url: &str) -> bool {
     url.contains(ISSUE_LINK_PASSTHROUGH)
 }

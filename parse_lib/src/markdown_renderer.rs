@@ -1,19 +1,30 @@
 // TODO Reviewed ??-??-2026
 use std::ops::Range;
 
-use crate::ast::*;
+use crate::ast::{
+    AutolinkData, BlockquoteData, DirectiveData, Document, EmphasisData, FencedCodeBlockData,
+    HeadingData, HtmlCommentData, InlineImageData, InlineLinkData, ListData, ListItemData,
+    ParagraphData, ReferenceDefinitionData, ReferenceStyleImageData, ReferenceStyleLinkData,
+    StrikethroughData, StrongData, TableData, TaskItemData, TextData, WikiLinkData,
+};
 use crate::visit::Visitor;
+use std::fmt;
+use std::fmt::Write as _;
 
+/// A pending replacement of a byte range of the original source.
 #[derive(Clone)]
 struct SourceEdit {
+    /// Byte range of the original source to replace.
     range: Range<usize>,
+    /// Text that replaces the range.
     replacement: String,
 }
 
+/// Returns the byte offset of the parenthesis that closes the one at `open`, if any.
 fn matching_parenthesis(source: &str, open: usize) -> Option<usize> {
-    let mut depth = 0usize;
+    let mut depth = 0_usize;
     let mut escaped = false;
-    for (offset, character) in source[open..].char_indices() {
+    for (offset, character) in source.get(open..)?.char_indices() {
         if escaped {
             escaped = false;
             continue;
@@ -33,10 +44,6 @@ fn matching_parenthesis(source: &str, open: usize) -> Option<usize> {
     None
 }
 
-/// An AST visitor that reconstructs a Markdown string from the AST.
-///
-/// It supports on-the-fly replacement of Custom Directives and optional resolution
-/// of wikilinks and other link types through callback functions.
 /// Resolver used to rewrite wikilinks while rendering Markdown.
 pub type WikiLinkResolver = Box<dyn for<'b> FnMut(&WikiLinkData<'b>) -> String>;
 
@@ -46,7 +53,14 @@ pub type InlineLinkResolver = Box<dyn for<'b> FnMut(&InlineLinkData<'b>) -> Stri
 /// Resolver used to rewrite autolinks while rendering Markdown.
 pub type AutolinkResolver = Box<dyn for<'b> FnMut(&AutolinkData<'b>) -> String>;
 
-/// Markdown renderer with optional hook points for directive and link rewriting.
+/// An AST visitor that reconstructs a Markdown string from the AST.
+///
+/// It supports on-the-fly replacement of Custom Directives and optional resolution
+/// of wikilinks and other link types through callback functions.
+#[expect(
+    clippy::partial_pub_fields,
+    reason = "The callbacks are public configuration; the source-tracking state is an implementation detail."
+)]
 pub struct MarkdownRenderer<F> {
     /// The accumulating Markdown output.
     pub markdown: String,
@@ -58,13 +72,22 @@ pub struct MarkdownRenderer<F> {
     pub inline_link_resolver: Option<InlineLinkResolver>,
     /// An optional callback to resolve an autolink.
     pub autolink_resolver: Option<AutolinkResolver>,
+    /// Original Markdown source, kept to reproduce untouched text verbatim.
     source: Option<String>,
+    /// Address of the start of the source, used to turn fragments into byte offsets.
     source_base: usize,
+    /// Replacements recorded while visiting the document.
     source_edits: Vec<SourceEdit>,
+    /// Whether an edit could not be located and the document must be re-rendered in full.
     source_edit_fallback: bool,
 }
 
 impl<F> MarkdownRenderer<F> {
+    /// Appends formatted text to the output buffer; writing to a `String` cannot fail.
+    fn emit(&mut self, args: fmt::Arguments<'_>) {
+        let _unused = self.markdown.write_fmt(args);
+    }
+
     /// Creates a new `MarkdownRenderer` with a mandatory directive resolver.
     pub fn new(directive_resolver: F) -> Self
     where
@@ -83,33 +106,37 @@ impl<F> MarkdownRenderer<F> {
         }
     }
 
+    /// Locates `fragment` within the original source and returns its byte range.
     fn source_range(&self, fragment: &str) -> Option<Range<usize>> {
         let source = self.source.as_ref()?;
-        let start = (fragment.as_ptr() as usize).checked_sub(self.source_base)?;
+        let start = fragment.as_ptr().addr().checked_sub(self.source_base)?;
         let end = start.checked_add(fragment.len())?;
         (end <= source.len() && source.is_char_boundary(start) && source.is_char_boundary(end))
             .then_some(start..end)
     }
 
+    /// Returns the byte range of the whole `{{...}}` directive in the source.
     fn directive_range(&self, directive: &DirectiveData<'_>) -> Option<Range<usize>> {
         let payload = match directive {
-            DirectiveData::Link { name, .. } | DirectiveData::Badge { name, .. } => *name,
+            DirectiveData::Link { name, .. }
+            | DirectiveData::Badge { name, .. }
+            | DirectiveData::ExampleBlock { name } => *name,
             DirectiveData::CrateBlock { crate_name, .. } => *crate_name,
             DirectiveData::CategoryBlock { categories } => categories.first().copied()?,
-            DirectiveData::ExampleBlock { name } => *name,
         };
         let payload_range = self.source_range(payload)?;
         let source = self.source.as_ref()?;
-        let start = source[..payload_range.start].rfind("{{")?;
-        let close = source[payload_range.end..].find("}}")?;
+        let start = source.get(..payload_range.start)?.rfind("{{")?;
+        let close = source.get(payload_range.end..)?.find("}}")?;
         Some(start..payload_range.end + close + 2)
     }
 
+    /// Returns the byte range of the whole `[[...]]` wikilink in the source.
     fn wikilink_range(&self, data: &WikiLinkData<'_>) -> Option<Range<usize>> {
         let target_range = self.source_range(data.target)?;
         let source = self.source.as_ref()?;
-        let start = source[..target_range.start].rfind("[[")?;
-        let close = source[target_range.end..].find("]]")? + target_range.end + 2;
+        let start = source.get(..target_range.start)?.rfind("[[")?;
+        let close = source.get(target_range.end..)?.find("]]")? + target_range.end + 2;
         let end = data
             .immediately_after
             .and_then(|suffix| self.source_range(suffix))
@@ -118,6 +145,7 @@ impl<F> MarkdownRenderer<F> {
         Some(start..end)
     }
 
+    /// Returns the byte range of the whole inline link in the source.
     fn inline_link_range(&self, data: &InlineLinkData<'_>) -> Option<Range<usize>> {
         let text_range = self.source_range(data.text)?;
         let source = self.source.as_ref()?;
@@ -142,6 +170,7 @@ impl<F> MarkdownRenderer<F> {
         Some(start..end)
     }
 
+    /// Returns the byte range of the whole autolink in the source.
     fn autolink_range(&self, data: &AutolinkData<'_>) -> Option<Range<usize>> {
         let url_range = self.source_range(data.url)?;
         let source = self.source.as_ref()?;
@@ -155,18 +184,24 @@ impl<F> MarkdownRenderer<F> {
         }
     }
 
+    /// Records a replacement for `range`, or marks the render as needing the full fallback if the range is unusable.
     fn record_edit(
         &mut self,
         range: Option<Range<usize>>,
         replacement: String,
-        canonical_source: String,
+        canonical_source: &str,
     ) {
         if replacement == canonical_source {
             return;
         }
         if let Some(source) = &self.source {
-            if let Some(range) = range.filter(|range| source.get(range.clone()).is_some()) {
-                self.source_edits.push(SourceEdit { range, replacement });
+            if let Some(valid_range) =
+                range.filter(|candidate| source.get(candidate.clone()).is_some())
+            {
+                self.source_edits.push(SourceEdit {
+                    range: valid_range,
+                    replacement,
+                });
             } else {
                 // Do not silently discard a requested rewrite if source-span recovery fails.
                 // The document renderer will fall back to its canonical AST rendering.
@@ -175,6 +210,7 @@ impl<F> MarkdownRenderer<F> {
         }
     }
 
+    /// Applies the recorded edits to the original source, if they are all valid and non-overlapping.
     fn apply_source_edits(&self) -> Option<String> {
         let source = self.source.as_ref()?;
         if self.source_edit_fallback {
@@ -201,28 +237,31 @@ impl<F> MarkdownRenderer<F> {
     }
 
     /// Installs a resolver for wikilinks encountered during rendering.
-    pub fn with_wikilink_resolver(
-        mut self,
-        resolver: impl for<'b> FnMut(&WikiLinkData<'b>) -> String + 'static,
-    ) -> Self {
+    #[must_use]
+    pub fn with_wikilink_resolver<R>(mut self, resolver: R) -> Self
+    where
+        R: for<'b> FnMut(&WikiLinkData<'b>) -> String + 'static,
+    {
         self.wikilink_resolver = Some(Box::new(resolver));
         self
     }
 
     /// Installs a resolver for inline links encountered during rendering.
-    pub fn with_inline_link_resolver(
-        mut self,
-        resolver: impl for<'b> FnMut(&InlineLinkData<'b>) -> String + 'static,
-    ) -> Self {
+    #[must_use]
+    pub fn with_inline_link_resolver<R>(mut self, resolver: R) -> Self
+    where
+        R: for<'b> FnMut(&InlineLinkData<'b>) -> String + 'static,
+    {
         self.inline_link_resolver = Some(Box::new(resolver));
         self
     }
 
     /// Installs a resolver for autolinks encountered during rendering.
-    pub fn with_autolink_resolver(
-        mut self,
-        resolver: impl for<'b> FnMut(&AutolinkData<'b>) -> String + 'static,
-    ) -> Self {
+    #[must_use]
+    pub fn with_autolink_resolver<R>(mut self, resolver: R) -> Self
+    where
+        R: for<'b> FnMut(&AutolinkData<'b>) -> String + 'static,
+    {
         self.autolink_resolver = Some(Box::new(resolver));
         self
     }
@@ -237,7 +276,7 @@ where
         self.source_edits.clear();
         self.source_edit_fallback = false;
         self.source = Some(doc.source.to_owned());
-        self.source_base = doc.source.as_ptr() as usize;
+        self.source_base = doc.source.as_ptr().addr();
 
         for element in &doc.elements {
             self.visit_element(element);
@@ -261,17 +300,16 @@ where
             let replacement = resolver(data);
             let range = self.inline_link_range(data);
             let canonical_source = format!("[{}]({})", data.text, data.url);
-            self.record_edit(range, replacement.clone(), canonical_source);
+            self.record_edit(range, replacement.clone(), &canonical_source);
             self.markdown.push_str(&replacement);
         } else {
-            self.markdown
-                .push_str(&format!("[{}]({})", data.text, data.url));
+            self.emit(format_args!("[{}]({})", data.text, data.url));
         }
     }
 
     fn visit_fenced_code_block(&mut self, data: &FencedCodeBlockData<'a>) {
         let lang = data.language.unwrap_or("");
-        self.markdown.push_str(&format!("```{lang}\n"));
+        self.emit(format_args!("```{lang}\n"));
         for line in &data.lines {
             self.markdown.push_str(line);
             self.markdown.push('\n');
@@ -284,11 +322,11 @@ where
             let replacement = resolver(data);
             let range = self.wikilink_range(data);
             let suffix = data.immediately_after.unwrap_or("");
-            let canonical_source = match data.display {
-                Some(display) => format!("[[{} | {}]]{}", data.target, display, suffix),
-                None => format!("[[{}]]{}", data.target, suffix),
-            };
-            self.record_edit(range, replacement.clone(), canonical_source);
+            let canonical_source = data.display.map_or_else(
+                || format!("[[{}]]{}", data.target, suffix),
+                |display| format!("[[{} | {}]]{}", data.target, display, suffix),
+            );
+            self.record_edit(range, replacement.clone(), &canonical_source);
             self.markdown.push_str(&replacement);
         } else {
             self.markdown.push_str("[[");
@@ -308,7 +346,7 @@ where
         if let Some(resolver) = &mut self.autolink_resolver {
             let replacement = resolver(data);
             let range = self.autolink_range(data);
-            self.record_edit(range, replacement.clone(), format!("<{}>", data.url));
+            self.record_edit(range, replacement.clone(), &format!("<{}>", data.url));
             self.markdown.push_str(&replacement);
         } else {
             self.markdown.push('<');
@@ -319,36 +357,35 @@ where
 
     fn visit_reference_style_link(&mut self, data: &ReferenceStyleLinkData<'a>) {
         if data.text == data.label {
-            self.markdown.push_str(&format!("[{}]", data.text));
+            self.emit(format_args!("[{}]", data.text));
         } else {
-            self.markdown
-                .push_str(&format!("[{}][{}]", data.text, data.label));
+            self.emit(format_args!("[{}][{}]", data.text, data.label));
         }
     }
 
     fn visit_reference_style_image(&mut self, data: &ReferenceStyleImageData<'a>) {
-        self.markdown
-            .push_str(&format!("![{}][{}]", data.image_description, data.label));
+        self.emit(format_args!(
+            "![{}][{}]",
+            data.image_description, data.label
+        ));
     }
 
     fn visit_reference_definition(&mut self, data: &ReferenceDefinitionData<'a>) {
-        self.markdown
-            .push_str(&format!("[{}]: {}", data.label, data.url));
+        self.emit(format_args!("[{}]: {}", data.label, data.url));
         if let Some(title) = data.title {
-            self.markdown.push_str(&format!(" \"{}\"", title));
+            self.emit(format_args!(" \"{title}\""));
         }
         self.markdown.push('\n');
     }
 
     fn visit_inline_image(&mut self, data: &InlineImageData<'a>) {
         if let Some(title) = data.title {
-            self.markdown.push_str(&format!(
+            self.emit(format_args!(
                 "![{}]({} \"{}\")",
                 data.image_description, data.url, title
             ));
         } else {
-            self.markdown
-                .push_str(&format!("![{}]({})", data.image_description, data.url));
+            self.emit(format_args!("![{}]({})", data.image_description, data.url));
         }
     }
 
@@ -361,15 +398,14 @@ where
             self.markdown.push_str(content);
         }
         if let Some(id) = data.id {
-            self.markdown.push_str(&format!(" {{#{}}}", id));
+            self.emit(format_args!(" {{#{id}}}"));
         }
         self.markdown.push('\n');
     }
 
     fn visit_task_item(&mut self, data: &TaskItemData<'a>) {
         let check = if data.completed { "x" } else { " " };
-        self.markdown
-            .push_str(&format!("- [{}] {}\n", check, data.content));
+        self.emit(format_args!("- [{}] {}\n", check, data.content));
     }
 
     fn visit_table(&mut self, data: &'a TableData<'a>) {
@@ -396,17 +432,15 @@ where
 
         // Render Header
         self.markdown.push('|');
-        for (i, cell) in data.header.iter().enumerate() {
-            self.markdown
-                .push_str(&format!(" {:<width$} |", cell, width = max_widths[i]));
+        for (cell, width) in data.header.iter().zip(&max_widths) {
+            self.emit(format_args!(" {:<width$} |", cell, width = *width));
         }
         self.markdown.push('\n');
 
         // Render Separator
         self.markdown.push('|');
         for width in &max_widths {
-            self.markdown
-                .push_str(&format!(" {:-<width$} |", "", width = *width));
+            self.emit(format_args!(" {:-<width$} |", "", width = *width));
         }
         self.markdown.push('\n');
 
@@ -415,8 +449,7 @@ where
             self.markdown.push('|');
             for (i, &width) in max_widths.iter().enumerate() {
                 let cell = row.get(i).unwrap_or(&"");
-                self.markdown
-                    .push_str(&format!(" {:<width$} |", cell, width = width));
+                self.emit(format_args!(" {cell:<width$} |"));
             }
             self.markdown.push('\n');
         }
@@ -457,13 +490,13 @@ where
             let marker = if data.ordered {
                 format!("{}. ", i + 1)
             } else {
-                "- ".to_string()
+                "- ".to_owned()
             };
 
             let indent = " ".repeat(marker.len());
 
-            for (idx, line) in inner_rendered.trim_end().lines().enumerate() {
-                if idx == 0 {
+            for (line_index, line) in inner_rendered.trim_end().lines().enumerate() {
+                if line_index == 0 {
                     self.markdown.push_str(&marker);
                     self.markdown.push_str(line);
                 } else if line.is_empty() {
@@ -527,7 +560,7 @@ where
         // Call the resolver to generate the replacement Markdown
         let replacement = (self.directive_resolver)(data);
         let range = self.directive_range(data);
-        self.record_edit(range, replacement.clone(), data.to_string());
+        self.record_edit(range, replacement.clone(), &data.to_string());
         self.markdown.push_str(&replacement);
     }
 }
@@ -535,6 +568,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ast::Element;
     use crate::parse_document;
 
     #[test]
@@ -569,8 +603,11 @@ mod tests {
         let source = "[Rust](https://rust-lang.org/ \"Rust title\")\r\n{{#example demo}}\r\n";
         let doc = parse_document("book.md", None, source).expect("parse fixture");
         let mut renderer = MarkdownRenderer::new(|directive| match directive {
-            DirectiveData::ExampleBlock { .. } => "```rust\nfn main() {}\n```".to_string(),
-            _ => directive.to_string(),
+            DirectiveData::ExampleBlock { .. } => "```rust\nfn main() {}\n```".to_owned(),
+            DirectiveData::Link { .. }
+            | DirectiveData::Badge { .. }
+            | DirectiveData::CrateBlock { .. }
+            | DirectiveData::CategoryBlock { .. } => directive.to_string(),
         });
 
         renderer.visit_document(&doc);
@@ -609,7 +646,7 @@ mod tests {
             MarkdownRenderer::new(|_| String::new()).with_wikilink_resolver(|data| {
                 let display = data.display.unwrap_or(data.target);
                 let target = data.target.replace(' ', "-");
-                format!("[{}][{}]", display, target)
+                format!("[{display}][{target}]")
             });
 
         renderer.visit_element(&Element::WikiLink(WikiLinkData {

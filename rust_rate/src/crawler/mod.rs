@@ -1,5 +1,7 @@
 // TODO Reviewed ??-??-2026
-use anyhow::Context;
+use std::fmt::Write as _;
+
+use anyhow::Context as _;
 use anyhow::Result;
 use reqwest::Client;
 use serde::Deserialize;
@@ -33,6 +35,7 @@ pub struct GithubRepo {
 
 /// Client for interacting with GitHub API.
 pub struct GithubCrawler {
+    /// HTTP client preconfigured with the crawler headers.
     client: Client,
 }
 
@@ -40,17 +43,21 @@ impl GithubCrawler {
     /// Creates a crawler using an optional GitHub personal access token.
     ///
     /// Passing a token increases the GitHub API rate limit available to the crawler.
-    pub fn new(token: Option<String>) -> Result<Self> {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the authorization header or HTTP client cannot be built.
+    pub fn new(token: Option<&str>) -> Result<Self> {
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert(
             reqwest::header::USER_AGENT,
             reqwest::header::HeaderValue::from_static("rust-rate-crawler"),
         );
-        if let Some(ref t) = token {
-            if !t.is_empty() {
+        if let Some(secret) = token {
+            if !secret.is_empty() {
                 headers.insert(
                     reqwest::header::AUTHORIZATION,
-                    reqwest::header::HeaderValue::from_str(&format!("token {}", t))
+                    reqwest::header::HeaderValue::from_str(&format!("token {secret}"))
                         .context("Failed to build GitHub authorization header")?,
                 );
             }
@@ -64,28 +71,30 @@ impl GithubCrawler {
         Ok(Self { client })
     }
 
-    fn build_search_url(&self, query: &str) -> String {
+    /// Builds the GitHub code search URL for `query`, percent-encoding it and restricting results to `Cargo.toml` files.
+    fn build_search_url(query: &str) -> String {
         let mut encoded_query = String::with_capacity(query.len());
-        for b in query.as_bytes() {
-            match b {
+        for byte in query.as_bytes() {
+            match byte {
                 b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
-                    encoded_query.push(*b as char)
+                    encoded_query.push(char::from(*byte));
                 }
                 _ => {
                     encoded_query.push('%');
-                    encoded_query.push_str(&format!("{:02X}", b));
+                    let _unused = write!(encoded_query, "{byte:02X}");
                 }
             }
         }
-        format!(
-            "https://api.github.com/search/code?q={}+filename:Cargo.toml",
-            encoded_query
-        )
+        format!("https://api.github.com/search/code?q={encoded_query}+filename:Cargo.toml")
     }
 
     /// Searches GitHub code results for matching `Cargo.toml` files.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the request fails, the API returns an error status, or the response cannot be decoded.
     pub async fn search_cargo_tomls(&self, query: &str) -> Result<Vec<GithubItem>> {
-        let url = self.build_search_url(query);
+        let url = Self::build_search_url(query);
         info!("Searching GitHub: {}", url);
 
         let response = self
@@ -108,6 +117,10 @@ impl GithubCrawler {
     }
 
     /// Downloads raw file content from a GitHub API content URL.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the request fails or the API returns an error status.
     pub async fn download_content(&self, url: &str) -> Result<String> {
         debug!("Downloading content from: {}", url);
         // GitHub search API returns a URL to the API endpoint, we need to request with proper headers.
@@ -133,22 +146,20 @@ mod tests {
 
     #[test]
     fn test_build_search_url_encoding() {
-        let crawler = GithubCrawler::new(None).expect("create crawler");
         let query = "anyhow&sort=stars";
-        let url = crawler.build_search_url(query);
+        let url = GithubCrawler::build_search_url(query);
         // Currently, it just interpolates, so it will contain the raw '&' and '='
         // We want them to be encoded so they are part of the 'q' parameter.
         assert!(
             url.contains("q=anyhow%26sort%3Dstars+filename:Cargo.toml")
                 || url.contains("q=anyhow%26sort%3Dstars%20filename:Cargo.toml"),
-            "URL should have encoded query parameters. Got: {}",
-            url
+            "URL should have encoded query parameters. Got: {url}"
         );
     }
 
     #[test]
     fn test_new_rejects_invalid_token() {
-        let result = GithubCrawler::new(Some("bad\nvalue".to_string()));
+        let result = GithubCrawler::new(Some("bad\nvalue"));
         assert!(
             result.is_err(),
             "crawler should reject invalid header values"

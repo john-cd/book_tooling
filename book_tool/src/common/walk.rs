@@ -4,7 +4,7 @@ use std::ffi::OsString;
 use std::path::Path;
 use std::path::PathBuf;
 
-use anyhow::Context;
+use anyhow::Context as _;
 use anyhow::Result;
 use anyhow::bail;
 use walkdir::WalkDir;
@@ -27,6 +27,7 @@ impl Default for Scope {
     }
 }
 
+/// Normalizes a path to a string usable as a map key; lowercased on Windows, where paths are case-insensitive.
 fn path_identity(path: &Path) -> String {
     let identity = path.to_string_lossy().replace('\\', "/");
     #[cfg(windows)]
@@ -39,11 +40,12 @@ fn path_identity(path: &Path) -> String {
     }
 }
 
+/// Returns the files under `root` that `scope` includes and that are not already in `seen`.
 fn collect_files(root: &Path, scope: &Scope, seen: &mut HashSet<String>) -> Result<Vec<PathBuf>> {
     let mut files = Vec::new();
     for entry in WalkDir::new(root) {
         let entry = entry.with_context(|| format!("Failed to traverse {}", root.display()))?;
-        if !entry.file_type().is_file() {
+        if entry.file_type().is_dir() || entry.file_type().is_symlink() {
             continue;
         }
 
@@ -99,6 +101,10 @@ where
 }
 
 /// Walks multiple directories and processes each matching file once, including when roots overlap.
+///
+/// # Errors
+///
+/// Returns an error if a directory cannot be traversed or if `process` fails for a file.
 pub fn walk_directories_and_process_files<I, F>(
     directories: I,
     scope: &Scope,
@@ -128,6 +134,10 @@ where
 ///
 /// Parse failures are reported and accumulated. The walk returns an error with scanned,
 /// processed, and failed counts after leaving all malformed source files untouched.
+///
+/// # Errors
+///
+/// Returns an error if a directory cannot be traversed, a file cannot be read, or `process` fails for a file.
 pub fn walk_parsed_markdown_files<I, F, E>(
     directories: I,
     scope: &Scope,
@@ -140,8 +150,8 @@ where
     F: for<'input> FnMut(&Path, &parse_lib::Document<'input>) -> Result<()> + Sync + Send,
     E: FnMut(&Path, &anyhow::Error) + Sync + Send,
 {
-    let mut scanned = 0usize;
-    let mut processed = 0usize;
+    let mut scanned = 0_usize;
+    let mut processed = 0_usize;
     let mut failed_paths = Vec::new();
 
     walk_directories_and_process_files(directories, scope, |path| {
@@ -197,7 +207,7 @@ mod tests {
     fn overlapping_roots_process_each_file_once() -> Result<()> {
         let temp = tempdir()?;
         let nested = temp.path().join("nested");
-        std::fs::create_dir(&nested)?;
+        std::fs::create_dir_all(&nested)?;
         let chapter = nested.join("chapter.md");
         std::fs::write(&chapter, "# Chapter\n")?;
         let nested = nested.canonicalize()?;

@@ -1,6 +1,6 @@
 //! Parse naked link destinations (e.g. naked URLs).
 //!
-//! Simplified from <https://spec.commonmark.org/0.31.2/#link-destination>
+//! Simplified from <https://spec.commonmark.org/0.31.2/#link-destination>.
 //!
 //! A link destination can be a nonempty sequence of characters that does not start with <,
 //! does not include ASCII control characters or space character, and
@@ -12,15 +12,15 @@
 //! TODO Reviewed ??-??-2026
 
 use winnow::ModalResult;
-use winnow::Parser;
+use winnow::Parser as _;
 use winnow::combinator::alt;
 use winnow::combinator::cut_err;
 use winnow::combinator::delimited;
 use winnow::combinator::repeat;
 use winnow::error::ContextError;
 use winnow::error::ErrMode;
-use winnow::error::StrContext::*;
-use winnow::error::StrContextValue::*;
+use winnow::error::StrContext::{Expected, Label};
+use winnow::error::StrContextValue::Description;
 use winnow::token::any;
 use winnow::token::take_while;
 
@@ -74,7 +74,7 @@ fn parse_balanced_parentheses<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 }
 
 /// The main parser for a non-empty sequence of characters not starting by `<`.
-pub fn parse_non_empty_sequence<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+pub(crate) fn parse_non_empty_sequence<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     // Ensure the first character is not '<'.
     winnow::combinator::peek(any.verify(|c| *c != '<' && *c != ' ' && *c != ')'))
         .parse_next(input)?;
@@ -148,17 +148,17 @@ mod tests_parse_non_empty_sequence {
     #[test]
     fn test_invalid_sequences() {
         // Empty string.
-        assert!(parse_non_empty_sequence(&mut "").is_err());
+        parse_non_empty_sequence(&mut "").expect_err("input should be rejected");
         // Starts with '<'.
-        assert!(parse_non_empty_sequence(&mut "<hello").is_err());
+        parse_non_empty_sequence(&mut "<hello").expect_err("input should be rejected");
         // Starts with ' '.
-        assert!(parse_non_empty_sequence(&mut " hello").is_err());
+        parse_non_empty_sequence(&mut " hello").expect_err("input should be rejected");
         // Starts with ')'.
-        assert!(parse_non_empty_sequence(&mut ")hello").is_err());
+        parse_non_empty_sequence(&mut ")hello").expect_err("input should be rejected");
         // Unbalanced parentheses.
-        assert!(parse_non_empty_sequence(&mut "foo(bar").is_err());
-        assert!(parse_non_empty_sequence(&mut "(foo").is_err());
-        assert!(parse_non_empty_sequence(&mut "(a(b)c").is_err());
+        parse_non_empty_sequence(&mut "foo(bar").expect_err("input should be rejected");
+        parse_non_empty_sequence(&mut "(foo").expect_err("input should be rejected");
+        parse_non_empty_sequence(&mut "(a(b)c").expect_err("input should be rejected");
     }
 }
 
@@ -225,11 +225,11 @@ mod text_with_escapes_tests {
     #[test]
     fn test_text_with_escapes_invalid() {
         // Starts with forbidden char.
-        assert!(parse_text_with_escapes(&mut "(").is_err());
-        assert!(parse_text_with_escapes(&mut ")").is_err());
-        assert!(parse_text_with_escapes(&mut "<").is_err());
-        assert!(parse_text_with_escapes(&mut " ").is_err());
-        assert!(parse_text_with_escapes(&mut "\0").is_err());
+        parse_text_with_escapes(&mut "(").expect_err("input should be rejected");
+        parse_text_with_escapes(&mut ")").expect_err("input should be rejected");
+        parse_text_with_escapes(&mut "<").expect_err("input should be rejected");
+        parse_text_with_escapes(&mut " ").expect_err("input should be rejected");
+        parse_text_with_escapes(&mut "\0").expect_err("input should be rejected");
         // Lone backslash at end is matched by ('\\', any) if not at end.
         // If at end, it will fail.
         // Actually, ('\\', any) will fail if `any` fails (EOF).

@@ -4,11 +4,11 @@
 
 use url::Url;
 use winnow::ModalResult;
-use winnow::Parser;
+use winnow::Parser as _;
 use winnow::combinator::alt;
 use winnow::combinator::delimited;
-use winnow::error::StrContext::*;
-use winnow::error::StrContextValue::*;
+use winnow::error::StrContext::{Expected, Label};
+use winnow::error::StrContextValue::Description;
 use winnow::token::take_while;
 
 use crate::ast::AutolinkData;
@@ -39,6 +39,10 @@ pub(crate) fn parse_url_chars<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 }
 
 /// Parses a naked URL (e.g. `https://example.com`) directly from text.
+///
+/// # Errors
+///
+/// Returns a backtrack error if the input does not begin with a naked URL.
 pub fn parse_naked_url<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     let original = *input;
     let parsed_url = (alt(("https://", "http://")), parse_url_chars)
@@ -101,6 +105,10 @@ fn has_valid_percent_encoding(url: &str) -> bool {
 }
 
 /// Parses an autolink enclosed in angle brackets (e.g. `<https://example.com>`).
+///
+/// # Errors
+///
+/// Returns a backtrack error if the input does not begin with an autolink.
 pub fn parse_autolink<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     let url_text = delimited(
         "<",
@@ -125,7 +133,9 @@ mod tests {
     #[test]
     fn test_parse_autolink() {
         let mut input = "<https://example.com/foo>";
-        let result = parse_autolink.parse_next(&mut input).unwrap();
+        let result = parse_autolink
+            .parse_next(&mut input)
+            .expect("input should parse");
         assert_eq!(
             result,
             Element::Autolink(AutolinkData {
@@ -146,7 +156,9 @@ mod tests {
             parse_url_chars.parse_peek("hello world"),
             Ok((" world", "hello"))
         );
-        assert!(parse_url_chars.parse_peek("").is_err());
+        parse_url_chars
+            .parse_peek("")
+            .expect_err("input should be rejected");
     }
 
     #[test]
@@ -215,14 +227,15 @@ mod tests {
         );
         assert_eq!(input, ", next");
 
-        let mut input = "https://example.com/path).";
+        let mut punctuated_input = "https://example.com/path).";
         assert_eq!(
-            parse_naked_url(&mut input).expect("parse URL followed by unmatched punctuation"),
+            parse_naked_url(&mut punctuated_input)
+                .expect("parse URL followed by unmatched punctuation"),
             Element::Autolink(AutolinkData {
                 url: "https://example.com/path"
             })
         );
-        assert_eq!(input, ").");
+        assert_eq!(punctuated_input, ").");
     }
 
     /// Verifies malformed URLs fail without consuming their source text.
@@ -230,12 +243,12 @@ mod tests {
     fn malformed_naked_and_angle_urls_are_rejected_without_consuming_input() {
         for source in ["https://example.com/%GG", "https://[invalid-host]/path"] {
             let mut input = source;
-            assert!(parse_naked_url(&mut input).is_err());
+            parse_naked_url(&mut input).expect_err("input should be rejected");
             assert_eq!(input, source);
         }
 
         let mut autolink = "<https://example.com/%GG>";
-        assert!(parse_autolink(&mut autolink).is_err());
+        parse_autolink(&mut autolink).expect_err("input should be rejected");
         assert_eq!(autolink, "<https://example.com/%GG>");
     }
 
@@ -243,7 +256,7 @@ mod tests {
     #[test]
     fn document_rendering_preserves_url_punctuation_and_malformed_source() {
         use crate::markdown_renderer::MarkdownRenderer;
-        use crate::visit::Visitor;
+        use crate::visit::Visitor as _;
 
         let source = concat!(
             "See https://example.com/path(a), and ",

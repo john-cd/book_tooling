@@ -1,5 +1,8 @@
 // TODO Reviewed ??-??-2026
-use crate::ast::*;
+use crate::ast::{
+    BlockquoteData, EmphasisData, FencedCodeBlockData, HtmlCommentData, InlineLinkData, ListData,
+    ListItemData, ParagraphData, StrikethroughData, StrongData, TableData, TextData,
+};
 use crate::visit::Visitor;
 
 /// Appends an HTML-escaped version of the input string to the destination buffer.
@@ -8,8 +11,8 @@ pub fn escape_html_to_string(input: &str, dest: &mut String) {
 
     // Iterate over bytes, which is faster than chars().
     // This is safe because HTML special characters are all single-byte ASCII.
-    for (i, b) in input.bytes().enumerate() {
-        let escaped = match b {
+    for (index, byte) in input.bytes().enumerate() {
+        let escaped = match byte {
             b'<' => "&lt;",
             b'>' => "&gt;",
             b'&' => "&amp;",
@@ -19,14 +22,14 @@ pub fn escape_html_to_string(input: &str, dest: &mut String) {
         };
 
         // Push the contiguous block of safe text prior to this special character
-        dest.push_str(&input[last_end..i]);
+        dest.push_str(input.get(last_end..index).unwrap_or_default());
         // Push the escaped HTML entity
         dest.push_str(escaped);
-        last_end = i + 1;
+        last_end = index + 1;
     }
 
     // Push any remaining safe text at the end of the string
-    dest.push_str(&input[last_end..]);
+    dest.push_str(input.get(last_end..).unwrap_or_default());
 }
 
 /// An AST visitor that compiles the document into an HTML string.
@@ -38,6 +41,7 @@ pub struct HtmlRenderer {
 
 impl HtmlRenderer {
     /// Creates an empty HTML renderer.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -174,6 +178,7 @@ impl<'a> Visitor<'a> for HtmlRenderer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ast::Element;
 
     #[test]
     fn test_escape_html_to_string() {

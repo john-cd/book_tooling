@@ -16,7 +16,11 @@ use crate::links::convert_inline_links_to_reference_definitions;
 ///
 /// Existing reference definitions are preserved and reused. New definitions are appended
 /// to the end of each updated file.
-pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
+///
+/// # Errors
+///
+/// Returns an error if a directory cannot be traversed or a file cannot be converted or rewritten.
+pub fn execute(directories: &[PathBuf]) -> Result<()> {
     tracing::info!(
         directory_count = directories.len(),
         "Starting inline-link conversion workflow"
@@ -27,7 +31,7 @@ pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
     let mut total_stats = InlineLinkConversionStats::default();
 
     walk_parsed_markdown_files(
-        &directories,
+        directories,
         &scope,
         |path, doc| {
             if !doc.source.contains("http") && !doc.source.contains('[') {

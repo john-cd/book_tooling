@@ -9,25 +9,25 @@ mod template_tests {
     fn test_render_badge_crate() {
         let name = "clap";
         let expected = "[![clap][p~clap~crate~badge]][p~clap~crate]{{hi:clap}}";
-        assert_eq!(render_badge(&DestinationKind::Crate, name), expected);
+        assert_eq!(render_badge(DestinationKind::Crate, name), expected);
     }
 
     #[test]
     fn test_render_badge_docs() {
         let name = "clap";
         let expected = "[![clap][c~clap~docs~badge]][c~clap~docs]{{hi:clap}}";
-        assert_eq!(render_badge(&DestinationKind::Docs, name), expected);
+        assert_eq!(render_badge(DestinationKind::Docs, name), expected);
     }
 
     #[test]
     fn test_render_link_category() {
         let name = "accessibility";
-        let expected = "[accessibility][cat~accessibility]↗{{hi:accessibility}}";
-        assert_eq!(render_link(&DestinationKind::Category, name), expected);
+        let expected = "[accessibility][cat~accessibility]\u{2197}{{hi:accessibility}}";
+        assert_eq!(render_link(DestinationKind::Category, name), expected);
     }
 }
 
-/// Tests shared expected outputs for the rust_rate template functions.
+/// Tests shared expected outputs for the `rust_rate` template functions.
 #[cfg(test)]
 mod shared_template_fixtures {
     use std::io;
@@ -36,7 +36,7 @@ mod shared_template_fixtures {
     use crate::templates::render_badge;
     use crate::templates::render_link;
 
-    /// Verifies rust_rate renders the same destinations as the shared book_tool fixture contract.
+    /// Verifies `rust_rate` renders the same destinations as the shared `book_tool` fixture contract.
     #[test]
     fn template_outputs_match_shared_destination_fixtures() -> Result<(), Box<dyn std::error::Error>>
     {
@@ -77,11 +77,11 @@ mod shared_template_fixtures {
             }
 
             assert_eq!(
-                render_badge(&kind, name),
+                render_badge(kind, name),
                 expected_badge,
                 "kind: {kind_name}"
             );
-            assert_eq!(render_link(&kind, name), expected_link, "kind: {kind_name}");
+            assert_eq!(render_link(kind, name), expected_link, "kind: {kind_name}");
         }
         Ok(())
     }

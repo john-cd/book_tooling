@@ -1,12 +1,16 @@
 // TODO Reviewed ??-??-2026
 use winnow::ModalResult;
-use winnow::Parser;
+use winnow::Parser as _;
 use winnow::combinator::alt;
 use winnow::token::take_till;
 
 use crate::ast::Element;
 
 /// Parses any characters until the next recognized element or end of input.
+///
+/// # Errors
+///
+/// Returns a backtrack error if the input is empty or starts with a character that begins other syntax.
 pub fn parse_plain_text<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     // Consume until the next special character.
     // take_till with 1.. ensures we consume at least one non-special character.
@@ -30,6 +34,10 @@ pub fn parse_plain_text<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
 }
 
 /// Fallback parser that handles escaped characters and consumes exactly one character if not escaped.
+///
+/// # Errors
+///
+/// Returns a backtrack error if the input is empty.
 pub fn parse_fallback_char<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     alt((
         winnow::combinator::seq!(_: "\\", winnow::token::any).take(),

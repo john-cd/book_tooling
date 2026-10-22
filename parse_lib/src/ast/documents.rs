@@ -10,6 +10,7 @@ pub struct Documents<'s> {
 
 impl<'s> Documents<'s> {
     /// Creates a new document collection.
+    #[must_use]
     pub fn new(documents: Vec<Document<'s>>) -> Self {
         Self { documents }
     }

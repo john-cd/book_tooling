@@ -1,4 +1,6 @@
 // TODO Reviewed ??-??-2026
+//! Command-line entry point that analyzes crate usage on GitHub and summarizes a crate from crates.io.
+
 use anyhow::Result;
 use futures::future::join_all;
 use rust_rate::crawler::GithubCrawler;
@@ -15,12 +17,12 @@ async fn main() -> Result<()> {
 
     // Retrieve GitHub token from environment variable if available
     let token = std::env::var("GITHUB_TOKEN").ok();
-    let crawler = GithubCrawler::new(token)?;
+    let crawler = GithubCrawler::new(token.as_deref())?;
     let mut stats = CrateStats::new();
     let analyzer = PatternAnalyzer::new()?;
 
     // Call execute to demonstrate integration and fix dead code
-    if let Err(e) = execute("anyhow".to_string()).await {
+    if let Err(e) = execute("anyhow".to_owned()).await {
         warn!("crates.io execute failed: {}", e);
     }
 
@@ -51,8 +53,8 @@ async fn main() -> Result<()> {
         // For now, let's just analyze the Cargo.toml if it were a .rs file just to demonstrate.
         match analyzer.analyze_source(&content, "anyhow") {
             Ok(patterns) => {
-                for p in patterns {
-                    info!("  Found pattern: {}", p);
+                for pattern in patterns {
+                    info!("  Found pattern: {pattern}");
                 }
             }
             Err(error) => warn!("Pattern analysis failed: {}", error),

@@ -21,6 +21,7 @@ pub struct Document<'s> {
 
 impl<'s> Document<'s> {
     /// Creates a new `Document` with the given elements.
+    #[must_use]
     pub fn new(
         name: &'s str,
         path: Option<&'s Path>,
@@ -46,6 +47,7 @@ impl<'s> Document<'s> {
     // }
 
     /// Returns true if the document has no elements.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.elements.is_empty()
     }

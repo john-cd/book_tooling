@@ -15,21 +15,28 @@ pub struct CrateStats {
     pub category_stats: HashMap<String, usize>,
 }
 
+/// The parts of a `Cargo.toml` manifest that the statistics need.
 #[derive(Debug, Deserialize)]
 struct CargoToml {
+    /// The `[dependencies]` table.
     dependencies: Option<Table>,
+    /// The `[dev-dependencies]` table.
     #[serde(rename = "dev-dependencies")]
     dev_dependencies: Option<Table>,
+    /// The `[package]` table.
     package: Option<PackageInfo>,
 }
 
+/// The parts of the `[package]` table that the statistics need.
 #[derive(Debug, Deserialize)]
 struct PackageInfo {
+    /// The crates.io categories the package declares.
     categories: Option<Vec<String>>,
 }
 
 impl CrateStats {
     /// Creates an empty statistics accumulator.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -71,10 +78,10 @@ impl CrateStats {
     pub fn print_summary(&self) {
         info!("--- Crate Usage Statistics ---");
         let mut sorted_usage: Vec<_> = self.usage_count.iter().collect();
-        sorted_usage.sort_by(|a, b| b.1.cmp(a.1));
+        sorted_usage.sort_by(|left, right| right.1.cmp(left.1));
 
         for (name, count) in sorted_usage.iter().take(20) {
-            println!("{}: {} usages", name, count);
+            println!("{name}: {count} usages");
         }
     }
 }
