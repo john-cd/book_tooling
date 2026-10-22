@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! Checks URLs concurrently, with retries that honor `Retry-After`.
+//!
+//! TODO Reviewed ??-??-2026
+
 use std::time::Duration;
 
 use anyhow::Context as _;

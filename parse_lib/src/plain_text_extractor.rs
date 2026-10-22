@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! A visitor that extracts the plain text of a document.
+//!
+//! TODO Reviewed ??-??-2026
+
 use crate::ast::{
     AutolinkData, CodeSpanData, FencedCodeBlockData, HeadingData, HtmlCommentData, InlineImageData,
     InlineLinkData, ReferenceStyleImageData, ReferenceStyleLinkData, TaskItemData, TextData,

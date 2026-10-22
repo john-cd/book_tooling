@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! A parsed Markdown document: its name, optional path and top-level elements.
+//!
+//! TODO Reviewed ??-??-2026
+
 use std::path::Path;
 
 use super::Element;

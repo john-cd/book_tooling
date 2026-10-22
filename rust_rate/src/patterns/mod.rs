@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! Detects code patterns in Rust source files.
+//!
+//! TODO Reviewed ??-??-2026
+
 use std::collections::HashMap;
 
 use anyhow::Context as _;
