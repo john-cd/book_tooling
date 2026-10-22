@@ -186,28 +186,21 @@ pub fn validate_no_unexpanded_directives(markdown: &str) -> Result<()> {
     use parse_lib::ast::HtmlCommentData;
     use parse_lib::visit::Visitor;
 
-    struct ProtectedSpanCollector {
-        source_base: usize,
-        source_len: usize,
+    struct ProtectedSpanCollector<'s> {
+        source: &'s str,
         spans: Vec<Range<usize>>,
     }
 
-    impl ProtectedSpanCollector {
+    impl ProtectedSpanCollector<'_> {
         /// Records the byte range of `text` when it borrows from the scanned source.
         fn add_span(&mut self, text: &str) {
-            let Some(start) = text.as_ptr().addr().checked_sub(self.source_base) else {
-                return;
-            };
-            let Some(end) = start.checked_add(text.len()) else {
-                return;
-            };
-            if end <= self.source_len {
-                self.spans.push(start..end);
+            if let Some(span) = parse_lib::source_span(self.source, text) {
+                self.spans.push(span);
             }
         }
     }
 
-    impl<'a> Visitor<'a> for ProtectedSpanCollector {
+    impl<'a> Visitor<'a> for ProtectedSpanCollector<'_> {
         /// Protects the lines of a fenced code block from the directive scan.
         fn visit_fenced_code_block(&mut self, data: &'a FencedCodeBlockData<'a>) {
             for line in &data.lines {
@@ -231,8 +224,7 @@ pub fn validate_no_unexpanded_directives(markdown: &str) -> Result<()> {
     let document = parse_lib::parse_document("<in-memory Markdown>", None, markdown)
         .context("Failed to inspect in-memory Markdown for unresolved directives")?;
     let mut collector = ProtectedSpanCollector {
-        source_base: markdown.as_ptr().addr(),
-        source_len: markdown.len(),
+        source: markdown,
         spans: Vec::new(),
     };
     collector.visit_document(&document);

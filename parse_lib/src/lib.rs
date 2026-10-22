@@ -25,6 +25,8 @@
 pub mod ast;
 /// Error types used by parsing entry points.
 pub mod errors;
+/// Maps AST fragments back to byte ranges of their source.
+pub mod source_span;
 /// Visitor traits and helper visitors for traversing parsed documents.
 pub mod visit;
 
@@ -63,3 +65,4 @@ pub mod parse_wikilinks;
 pub use ast::*;
 pub use errors::*;
 pub use parse_document::parse_document;
+pub use source_span::source_span;
