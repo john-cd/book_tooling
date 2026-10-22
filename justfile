@@ -7,8 +7,12 @@ set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
 
 root := source_directory()
 worktree_name := env("BOOK_TOOLING_WORKTREE_NAME", "main")
+cache_home := env("XDG_CACHE_HOME", join(home_directory(), ".cache"))
 export CARGO_TARGET_DIR := join("D:/target/book_tooling", worktree_name)
 export CARGO_BUILD_BUILD_DIR := join("C:/code_build/book_tooling", worktree_name)
+export RUSTC_WRAPPER := "sccache"
+export CARGO_INCREMENTAL := "0"
+export SCCACHE_DIR := env("SCCACHE_DIR", if os_family() == "windows" { "D:/sccache" } else { join(cache_home, "sccache") })
 
 [no-exit-message]
 _default:
