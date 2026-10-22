@@ -1,8 +1,8 @@
-// TODO Reviewed ??-??-2026
 //! Parses Markdown ATX Headings (with {# anchor} mdbook extension).
 //!
 //! See <https://spec.commonmark.org/0.31.2/#atx-headings>
 //!
+//! TODO Reviewed ??-??-2026
 
 use winnow::ModalResult;
 use winnow::Parser;

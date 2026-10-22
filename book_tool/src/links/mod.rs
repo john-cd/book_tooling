@@ -1,5 +1,6 @@
-// TODO Reviewed ??-??-2026
 //! Low-level link conversion, extraction, and verification helpers.
+//!
+//! TODO Reviewed ??-??-2026
 
 /// Asynchronous URL verification utilities.
 mod asynchro;

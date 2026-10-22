@@ -1,5 +1,6 @@
-// TODO Reviewed ??-??-2026
 //! Shared utilities for file-based command workflows.
+//!
+//! TODO Reviewed ??-??-2026
 
 use std::borrow::Cow;
 use std::io::Write;

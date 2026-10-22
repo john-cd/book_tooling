@@ -1,4 +1,3 @@
-// TODO Reviewed ??-??-2026
 //! Parse link destinations.
 //!
 //! A link destination consists of either
@@ -15,6 +14,8 @@
 //! but at least three levels of nesting should be supported.)
 //!
 //! <https://spec.commonmark.org/0.31.2/#link-destination>
+//!
+//! TODO Reviewed ??-??-2026
 
 mod angle_brackets;
 mod nonempty_sequence;

@@ -1,5 +1,6 @@
-// TODO Reviewed ??-??-2026
 //! Plain-text search across Markdown documents.
+//!
+//! TODO Reviewed ??-??-2026
 
 use std::path::PathBuf;
 

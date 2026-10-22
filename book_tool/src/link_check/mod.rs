@@ -1,5 +1,6 @@
-// TODO Reviewed ??-??-2026
 //! Verifies external links in Markdown documents.
+//!
+//! TODO Reviewed ??-??-2026
 
 use std::collections::HashSet;
 use std::path::PathBuf;

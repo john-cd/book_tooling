@@ -1,7 +1,8 @@
-// TODO Reviewed ??-??-2026
 //! Process crate block directives e.g. `{{#crate crt}}`
 //!
 //! Crate blocks combine multiple crate and categories badges.
+//!
+//! TODO Reviewed ??-??-2026
 
 use parse_lib::ast::DirectiveData;
 

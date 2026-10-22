@@ -1,17 +1,22 @@
-// TODO Reviewed ??-??-2026
 //! Expands custom directives and wikilinks in Markdown files.
+//!
+//! TODO Reviewed ??-??-2026
 
 mod crate_blocks;
+
 use crate_blocks::*;
 
 /// Directive-processing configuration types.
 mod conf;
+
 pub use conf::*;
 
 mod links_or_badges;
+
 use links_or_badges::*;
 
 mod examples;
+
 use std::ops::Range;
 use std::path::Path;
 use std::path::PathBuf;

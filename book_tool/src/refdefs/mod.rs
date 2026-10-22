@@ -1,5 +1,6 @@
-// TODO Reviewed ??-??-2026
 //! Reference-definition analysis and cleanup helpers.
+//!
+//! TODO Reviewed ??-??-2026
 
 use std::collections::HashMap;
 use std::collections::HashSet;
