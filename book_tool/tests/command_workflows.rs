@@ -728,6 +728,12 @@ fn link_check_cli_returns_failure_for_broken_urls_and_keeps_the_chapter_unchange
         "link-check stderr: {}",
         String::from_utf8_lossy(&output.stderr)
     );
+    let broken_line = format!("BROKEN: {} (HTTP 404 Not Found)", server.url("/missing"));
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains(&broken_line),
+        "link-check stderr should name the URL and status: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert_eq!(
         fs::read_to_string(chapter).expect("read unchanged chapter"),
         source

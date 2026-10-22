@@ -2,8 +2,8 @@
 use std::time::Duration;
 
 use anyhow::Context as _;
-use moka::future::Cache;
 use reqwest::Client;
+use reqwest::header::HeaderMap;
 use tokio::task::JoinSet;
 use tracing::debug;
 use tracing::warn;
@@ -20,17 +20,44 @@ pub struct UrlCheck {
     pub error: Option<String>,
 }
 
+impl UrlCheck {
+    /// Describes the outcome for humans: the transport error, or the final HTTP status line.
+    #[must_use]
+    pub fn describe(&self) -> String {
+        match (&self.error, self.status) {
+            (Some(error), _) => error.clone(),
+            (None, Some(status)) => format!("HTTP {status}"),
+            (None, None) => "no response".to_owned(),
+        }
+    }
+}
+
+/// Longest pause honoured between retries, whatever the server asks for.
+const MAX_RETRY_DELAY: Duration = Duration::from_secs(30);
+
+/// Chooses how long to wait before retrying a throttled request.
+///
+/// A numeric `Retry-After` header wins; a missing or unusable one (including the HTTP-date form)
+/// falls back to exponential backoff (1 s, 2 s, 4 s, ...). The result never exceeds [`MAX_RETRY_DELAY`].
+fn retry_delay(headers: &HeaderMap, attempt: usize) -> Duration {
+    let requested = headers
+        .get(reqwest::header::RETRY_AFTER)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.trim().parse::<u64>().ok())
+        .map(Duration::from_secs);
+    let backoff = Duration::from_secs(1_u64 << attempt.min(5));
+    requested.unwrap_or(backoff).min(MAX_RETRY_DELAY)
+}
+
 #[derive(Clone)]
-/// Concurrent HTTP/HTTPS link checker with in-memory result caching.
+/// Concurrent HTTP/HTTPS link checker.
 pub struct AsyncLinkChecker {
     /// HTTP client shared by all checks.
     client: Client,
-    /// Results of earlier checks, keyed by URL.
-    cache: Cache<Url, UrlCheck>,
 }
 
 impl AsyncLinkChecker {
-    /// Creates a new checker with a shared Reqwest client and a small URL cache.
+    /// Creates a new checker with a shared Reqwest client.
     ///
     /// # Errors
     ///
@@ -42,20 +69,13 @@ impl AsyncLinkChecker {
             .build()
             .context("Failed to build HTTP client for link checking")?;
 
-        let cache = Cache::new(1000);
-
-        Ok(Self { client, cache })
+        Ok(Self { client })
     }
 
-    /// Verifies a single URL, using the cache when possible.
+    /// Verifies a single URL.
     ///
     /// The checker attempts a `HEAD` request first and falls back to `GET` when needed.
     pub async fn check_url(&self, url: Url) -> UrlCheck {
-        if let Some(cached) = self.cache.get(&url).await {
-            debug!("Cache hit for {}", url);
-            return cached;
-        }
-
         debug!("Checking {}", url);
         // Try HEAD first, fall back to GET if HEAD fails or returns certain status codes
         let mut result = self.do_check(&url, true).await;
@@ -64,7 +84,6 @@ impl AsyncLinkChecker {
             result = self.do_check(&url, false).await;
         }
 
-        self.cache.insert(url, result.clone()).await;
         result
     }
 
@@ -126,22 +145,17 @@ impl AsyncLinkChecker {
                             | reqwest::StatusCode::SERVICE_UNAVAILABLE
                     ) && retries < MAX_RETRIES
                     {
-                        let retry_after = resp
-                            .headers()
-                            .get(reqwest::header::RETRY_AFTER)
-                            .and_then(|value| value.to_str().ok())
-                            .and_then(|value| value.parse::<u64>().ok())
-                            .unwrap_or(1);
+                        let delay = retry_delay(resp.headers(), retries);
 
                         warn!(
                             "Retrying {} after {} response from {} in {}s",
                             if use_head { "HEAD" } else { "GET" },
                             status,
                             url,
-                            retry_after
+                            delay.as_secs()
                         );
                         retries += 1;
-                        tokio::time::sleep(Duration::from_secs(retry_after)).await;
+                        tokio::time::sleep(delay).await;
                         continue;
                     }
 
@@ -160,5 +174,68 @@ impl AsyncLinkChecker {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use reqwest::header::HeaderValue;
+
+    use super::*;
+
+    /// Builds headers carrying a single `Retry-After` value.
+    fn headers_with_retry_after(value: &str) -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            reqwest::header::RETRY_AFTER,
+            HeaderValue::from_str(value).expect("valid header value"),
+        );
+        headers
+    }
+
+    #[test]
+    fn numeric_retry_after_is_honoured() {
+        assert_eq!(
+            retry_delay(&headers_with_retry_after("7"), 0),
+            Duration::from_secs(7)
+        );
+    }
+
+    #[test]
+    fn oversized_retry_after_is_capped() {
+        assert_eq!(
+            retry_delay(&headers_with_retry_after("86400"), 0),
+            MAX_RETRY_DELAY
+        );
+    }
+
+    #[test]
+    fn missing_or_unusable_retry_after_backs_off_exponentially() {
+        assert_eq!(retry_delay(&HeaderMap::new(), 0), Duration::from_secs(1));
+        assert_eq!(retry_delay(&HeaderMap::new(), 2), Duration::from_secs(4));
+        assert_eq!(retry_delay(&HeaderMap::new(), 40), Duration::from_secs(30));
+        assert_eq!(
+            retry_delay(
+                &headers_with_retry_after("Wed, 21 Oct 2026 07:28:00 GMT"),
+                1
+            ),
+            Duration::from_secs(2)
+        );
+    }
+
+    #[test]
+    fn describe_prefers_transport_errors_then_status() {
+        let failed = UrlCheck {
+            success: false,
+            status: None,
+            error: Some("connection refused".to_owned()),
+        };
+        let missing = UrlCheck {
+            success: false,
+            status: Some(reqwest::StatusCode::NOT_FOUND),
+            error: None,
+        };
+        assert_eq!(failed.describe(), "connection refused");
+        assert_eq!(missing.describe(), "HTTP 404 Not Found");
     }
 }
