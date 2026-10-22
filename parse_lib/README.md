@@ -75,3 +75,15 @@ for element in &doc.elements {
 - `parse_document` is total: Markdown has no syntax errors, so unrecognised or unbalanced syntax stays literal text.
 - Rendering a parsed document with `MarkdownRenderer` and an identity directive resolver reproduces the input byte for byte, including CRLF line endings.
 - Both invariants are enforced by `tests/round_trip.rs` with property tests (`proptest`) and the fixtures in `test_fixtures/markdown/`.
+
+## Fuzzing
+
+`fuzz/` holds a [`cargo fuzz`](https://rust-fuzz.github.io/book/cargo-fuzz.html) target that checks the same two invariants on arbitrary UTF-8 input. It needs a nightly toolchain, is not part of the workspace and is not run in CI:
+
+```bash
+cargo install cargo-fuzz
+cd parse_lib
+cargo +nightly fuzz run round_trip
+```
+
+Seed it with `test_fixtures/markdown/` (`cargo +nightly fuzz run round_trip ../test_fixtures/markdown`). Add any crash it finds as a fixture or a regression test in `tests/round_trip.rs`.

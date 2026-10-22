@@ -1,0 +1,23 @@
+# TODO Reviewed ??-??-2026
+[package]
+name = "parse_lib-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+parse_lib = { path = ".." }
+
+[[bin]]
+name = "round_trip"
+path = "fuzz_targets/round_trip.rs"
+test = false
+doc = false
+bench = false
+
+# Keep this crate out of the main workspace: it needs nightly and is not built in CI.
+[workspace]
