@@ -69,3 +69,9 @@ for element in &doc.elements {
 - The public `markdown` module is the supported surface for standalone Markdown element parsers.
 - Lower-level parsing helpers remain internal unless they are intentionally re-exported.
 - Most AST nodes borrow from the original input, so the source string must outlive the parsed `Document`.
+
+## Invariants
+
+- `parse_document` is total: Markdown has no syntax errors, so unrecognised or unbalanced syntax stays literal text.
+- Rendering a parsed document with `MarkdownRenderer` and an identity directive resolver reproduces the input byte for byte, including CRLF line endings.
+- Both invariants are enforced by `tests/round_trip.rs` with property tests (`proptest`) and the fixtures in `test_fixtures/markdown/`.
