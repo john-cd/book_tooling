@@ -4,6 +4,8 @@ use std::fmt::Write as _;
 use anyhow::Context as _;
 use anyhow::Result;
 use reqwest::Client;
+use reqwest::Response;
+use reqwest::StatusCode;
 use serde::Deserialize;
 use tracing::debug;
 use tracing::info;
@@ -33,10 +35,21 @@ pub struct GithubRepo {
     pub full_name: String,
 }
 
+/// Base URL of the public GitHub REST API.
+pub const GITHUB_API: &str = "https://api.github.com";
+
+/// Results requested per search page (the GitHub maximum).
+const SEARCH_PAGE_SIZE: usize = 100;
+
+/// Pages fetched at most per search; GitHub exposes no more than 1,000 code-search results.
+const MAX_SEARCH_PAGES: usize = 10;
+
 /// Client for interacting with GitHub API.
 pub struct GithubCrawler {
     /// HTTP client preconfigured with the crawler headers.
     client: Client,
+    /// Root of the GitHub REST API; overridable for tests.
+    api_base: String,
 }
 
 impl GithubCrawler {
@@ -68,11 +81,23 @@ impl GithubCrawler {
             .build()
             .context("Failed to build GitHub crawler HTTP client")?;
 
-        Ok(Self { client })
+        Ok(Self {
+            client,
+            api_base: GITHUB_API.to_owned(),
+        })
+    }
+
+    /// Points the crawler at another API root, such as a local test server.
+    #[must_use]
+    pub fn with_api_base(mut self, api_base: &str) -> Self {
+        api_base
+            .trim_end_matches('/')
+            .clone_into(&mut self.api_base);
+        self
     }
 
     /// Builds the GitHub code search URL for `query`, percent-encoding it and restricting results to `Cargo.toml` files.
-    fn build_search_url(query: &str) -> String {
+    fn build_search_url(api_base: &str, query: &str, page: usize) -> String {
         let mut encoded_query = String::with_capacity(query.len());
         for byte in query.as_bytes() {
             match byte {
@@ -85,35 +110,65 @@ impl GithubCrawler {
                 }
             }
         }
-        format!("https://api.github.com/search/code?q={encoded_query}+filename:Cargo.toml")
+        format!(
+            "{api_base}/search/code?q={encoded_query}+filename:Cargo.toml&per_page={SEARCH_PAGE_SIZE}&page={page}"
+        )
     }
 
-    /// Searches GitHub code results for matching `Cargo.toml` files.
+    /// Turns a non-success GitHub response into an error that names the cause.
+    ///
+    /// Rate limiting (HTTP 403 or 429) mentions when the quota resets, if GitHub says so.
+    fn ensure_success(response: Response) -> Result<Response> {
+        let status = response.status();
+        if status.is_success() {
+            return Ok(response);
+        }
+        if matches!(
+            status,
+            StatusCode::FORBIDDEN | StatusCode::TOO_MANY_REQUESTS
+        ) {
+            let reset = response
+                .headers()
+                .get("x-ratelimit-reset")
+                .and_then(|value| value.to_str().ok())
+                .map_or_else(String::new, |epoch| {
+                    format!(" (quota resets at Unix time {epoch})")
+                });
+            anyhow::bail!("GitHub API rate limit exceeded or forbidden access{reset}.");
+        }
+        anyhow::bail!("GitHub API returned HTTP {status}.")
+    }
+
+    /// Searches GitHub code results for matching `Cargo.toml` files, following pagination.
     ///
     /// # Errors
     ///
-    /// Returns an error if the request fails, the API returns an error status, or the response cannot be decoded.
+    /// Returns an error if a request fails, the API returns an error status (rate limiting is
+    /// reported explicitly), or a response cannot be decoded.
     pub async fn search_cargo_tomls(&self, query: &str) -> Result<Vec<GithubItem>> {
-        let url = Self::build_search_url(query);
-        info!("Searching GitHub: {}", url);
+        let mut items = Vec::new();
+        for page in 1..=MAX_SEARCH_PAGES {
+            let url = Self::build_search_url(&self.api_base, query, page);
+            info!("Searching GitHub: {}", url);
 
-        let response = self
-            .client
-            .get(&url)
-            .send()
-            .await
-            .context("Failed to send GitHub search request")?;
+            let response = self
+                .client
+                .get(&url)
+                .send()
+                .await
+                .context("Failed to send GitHub search request")?;
+            let search_response: GithubSearchResponse = Self::ensure_success(response)?
+                .json()
+                .await
+                .context("Failed to parse GitHub search response")?;
 
-        if response.status() == 403 {
-            anyhow::bail!("GitHub API rate limit exceeded or forbidden access.");
+            let fetched = search_response.items.len();
+            items.extend(search_response.items);
+            if fetched < SEARCH_PAGE_SIZE {
+                break;
+            }
         }
-
-        let search_response: GithubSearchResponse = response
-            .json()
-            .await
-            .context("Failed to parse GitHub search response")?;
-
-        Ok(search_response.items)
+        Ok(items)
     }
 
     /// Downloads raw file content from a GitHub API content URL.
@@ -132,7 +187,7 @@ impl GithubCrawler {
             .await
             .context("Failed to download content")?;
 
-        let content = response
+        let content = Self::ensure_success(response)?
             .text()
             .await
             .context("Failed to get response text")?;
@@ -146,14 +201,10 @@ mod tests {
 
     #[test]
     fn test_build_search_url_encoding() {
-        let query = "anyhow&sort=stars";
-        let url = GithubCrawler::build_search_url(query);
-        // Currently, it just interpolates, so it will contain the raw '&' and '='
-        // We want them to be encoded so they are part of the 'q' parameter.
-        assert!(
-            url.contains("q=anyhow%26sort%3Dstars+filename:Cargo.toml")
-                || url.contains("q=anyhow%26sort%3Dstars%20filename:Cargo.toml"),
-            "URL should have encoded query parameters. Got: {url}"
+        let url = GithubCrawler::build_search_url(GITHUB_API, "anyhow&sort=stars", 2);
+        assert_eq!(
+            url,
+            "https://api.github.com/search/code?q=anyhow%26sort%3Dstars+filename:Cargo.toml&per_page=100&page=2"
         );
     }
 

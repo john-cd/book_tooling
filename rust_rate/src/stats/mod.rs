@@ -1,9 +1,8 @@
 // TODO Reviewed ??-??-2026
+use std::collections::BTreeSet;
 use std::collections::HashMap;
 
-use serde::Deserialize;
-use toml::Table;
-use tracing::info;
+use toml::Value;
 use tracing::warn;
 
 /// Aggregated usage statistics collected from Cargo manifests.
@@ -15,23 +14,22 @@ pub struct CrateStats {
     pub category_stats: HashMap<String, usize>,
 }
 
-/// The parts of a `Cargo.toml` manifest that the statistics need.
-#[derive(Debug, Deserialize)]
-struct CargoToml {
-    /// The `[dependencies]` table.
-    dependencies: Option<Table>,
-    /// The `[dev-dependencies]` table.
-    #[serde(rename = "dev-dependencies")]
-    dev_dependencies: Option<Table>,
-    /// The `[package]` table.
-    package: Option<PackageInfo>,
+/// Dependency table names that can appear at the manifest root or under `[target.<cfg>]`.
+const DEPENDENCY_TABLES: [&str; 3] = ["dependencies", "dev-dependencies", "build-dependencies"];
+
+/// Returns the crate a dependency entry refers to: its `package` rename target, or the key itself.
+fn dependency_package_name<'a>(key: &'a str, value: &'a Value) -> &'a str {
+    value.get("package").and_then(Value::as_str).unwrap_or(key)
 }
 
-/// The parts of the `[package]` table that the statistics need.
-#[derive(Debug, Deserialize)]
-struct PackageInfo {
-    /// The crates.io categories the package declares.
-    categories: Option<Vec<String>>,
+/// Adds the crate names of every dependency in `table` to `names`.
+fn collect_dependency_names<'a>(table: Option<&'a Value>, names: &mut BTreeSet<&'a str>) {
+    let Some(entries) = table.and_then(Value::as_table) else {
+        return;
+    };
+    for (key, value) in entries {
+        names.insert(dependency_package_name(key, value));
+    }
 }
 
 impl CrateStats {
@@ -42,45 +40,67 @@ impl CrateStats {
     }
 
     /// Processes Cargo manifest contents and updates the aggregated counters.
+    ///
+    /// Each crate is counted once per manifest, however many dependency tables name it. The
+    /// `[dependencies]`, `[dev-dependencies]`, `[build-dependencies]`, `[workspace.dependencies]`
+    /// and `[target.<cfg>.*dependencies]` tables are read, and renamed dependencies
+    /// (`package = "..."`) count under their real crate name. A manifest that does not parse is
+    /// logged and skipped.
     pub fn process_cargo_toml(&mut self, content: &str) {
-        let cargo: CargoToml = match toml::from_str(content) {
-            Ok(c) => c,
+        let manifest: Value = match toml::from_str(content) {
+            Ok(manifest) => manifest,
             Err(e) => {
                 warn!("Failed to parse Cargo.toml: {}", e);
                 return;
             }
         };
 
-        if let Some(deps) = cargo.dependencies {
-            for name in deps.keys() {
-                *self.usage_count.entry(name.clone()).or_insert(0) += 1;
+        let mut names = BTreeSet::new();
+        for table in DEPENDENCY_TABLES {
+            collect_dependency_names(manifest.get(table), &mut names);
+        }
+        collect_dependency_names(
+            manifest
+                .get("workspace")
+                .and_then(|workspace| workspace.get("dependencies")),
+            &mut names,
+        );
+        if let Some(targets) = manifest.get("target").and_then(Value::as_table) {
+            for target in targets.values() {
+                for table in DEPENDENCY_TABLES {
+                    collect_dependency_names(target.get(table), &mut names);
+                }
             }
         }
-
-        if let Some(dev_deps) = cargo.dev_dependencies {
-            for name in dev_deps.keys() {
-                *self.usage_count.entry(name.clone()).or_insert(0) += 1;
-            }
+        for name in names {
+            *self.usage_count.entry(name.to_owned()).or_insert(0) += 1;
         }
 
-        // Categories are usually only in the crate's own Cargo.toml.
-        // If we are crawling random repos, we might see categories of the apps themselves.
-        if let Some(pkg) = cargo.package
-            && let Some(cats) = pkg.categories
-        {
-            for cat in cats {
-                *self.category_stats.entry(cat).or_insert(0) += 1;
-            }
+        let categories = manifest
+            .get("package")
+            .and_then(|package| package.get("categories"))
+            .and_then(Value::as_array);
+        for category in categories.into_iter().flatten().filter_map(Value::as_str) {
+            *self.category_stats.entry(category.to_owned()).or_insert(0) += 1;
         }
     }
 
-    /// Prints a small top-usage summary to stdout.
-    pub fn print_summary(&self) {
-        info!("--- Crate Usage Statistics ---");
-        let mut sorted_usage: Vec<_> = self.usage_count.iter().collect();
-        sorted_usage.sort_by(|left, right| right.1.cmp(left.1));
+    /// Returns `(crate, count)` pairs ordered by count descending, then name ascending.
+    #[must_use]
+    pub fn ranked_usage(&self) -> Vec<(&str, usize)> {
+        let mut ranked: Vec<(&str, usize)> = self
+            .usage_count
+            .iter()
+            .map(|(name, count)| (name.as_str(), *count))
+            .collect();
+        ranked.sort_by(|left, right| right.1.cmp(&left.1).then_with(|| left.0.cmp(right.0)));
+        ranked
+    }
 
-        for (name, count) in sorted_usage.iter().take(20) {
+    /// Prints the twenty most used crates to stdout.
+    pub fn print_summary(&self) {
+        println!("--- Crate Usage Statistics ---");
+        for (name, count) in self.ranked_usage().into_iter().take(20) {
             println!("{name}: {count} usages");
         }
     }
@@ -111,5 +131,50 @@ mod tests {
         assert_eq!(stats.usage_count.get("tokio"), Some(&1));
         assert_eq!(stats.usage_count.get("tempfile"), Some(&1));
         assert_eq!(stats.category_stats.get("api-bindings"), Some(&1));
+    }
+
+    #[test]
+    fn test_all_dependency_tables_renames_and_per_manifest_counting() {
+        let mut stats = CrateStats::new();
+        stats.process_cargo_toml(
+            r#"
+            [dependencies]
+            serde = "1.0"
+            json = { package = "serde_json", version = "1.0" }
+
+            [dev-dependencies]
+            serde = "1.0"
+
+            [build-dependencies]
+            cc = "1.0"
+
+            [target.'cfg(unix)'.dependencies]
+            libc = "0.2"
+
+            [workspace.dependencies]
+            anyhow = "1.0"
+            "#,
+        );
+
+        for name in ["serde", "serde_json", "cc", "libc", "anyhow"] {
+            assert_eq!(stats.usage_count.get(name), Some(&1), "{name}");
+        }
+        assert_eq!(stats.usage_count.get("json"), None);
+    }
+
+    #[test]
+    fn test_invalid_manifest_is_skipped() {
+        let mut stats = CrateStats::new();
+        stats.process_cargo_toml("this is not [toml");
+        assert!(stats.usage_count.is_empty());
+    }
+
+    #[test]
+    fn test_ranked_usage_orders_by_count_then_name() {
+        let mut stats = CrateStats::new();
+        stats.usage_count.insert("b".to_owned(), 2);
+        stats.usage_count.insert("a".to_owned(), 2);
+        stats.usage_count.insert("c".to_owned(), 5);
+        assert_eq!(stats.ranked_usage(), [("c", 5), ("a", 2), ("b", 2)]);
     }
 }

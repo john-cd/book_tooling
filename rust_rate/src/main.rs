@@ -1,41 +1,64 @@
-// TODO Reviewed ??-??-2026
 //! Command-line entry point that analyzes crate usage on GitHub and summarizes a crate from crates.io.
+//!
+//! TODO Reviewed ??-??-2026
 
+use anyhow::Context as _;
 use anyhow::Result;
+use clap::Parser;
+use clap::Subcommand;
 use futures::future::join_all;
+use rust_rate::crates_io;
 use rust_rate::crawler::GithubCrawler;
 use rust_rate::patterns::PatternAnalyzer;
-use rust_rate::rust_rate::execute;
 use rust_rate::stats::CrateStats;
 use tracing::info;
 use tracing::warn;
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    tracing_subscriber::fmt::init();
-    info!("rust_rate tool started.");
+/// Command-line arguments.
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    /// The workflow to run.
+    #[command(subcommand)]
+    command: Commands,
+}
 
-    // Retrieve GitHub token from environment variable if available
-    let token = std::env::var("GITHUB_TOKEN").ok();
+/// The workflows `rust_rate` offers.
+#[derive(Subcommand)]
+enum Commands {
+    /// Print the crates.io summary of a crate.
+    CratesIo {
+        /// Name of the crate, for example `anyhow`.
+        crate_name: String,
+    },
+    /// Sample GitHub `Cargo.toml` files that mention a crate and print usage statistics.
+    Stats {
+        /// Name of the crate, for example `anyhow`.
+        crate_name: String,
+        /// Maximum number of manifests to download and analyze.
+        #[arg(short, long, default_value_t = 5)]
+        limit: usize,
+        /// Environment variable that holds a GitHub token (raises the API rate limit).
+        #[arg(long, default_value = "GITHUB_TOKEN")]
+        token_env: String,
+    },
+}
+
+/// Searches GitHub for manifests that mention `crate_name`, then prints usage statistics.
+async fn run_stats(crate_name: &str, limit: usize, token_env: &str) -> Result<()> {
+    crates_io::validate_crate_name(crate_name)?;
+    let token = std::env::var(token_env).ok();
     let crawler = GithubCrawler::new(token.as_deref())?;
-    let mut stats = CrateStats::new();
     let analyzer = PatternAnalyzer::new()?;
+    let mut stats = CrateStats::new();
 
-    // Call execute to demonstrate integration and fix dead code
-    if let Err(e) = execute("anyhow".to_owned()).await {
-        warn!("crates.io execute failed: {}", e);
-    }
+    let items = crawler
+        .search_cargo_tomls(crate_name)
+        .await
+        .context("GitHub search failed (rate limit or missing token?)")?;
+    info!("Found {} manifests; analyzing {limit}", items.len());
 
-    // Example: Search for Cargo.toml files containing "anyhow"
-    let items = match crawler.search_cargo_tomls("anyhow").await {
-        Ok(items) => items,
-        Err(e) => {
-            warn!("Search failed (likely rate limit or missing token): {}", e);
-            return Ok(());
-        }
-    };
-
-    let download_futures = items.iter().take(5).map(|item| {
+    let downloads = items.iter().take(limit).map(|item| {
         let crawler = &crawler;
         async move {
             info!("Processing {} in {}", item.path, item.repository.full_name);
@@ -43,25 +66,33 @@ async fn main() -> Result<()> {
         }
     });
 
-    let results = join_all(download_futures).await;
-
-    for content in results.into_iter().flatten() {
-        stats.process_cargo_toml(&content);
-
-        // If we found a repository, let's try to find a .rs file in it for pattern analysis
-        // This is a simplified example: in a real tool, we would crawl the repo structure.
-        // For now, let's just analyze the Cargo.toml if it were a .rs file just to demonstrate.
-        match analyzer.analyze_source(&content, "anyhow") {
-            Ok(patterns) => {
-                for pattern in patterns {
+    for result in join_all(downloads).await {
+        match result {
+            Ok(content) => {
+                stats.process_cargo_toml(&content);
+                for pattern in analyzer.analyze_source(&content, crate_name)? {
                     info!("  Found pattern: {pattern}");
                 }
             }
-            Err(error) => warn!("Pattern analysis failed: {}", error),
+            Err(error) => warn!("Skipping a manifest: {error:#}"),
         }
     }
 
     stats.print_summary();
-
     Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    tracing_subscriber::fmt::init();
+    let cli = Cli::parse();
+
+    match cli.command {
+        Commands::CratesIo { crate_name } => crates_io::execute(&crate_name).await,
+        Commands::Stats {
+            crate_name,
+            limit,
+            token_env,
+        } => run_stats(&crate_name, limit, &token_env).await,
+    }
 }

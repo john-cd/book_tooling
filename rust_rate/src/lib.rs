@@ -4,17 +4,17 @@
 //! - [`crawler`]: GitHub API access for discovering Cargo manifests and downloading content.
 //! - [`stats`]: aggregation of crate usage and package category statistics.
 //! - [`patterns`]: source analysis for crate-specific usage patterns.
-//! - [`rust_rate`]: a small crates.io summary workflow.
+//! - [`crates_io`]: a small crates.io summary workflow.
 //! - [`templates`] and [`utils`]: formatting and test helpers.
 //!
 //! TODO Reviewed ??-??-2026
 
+/// crates.io summary workflow utilities.
+pub mod crates_io;
 /// GitHub API crawling utilities.
 pub mod crawler;
 /// Source-pattern analysis utilities.
 pub mod patterns;
-/// crates.io summary workflow utilities.
-pub mod rust_rate;
 /// Cargo.toml statistics aggregation utilities.
 pub mod stats;
 /// Markdown link and badge rendering helpers.
