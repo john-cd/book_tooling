@@ -40,10 +40,10 @@ fn path_identity(path: &Path) -> String {
     }
 }
 
-/// Returns the files under `root` that `scope` includes and that are not already in `seen`.
+/// Returns the files under `root` that `scope` includes and that are not already in `seen`, in depth-first file-name order.
 fn collect_files(root: &Path, scope: &Scope, seen: &mut HashSet<String>) -> Result<Vec<PathBuf>> {
     let mut files = Vec::new();
-    for entry in WalkDir::new(root) {
+    for entry in WalkDir::new(root).sort_by_file_name() {
         let entry = entry.with_context(|| format!("Failed to traverse {}", root.display()))?;
         if entry.file_type().is_dir() || entry.file_type().is_symlink() {
             continue;
@@ -223,6 +223,29 @@ mod tests {
         )?;
 
         assert_eq!(processed, [chapter.canonicalize()?]);
+        Ok(())
+    }
+
+    /// Files are visited depth-first in file-name order regardless of the filesystem's directory order.
+    #[test]
+    fn traversal_order_is_deterministic() -> Result<()> {
+        let temp = tempdir()?;
+        std::fs::create_dir_all(temp.path().join("a"))?;
+        for name in ["b.md", "a/c.md", "a/b.md", "z.md", "a.md"] {
+            std::fs::write(temp.path().join(name), "# Title\n")?;
+        }
+        let mut visited = Vec::new();
+
+        walk_directory_and_process_files(temp.path(), &Scope::default(), |path| {
+            visited.push(
+                path.strip_prefix(temp.path())?
+                    .to_string_lossy()
+                    .replace('\\', "/"),
+            );
+            Ok(())
+        })?;
+
+        assert_eq!(visited, ["a/b.md", "a/c.md", "a.md", "b.md", "z.md"]);
         Ok(())
     }
 
