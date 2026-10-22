@@ -28,7 +28,7 @@ The project is organized as a Rust workspace optimized for high-performance Mark
 ### `book_tool`
 
 - `common`
-  - `process_text_file`: atomic in-place text rewriting helper.
+  - `replace_text_file_atomically`: atomic in-place text rewriting helper.
   - `walk`: directory traversal with extension and filename filtering.
   - `templates`: Markdown badge and link formatting helpers.
 - `directives`
@@ -92,7 +92,7 @@ The project is organized as a Rust workspace optimized for high-performance Mark
    - For conversion tasks (like `inline-links`), the visitor modifies the tree or builds a new representation.
    - For analysis tasks (like `link-check`), the visitor extracts data for external validation.
 4. **Reconstruction**: If changes are made, a `PrettyPrinter` or specialized renderer converts the AST back into a UTF-8 string.
-5. **Persistence**: `common::process_text_file` performs an atomic write back to disk, ensuring file integrity.
+5. **Persistence**: `common::replace_text_file_atomically` performs an atomic write back to disk, ensuring file integrity.
 
 ## API Boundaries
 

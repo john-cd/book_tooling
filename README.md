@@ -58,7 +58,7 @@ This workspace provides a suite of tools to automate the management and enrichme
 ### `book_tool` APIs
 
 - Commands are exposed as module-level `execute(...)` functions for `directives`, `extract_comments`, `inline_links`, `link_check`, and `search`.
-- Shared utilities include `common::process_text_file`, `common::walk::Scope`, `common::walk::walk_directory_and_process_files`, `links::extract_urls`, `links::AsyncLinkChecker`, `refdefs::find_unused_refdefs`, and `refdefs::delete_unused_refdefs`.
+- Shared utilities include `common::replace_text_file_atomically`, `common::Scope`, `common::walk_directories_and_process_files`, `links::extract_urls`, `links::AsyncLinkChecker`, `refdefs::find_unused_refdefs`, and `refdefs::delete_unused_refdefs`.
 
 ### `parse_lib` APIs
 
