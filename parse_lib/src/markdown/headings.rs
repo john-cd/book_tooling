@@ -1,11 +1,11 @@
 //! Parses Markdown ATX Headings (with {# anchor} mdbook extension).
 //!
-//! See <https://spec.commonmark.org/0.31.2/#atx-headings>
+//! See <https://spec.commonmark.org/0.31.2/#atx-headings>.
 //!
 //! TODO Reviewed ??-??-2026
 
 use winnow::ModalResult;
-use winnow::Parser;
+use winnow::Parser as _;
 use winnow::ascii::line_ending;
 use winnow::ascii::space0;
 use winnow::ascii::space1;
@@ -18,21 +18,21 @@ use winnow::combinator::preceded;
 use winnow::combinator::repeat;
 use winnow::combinator::seq;
 use winnow::combinator::terminated;
-use winnow::error::StrContext::*;
-use winnow::error::StrContextValue::*;
-use winnow::stream::Stream;
+use winnow::error::StrContext::{Expected, Label};
+use winnow::error::StrContextValue::Description;
+use winnow::stream::Stream as _;
 use winnow::token::take_while;
 
-use crate::ast::*;
+use crate::ast::{Element, HeadingData};
 
-// Identation followed by opening sequence of 1–6 unescaped # characters
+/// Parses the opening run of one to six `#` characters and returns the heading level.
 fn parse_opening_hashes(input: &mut &str) -> ModalResult<u8> {
     preceded(
         // Parse indentation. Up to three spaces of indentation are allowed.
         take_while(0..=3, ' '),
         // Opening sequence of 1–6 unescaped # characters
         repeat(1.., "#")
-            .verify_map(|count: usize| if count <= 6 { Some(count as u8) } else { None }),
+            .verify_map(|count: usize| u8::try_from(count).ok().filter(|level| *level <= 6)),
     )
     .parse_next(input)
 }
@@ -40,7 +40,7 @@ fn parse_opening_hashes(input: &mut &str) -> ModalResult<u8> {
 /// Parse Attribute Block.
 /// This is a simplified parser for attributes focusing on the ID.
 ///
-/// <https://rust-lang.github.io/mdBook/format/markdown.html#heading-attributes>
+/// See <https://rust-lang.github.io/mdBook/format/markdown.html#heading-attributes>.
 fn parse_attribute_block<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     let attributes_content_chars = |c: char| {
         c != '{' && c != '}' && c != '<' && c != '>' && c != '\\' && c != '\n' && c != '\r'
@@ -51,12 +51,12 @@ fn parse_attribute_block<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
         preceded("#", take_while(1.., attributes_content_chars)),
         space0,
     )
-    .verify_map(|s: &str| {
-        let s = s.trim();
-        if s.is_empty() {
+    .verify_map(|raw_id: &str| {
+        let id = raw_id.trim();
+        if id.is_empty() {
             None // No ID specified.
         } else {
-            Some(s) // Return the ID.
+            Some(id) // Return the ID.
         }
     });
 
@@ -71,7 +71,7 @@ fn parse_attribute_block<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     .parse_next(input)
 }
 
-// Helper to parse content that doesn't contain a closing hash sequence or attribute block start.
+/// Parses the heading text up to an optional attribute block or closing hashes.
 fn parse_heading_content<'s>(
     input: &mut &'s str,
 ) -> ModalResult<(Option<&'s str>, Option<&'s str>)> {
@@ -79,7 +79,7 @@ fn parse_heading_content<'s>(
     let mut content =
         take_while(0.., |c| c != '\n' && c != '\r' && c != '{' && c != '#').map(|content: &str| {
             let cnt = content.trim();
-            if !cnt.is_empty() { Some(cnt) } else { None }
+            (!cnt.is_empty()).then_some(cnt)
         });
 
     // Optional closing sequence of any number of unescaped # characters.
@@ -102,6 +102,10 @@ fn parse_heading_content<'s>(
 }
 
 /// Parses a Markdown ATX heading.
+///
+/// # Errors
+///
+/// Returns a backtrack error if the input does not begin with an ATX heading.
 pub fn parse_atx_heading<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     let start = input.checkpoint();
     let mut hashes = parse_opening_hashes;
@@ -109,15 +113,18 @@ pub fn parse_atx_heading<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
 
     match hashes.parse_next(input) {
         Ok(level) => {
-            match content.parse_next(input) {
-                Ok((content, id)) => Ok(Element::Heading(HeadingData { level, content, id })),
-                Err(_) => {
-                    input.reset(&start);
-                    // Return a backtrack error instead of a cut error.
-                    Err(winnow::error::ErrMode::Backtrack(
-                        winnow::error::ContextError::default(),
-                    ))
-                }
+            if let Ok((text, id)) = content.parse_next(input) {
+                Ok(Element::Heading(HeadingData {
+                    level,
+                    content: text,
+                    id,
+                }))
+            } else {
+                input.reset(&start);
+                // Return a backtrack error instead of a cut error.
+                Err(winnow::error::ErrMode::Backtrack(
+                    winnow::error::ContextError::default(),
+                ))
             }
         }
         Err(e) => {

@@ -1,3 +1,5 @@
+//! Tests the inline-link conversion against an excerpt of the Rust How-To book.
+
 use std::fs;
 use std::process::Command;
 

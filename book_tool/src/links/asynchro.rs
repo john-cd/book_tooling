@@ -1,7 +1,7 @@
 // TODO Reviewed ??-??-2026
 use std::time::Duration;
 
-use anyhow::Context;
+use anyhow::Context as _;
 use moka::future::Cache;
 use reqwest::Client;
 use tokio::task::JoinSet;
@@ -23,12 +23,18 @@ pub struct UrlCheck {
 #[derive(Clone)]
 /// Concurrent HTTP/HTTPS link checker with in-memory result caching.
 pub struct AsyncLinkChecker {
+    /// HTTP client shared by all checks.
     client: Client,
+    /// Results of earlier checks, keyed by URL.
     cache: Cache<Url, UrlCheck>,
 }
 
 impl AsyncLinkChecker {
     /// Creates a new checker with a shared Reqwest client and a small URL cache.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP client cannot be built.
     pub fn new() -> anyhow::Result<Self> {
         let client = Client::builder()
             .timeout(Duration::from_secs(10))
@@ -99,6 +105,7 @@ impl AsyncLinkChecker {
         results
     }
 
+    /// Requests `url` with `HEAD` or `GET`, retrying transient failures, and summarizes the outcome.
     async fn do_check(&self, url: &Url, use_head: bool) -> UrlCheck {
         const MAX_RETRIES: usize = 3;
         let mut retries = 0;

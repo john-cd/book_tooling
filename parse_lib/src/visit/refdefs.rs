@@ -1,11 +1,12 @@
 // TODO Reviewed ??-??-2026
-use super::Visitable;
-use crate::ast::*;
+use super::Visitable as _;
+use crate::ast::{Documents, ReferenceDefinitionData};
 
 /// A visitor that collects reference definitions.
 struct RefDefVisitor<'v>(RefDefManager<'v>);
 
 impl RefDefVisitor<'_> {
+    /// Creates a visitor with an empty collection.
     fn new() -> Self {
         Self(RefDefManager::new())
     }
@@ -29,6 +30,7 @@ pub struct RefDefManager<'v> {
 use multimap::MultiMap;
 
 impl RefDefManager<'_> {
+    /// Creates an empty manager.
     fn new() -> Self {
         Self {
             refdefs: Vec::new(),
@@ -36,25 +38,28 @@ impl RefDefManager<'_> {
     }
 
     /// Return labels used more than once.
-    pub fn dupe_labels(&mut self) -> Vec<&str> {
+    #[must_use]
+    pub fn dupe_labels(&self) -> Vec<&str> {
         // Could use `itertools` as well.
         let mm: MultiMap<&str, &ReferenceDefinitionData<'_>> =
             self.refdefs.iter().map(|&rd| (rd.label, rd)).collect();
-        let mut labels: Vec<&str> = mm.keys().filter(|&&k| mm.is_vec(k)).cloned().collect();
-        labels.sort();
+        let mut labels: Vec<&str> = mm.keys().filter(|&&key| mm.is_vec(key)).copied().collect();
+        labels.sort_unstable();
         labels
     }
 
     /// Return urls used more than once.
-    pub fn dupe_urls(&mut self) -> Vec<&str> {
+    #[must_use]
+    pub fn dupe_urls(&self) -> Vec<&str> {
         let mm: MultiMap<&str, &ReferenceDefinitionData<'_>> =
             self.refdefs.iter().map(|&rd| (rd.url, rd)).collect();
-        let mut urls: Vec<&str> = mm.keys().filter(|&&k| mm.is_vec(k)).cloned().collect();
-        urls.sort();
+        let mut urls: Vec<&str> = mm.keys().filter(|&&key| mm.is_vec(key)).copied().collect();
+        urls.sort_unstable();
         urls
     }
 
     /// Get a sorted, deduplicated list of reference definitions.
+    #[must_use]
     pub fn get_sorted_dedupe_refdefs(&self) -> Vec<&ReferenceDefinitionData<'_>> {
         let mut refdefs = self.refdefs.clone();
         refdefs.sort();
@@ -65,6 +70,14 @@ impl RefDefManager<'_> {
 }
 
 /// Collects reference definitions from a set of documents and returns a manager over them.
+///
+/// # Errors
+///
+/// Never fails at present; the `Result` keeps the signature stable for future validation.
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "The Result keeps the public signature stable for future validation."
+)]
 pub fn refdefs<'d, 'a>(docs: &'a Documents<'d>) -> anyhow::Result<RefDefManager<'d>>
 where
     'a: 'd,
@@ -88,7 +101,7 @@ mod tests {
         )
         .expect("parse test markdown");
         let docs = Documents::new(vec![doc]);
-        let mut manager = refdefs(&docs).expect("collect reference definitions");
+        let manager = refdefs(&docs).expect("collect reference definitions");
 
         assert_eq!(manager.dupe_labels(), vec!["alpha"]);
         assert_eq!(manager.dupe_urls(), vec!["https://one.example"]);

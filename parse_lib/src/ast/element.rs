@@ -130,13 +130,15 @@ pub struct BlockquoteData<'a> {
 pub struct ListData<'a> {
     /// Whether the list was parsed as ordered.
     pub ordered: bool,
-    pub items: Vec<Element<'a>>, // Elements here should strictly be `ListItem`s
+    /// The list items; every element should be a `ListItem`.
+    pub items: Vec<Element<'a>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 /// Data for a list item.
 pub struct ListItemData<'a> {
-    pub elements: Vec<Element<'a>>, // Can contain paragraphs, nested lists, etc.
+    /// The item content; can contain paragraphs, nested lists, etc.
+    pub elements: Vec<Element<'a>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -153,6 +155,7 @@ pub struct HeadingData<'a> {
 #[derive(Debug, PartialEq, Eq)]
 /// Plain text that did not match a more specific inline element parser.
 pub struct TextData<'a> {
+    /// The text.
     pub content: &'a str,
 }
 
@@ -180,6 +183,7 @@ pub struct TableData<'a> {
 
 impl<'a> TableData<'a> {
     /// Creates a table from raw cells without parsed inline elements.
+    #[must_use]
     pub fn new(header: Vec<&'a str>, rows: Vec<Vec<&'a str>>) -> Self {
         let header_elements = header.iter().map(|_| Vec::new()).collect();
         let row_elements = rows
@@ -199,18 +203,21 @@ impl<'a> TableData<'a> {
 #[derive(Debug, PartialEq, Eq)]
 /// Data for a strong-emphasis inline container.
 pub struct StrongData<'a> {
+    /// The inline elements inside the strong emphasis.
     pub elements: Vec<Element<'a>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 /// Data for an emphasis inline container.
 pub struct EmphasisData<'a> {
+    /// The inline elements inside the emphasis.
     pub elements: Vec<Element<'a>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 /// Data for a strikethrough inline container.
 pub struct StrikethroughData<'a> {
+    /// The inline elements inside the strikethrough.
     pub elements: Vec<Element<'a>>,
 }
 
@@ -219,43 +226,43 @@ pub struct StrikethroughData<'a> {
 pub enum Element<'a> {
     /// A standalone URL: `http://...` or `https://...`
     /// optionally between < and > (i.e., an autolink).
-    /// By design, more permissive than the CommonMark spec:
-    /// <https://spec.commonmark.org/0.31.2/#autolinks>
+    /// By design, more permissive than the `CommonMark` spec:
+    /// See <https://spec.commonmark.org/0.31.2/#autolinks>.
     Autolink(AutolinkData<'a>),
 
     /// A Markdown-style inline link: `[text](url)`.
-    /// <https://spec.commonmark.org/0.31.2/#inline-link>
+    /// See <https://spec.commonmark.org/0.31.2/#inline-link>.
     InlineLink(InlineLinkData<'a>),
 
     /// Reference-style link: `[...][...]`.
-    /// <https://spec.commonmark.org/0.31.2/#reference-link>
+    /// See <https://spec.commonmark.org/0.31.2/#reference-link>.
     ReferenceStyleLink(ReferenceStyleLinkData<'a>),
 
     /// Images: `![foo](/url "title")`.
-    /// <https://spec.commonmark.org/0.31.2/#images>
+    /// See <https://spec.commonmark.org/0.31.2/#images>.
     InlineImage(InlineImageData<'a>),
 
     /// Reference-style image: `![foo][bar]`.
     ReferenceStyleImage(ReferenceStyleImageData<'a>),
 
     /// Reference definition: `[...]: http://... "title"`.
-    /// <https://spec.commonmark.org/0.31.2/#link-reference-definitions>
+    /// See <https://spec.commonmark.org/0.31.2/#link-reference-definitions>.
     ReferenceDefinition(ReferenceDefinitionData<'a>),
 
     /// Wikilink: `[[target_page]]` or `[[target_page | display]]`, with or without spaces.
-    /// <https://en.wikipedia.org/wiki/Help:Link#Wikilinks_(internal_links)>
+    /// See <https://en.wikipedia.org/wiki/Help:Link#Wikilinks_(internal_links)>.
     WikiLink(WikiLinkData<'a>),
 
-    /// CodeSpan enclosed between ` and `.
-    /// <https://spec.commonmark.org/0.31.2/#code-spans>
+    /// A code span enclosed between single backticks.
+    /// See <https://spec.commonmark.org/0.31.2/#code-spans>.
     CodeSpan(CodeSpanData<'a>),
 
-    /// Fenced Code Block enclosed in e.g. triple backticks (```).
-    /// <https://spec.commonmark.org/0.31.2/#fenced-code-blocks>
+    /// A fenced code block enclosed in, for example, triple backticks.
+    /// See <https://spec.commonmark.org/0.31.2/#fenced-code-blocks>.
     FencedCodeBlock(FencedCodeBlockData<'a>),
 
     /// An HTML div block, storing its raw content between `<div class="hidden"> </div>`.
-    /// <https://rust-lang.github.io/mdBook/format/mdbook.html#html-classes-provided-by-mdbook>
+    /// See <https://rust-lang.github.io/mdBook/format/mdbook.html#html-classes-provided-by-mdbook>.
     HiddenHtmlDiv(HiddenHtmlDivData<'a>),
 
     /// An HTML comment: `<!-- ... -->`.
@@ -263,7 +270,7 @@ pub enum Element<'a> {
 
     /// A Markdown ATX heading: `# Some Text {#an-anchor}`.
     /// <https://spec.commonmark.org/0.31.2/#atx-headings>
-    /// <https://rust-lang.github.io/mdBook/format/markdown.html#heading-attributes>
+    /// See <https://rust-lang.github.io/mdBook/format/markdown.html#heading-attributes>.
     Heading(HeadingData<'a>),
 
     /// Plain text that doesn't match other elements.

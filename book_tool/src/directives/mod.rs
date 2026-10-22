@@ -3,8 +3,7 @@
 //! TODO Reviewed ??-??-2026
 
 mod crate_blocks;
-
-use crate_blocks::*;
+use crate_blocks::{render_category_block, render_crate_block};
 
 /// Directive-processing configuration types.
 mod conf;
@@ -12,8 +11,7 @@ mod conf;
 pub use conf::*;
 
 mod links_or_badges;
-
-use links_or_badges::*;
+use links_or_badges::render_link_or_badge;
 
 mod examples;
 
@@ -21,9 +19,9 @@ use std::ops::Range;
 use std::path::Path;
 use std::path::PathBuf;
 
-use anyhow::Context;
+use anyhow::Context as _;
 use anyhow::Result;
-use examples::*;
+use examples::render_example;
 
 use crate::common::Scope;
 use crate::common::walk_parsed_markdown_files;
@@ -32,6 +30,10 @@ use crate::common::walk_parsed_markdown_files;
 ///
 /// The command loads `config.toml` from the current working directory when present,
 /// and otherwise falls back to [`Config::default`]. Files are rewritten in place.
+///
+/// # Errors
+///
+/// Returns an error if the configuration cannot be loaded or a directory cannot be processed.
 pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
     tracing::info!(
         directory_count = directories.len(),
@@ -39,8 +41,8 @@ pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
     );
 
     let config_path = Path::new("config.toml");
-    let conf = match config_path.try_exists()? {
-        true => match Config::from_file(config_path) {
+    let conf = if config_path.try_exists()? {
+        match Config::from_file(config_path) {
             Ok(conf) => {
                 tracing::info!(path = %config_path.display(), "Loaded directive configuration");
                 conf
@@ -53,11 +55,10 @@ pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
                 );
                 return Err(error);
             }
-        },
-        false => {
-            tracing::info!("No config.toml found; using default directive configuration");
-            Config::default()
         }
+    } else {
+        tracing::info!("No config.toml found; using default directive configuration");
+        Config::default()
     };
 
     process_all_directives(directories, &conf)?;
@@ -73,6 +74,10 @@ pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
 /// [`process_all_directives`], it never reads or rewrites authoring files.
 /// Use [`process_markdown_with_example_resolver`] when examples need resolution
 /// relative to a chapter or another caller-specific root.
+///
+/// # Errors
+///
+/// Returns an error if the Markdown cannot be parsed or a directive cannot be expanded.
 pub fn process_markdown(markdown: &str, conf: &Config) -> Result<String> {
     process_markdown_with_example_resolver(markdown, conf, |name| {
         let name = name.trim();
@@ -87,6 +92,10 @@ pub fn process_markdown(markdown: &str, conf: &Config) -> Result<String> {
 /// The callback returns the Markdown replacement for an example directive. It
 /// can resolve a path in the caller's context and return a contextual error when
 /// the example cannot be found. Any callback failure aborts the transformation.
+///
+/// # Errors
+///
+/// Returns an error if the Markdown cannot be parsed, a directive cannot be expanded, or `resolve_example` fails.
 pub fn process_markdown_with_example_resolver<F>(
     markdown: &str,
     conf: &Config,
@@ -97,7 +106,7 @@ where
 {
     use parse_lib::ast::DirectiveData;
     use parse_lib::markdown_renderer::MarkdownRenderer;
-    use parse_lib::visit::Visitor;
+    use parse_lib::visit::Visitor as _;
 
     let document = parse_lib::parse_document("<in-memory Markdown>", None, markdown)
         .context("Failed to parse in-memory Markdown")?;
@@ -124,7 +133,11 @@ where
             {
                 render_link_or_badge(directive)
             }
-            _ => directive.to_string(),
+            DirectiveData::Link { .. }
+            | DirectiveData::Badge { .. }
+            | DirectiveData::CrateBlock { .. }
+            | DirectiveData::CategoryBlock { .. }
+            | DirectiveData::ExampleBlock { .. } => directive.to_string(),
         });
 
         if conf.process_wikilinks {
@@ -154,6 +167,10 @@ where
 
 /// Fails when custom `{{#...}}` directives remain outside code after processing.
 /// Native mdBook helpers such as `{{#include ...}}` are allowed and left intact.
+///
+/// # Errors
+///
+/// Returns an error that lists the directives still present outside code.
 pub fn validate_no_unexpanded_directives(markdown: &str) -> Result<()> {
     use parse_lib::ast::CodeSpanData;
     use parse_lib::ast::FencedCodeBlockData;
@@ -168,7 +185,7 @@ pub fn validate_no_unexpanded_directives(markdown: &str) -> Result<()> {
 
     impl ProtectedSpanCollector {
         fn add_span(&mut self, text: &str) {
-            let Some(start) = (text.as_ptr() as usize).checked_sub(self.source_base) else {
+            let Some(start) = text.as_ptr().addr().checked_sub(self.source_base) else {
                 return;
             };
             let Some(end) = start.checked_add(text.len()) else {
@@ -201,7 +218,7 @@ pub fn validate_no_unexpanded_directives(markdown: &str) -> Result<()> {
     let document = parse_lib::parse_document("<in-memory Markdown>", None, markdown)
         .context("Failed to inspect in-memory Markdown for unresolved directives")?;
     let mut collector = ProtectedSpanCollector {
-        source_base: markdown.as_ptr() as usize,
+        source_base: markdown.as_ptr().addr(),
         source_len: markdown.len(),
         spans: Vec::new(),
     };
@@ -234,6 +251,7 @@ pub fn validate_no_unexpanded_directives(markdown: &str) -> Result<()> {
     )
 }
 
+/// Appends every `{{#...}}` directive in `text` that is not a native mdBook helper to `unresolved`.
 fn collect_unresolved_directive_text(text: &str, unresolved: &mut Vec<String>) {
     const NATIVE_MDBOOK_HELPERS: [&str; 3] = ["include", "rustdoc_include", "playground"];
     let mut offset = 0;
@@ -260,7 +278,7 @@ fn collect_unresolved_directive_text(text: &str, unresolved: &mut Vec<String>) {
         if !NATIVE_MDBOOK_HELPERS.contains(&name) {
             let fragment_end = close.map_or(text.len(), |_| body_end.saturating_add(2));
             if let Some(fragment) = text.get(start..fragment_end) {
-                unresolved.push(fragment.to_string());
+                unresolved.push(fragment.to_owned());
             }
         }
         if close.is_none() {
@@ -273,14 +291,26 @@ fn collect_unresolved_directive_text(text: &str, unresolved: &mut Vec<String>) {
 /// Processes directives in all matching files within the specified directories.
 ///
 /// The provided [`Config`] controls which directive families and file filters are active.
+///
+/// # Errors
+///
+/// Returns an error if a directory cannot be traversed or a file cannot be processed.
 pub fn process_all_directives<I>(directories: I, conf: &Config) -> anyhow::Result<()>
 where
     I: IntoIterator<Item = std::path::PathBuf>,
 {
     // Extensions to process and excluded files.
     let scope = Scope {
-        included_extensions: conf.included_extensions.iter().map(|s| s.into()).collect(),
-        excluded_filenames: conf.excluded_filenames.iter().map(|s| s.into()).collect(),
+        included_extensions: conf
+            .included_extensions
+            .iter()
+            .map(std::convert::Into::into)
+            .collect(),
+        excluded_filenames: conf
+            .excluded_filenames
+            .iter()
+            .map(std::convert::Into::into)
+            .collect(),
     };
 
     let directories = directories
@@ -352,7 +382,7 @@ mod tests {
         .expect("in-memory transformation succeeds");
 
         assert!(rendered.starts_with("# Keep this heading\n\n{{#include chapter.incl.md}}"));
-        assert!(rendered.contains("[anyhow][c~anyhow~docs]↗{{hi:anyhow}}"));
+        assert!(rendered.contains("[anyhow][c~anyhow~docs]\u{2197}{{hi:anyhow}}"));
         assert!(rendered.contains("[![anyhow][c~anyhow~docs~badge]][c~anyhow~docs]"));
         assert!(
             rendered.contains("[![cat~filesystem][cat~filesystem~badge]][cat~filesystem]"),
@@ -432,7 +462,7 @@ mod tests {
             "{{#include section.md}}\n\n",
             "```rust\n{{#crate code_example}}\n```\n"
         );
-        assert!(validate_no_unexpanded_directives(source).is_ok());
+        validate_no_unexpanded_directives(source).expect("input should parse");
     }
 
     #[test]

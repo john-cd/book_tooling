@@ -1,6 +1,6 @@
 // TODO Reviewed ??-??-2026
 use winnow::ModalResult;
-use winnow::Parser;
+use winnow::Parser as _;
 use winnow::ascii::line_ending;
 use winnow::combinator::alt;
 use winnow::combinator::delimited;
@@ -8,8 +8,9 @@ use winnow::combinator::eof;
 use winnow::combinator::fail;
 use winnow::combinator::opt;
 use winnow::combinator::repeat;
-use winnow::error::StrContext::*;
-use winnow::error::StrContextValue::*;
+use winnow::error::StrContext::{Expected, Label};
+use winnow::error::StrContextValue::Description;
+use winnow::error::{ContextError, ErrMode};
 use winnow::seq;
 use winnow::token::take_till;
 use winnow::token::take_until;
@@ -27,7 +28,11 @@ use crate::ast::StrikethroughData;
 use crate::ast::StrongData;
 use crate::ast::TableData;
 use crate::ast::TaskItemData;
-use crate::markdown::*;
+use crate::markdown::{
+    parse_atx_heading, parse_code_span, parse_fallback_char, parse_fenced_code_block,
+    parse_inline_image, parse_inline_link, parse_link_reference_definition, parse_plain_text,
+    parse_reference_style_image, parse_reference_style_link,
+};
 use crate::parse_directives::parse_directive_element;
 use crate::parse_hidden::parse_hidden_html_div;
 use crate::parse_urls::parse_autolink;
@@ -61,6 +66,7 @@ fn parse_table_row<'a>(input: &mut &'a str) -> ModalResult<Vec<&'a str>> {
     .parse_next(input)
 }
 
+/// Parses the text of each table cell into inline elements.
 fn parse_table_cells<'a>(cells: &[&'a str]) -> ModalResult<Vec<Vec<Element<'a>>>> {
     cells
         .iter()
@@ -125,8 +131,10 @@ fn is_paragraph_continuation(line: &str) -> bool {
     let line_content = trimmed.trim();
     if line_content.len() >= 3 {
         let mut chars = line_content.chars();
-        let first_char = chars.next().unwrap();
-        if matches!(first_char, '*' | '-' | '_') && chars.all(|c| c == first_char || c == ' ') {
+        if let Some(first_char) = chars.next()
+            && matches!(first_char, '*' | '-' | '_')
+            && chars.all(|c| c == first_char || c == ' ')
+        {
             return false;
         }
     }
@@ -138,13 +146,14 @@ fn is_paragraph_continuation(line: &str) -> bool {
     if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
         return false;
     }
-    let marker_len = trimmed.chars().take_while(|c| c.is_ascii_digit()).count();
-    if marker_len > 0
-        && (trimmed[marker_len..].starts_with(". ") || trimmed[marker_len..].starts_with(") "))
-    {
-        return false;
-    }
-    true
+    ordered_list_marker_len(trimmed).is_none()
+}
+
+/// Returns the length of the leading `1. ` or `1) ` ordered-list marker, including the space, if there is one.
+fn ordered_list_marker_len(trimmed: &str) -> Option<usize> {
+    let digits = trimmed.chars().take_while(char::is_ascii_digit).count();
+    let rest = trimmed.get(digits..)?;
+    (digits > 0 && (rest.starts_with(". ") || rest.starts_with(") "))).then_some(digits + 2)
 }
 
 /// Parses a continuous paragraph from a slice of lines.
@@ -197,6 +206,7 @@ fn parse_fenced_code_block_from_lines<'a, 'b>(
     }))
 }
 
+/// Parses consecutive lines indented by four spaces or a tab as one indented code block.
 fn parse_indented_code_block_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Element<'a>> {
     let backup = *input;
     let mut content_lines = Vec::new();
@@ -221,7 +231,7 @@ fn parse_indented_code_block_from_lines<'a>(input: &mut &[&'a str]) -> ModalResu
     }
 
     content_lines.truncate(last_non_empty);
-    *input = &(*input)[last_non_empty..];
+    *input = input.get(last_non_empty..).unwrap_or_default();
 
     Ok(Element::FencedCodeBlock(FencedCodeBlockData {
         language: None,
@@ -229,6 +239,7 @@ fn parse_indented_code_block_from_lines<'a>(input: &mut &[&'a str]) -> ModalResu
     }))
 }
 
+/// Parses an HTML comment that may span several lines.
 fn parse_html_comment_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Element<'a>> {
     let backup = *input;
     let mut content_lines = Vec::new();
@@ -238,26 +249,21 @@ fn parse_html_comment_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Elem
     for (i, line) in backup.iter().enumerate() {
         consumed += 1;
         if i == 0 {
-            let trimmed = line.trim_start();
-            if !trimmed.starts_with("<!--") {
+            let Some(after_open) = line.trim_start().strip_prefix("<!--") else {
                 return fail.parse_next(input);
-            }
-            let after_open = &trimmed[4..];
-            if let Some(end_idx) = after_open.find("-->") {
-                content_lines.push(&after_open[..end_idx]);
+            };
+            if let Some((before_close, _)) = after_open.split_once("-->") {
+                content_lines.push(before_close);
                 found_end = true;
                 break;
-            } else {
-                content_lines.push(after_open);
             }
+            content_lines.push(after_open);
+        } else if let Some((before_close, _)) = line.split_once("-->") {
+            content_lines.push(before_close);
+            found_end = true;
+            break;
         } else {
-            if let Some(end_idx) = line.find("-->") {
-                content_lines.push(&line[..end_idx]);
-                found_end = true;
-                break;
-            } else {
-                content_lines.push(*line);
-            }
+            content_lines.push(*line);
         }
     }
 
@@ -265,12 +271,13 @@ fn parse_html_comment_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Elem
         return fail.parse_next(input);
     }
 
-    *input = &backup[consumed..];
+    *input = backup.get(consumed..).unwrap_or_default();
     Ok(Element::HtmlComment(HtmlCommentData {
         lines: content_lines,
     }))
 }
 
+/// Parses a list item and its indented continuation lines; `check_marker` returns the length of the list marker for the kind of list being parsed.
 fn parse_list_item_from_lines_generic<'a, 'b, F>(
     input: &mut &'b [&'a str],
     check_marker: F,
@@ -287,14 +294,17 @@ where
 
     let trimmed = first_line.trim_start();
     let indent_spaces = first_line.len() - trimmed.len();
-    let marker_len = check_marker(trimmed).unwrap();
+    // The `verify` above guarantees that a marker is present.
+    let Some(marker_len) = check_marker(trimmed) else {
+        return Err(ErrMode::Backtrack(ContextError::default()));
+    };
     let indent_level = indent_spaces + marker_len;
 
-    let mut lines = vec![&trimmed[marker_len..]];
+    let mut lines = vec![trimmed.get(marker_len..).unwrap_or_default()];
 
     let cont_lines: &[&'a str] = winnow::token::take_while(0.., |line: &str| {
-        let t = line.trim();
-        t.is_empty() || {
+        let trimmed_line = line.trim();
+        trimmed_line.is_empty() || {
             let line_indent = line.len() - line.trim_start().len();
             line_indent >= indent_level
         }
@@ -305,7 +315,7 @@ where
         if line.trim().is_empty() {
             lines.push("");
         } else {
-            lines.push(&line[indent_level..]);
+            lines.push(line.get(indent_level..).unwrap_or_default());
         }
     }
 
@@ -319,16 +329,14 @@ where
     }))
 }
 
+/// Parses a `-` or `*` list item from a slice of lines.
 fn parse_unordered_list_item_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Element<'a>> {
     parse_list_item_from_lines_generic(input, |trimmed| {
-        if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
-            Some(2)
-        } else {
-            None
-        }
+        (trimmed.starts_with("- ") || trimmed.starts_with("* ")).then_some(2)
     })
 }
 
+/// Parses consecutive `-` or `*` list items from a slice of lines into one list.
 fn parse_unordered_list_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Element<'a>> {
     let items = repeat(1.., parse_unordered_list_item_from_lines).parse_next(input)?;
     Ok(Element::List(ListData {
@@ -337,19 +345,12 @@ fn parse_unordered_list_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<El
     }))
 }
 
+/// Parses a `1.` or `1)` list item from a slice of lines.
 fn parse_ordered_list_item_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Element<'a>> {
-    parse_list_item_from_lines_generic(input, |trimmed| {
-        let marker_len = trimmed.chars().take_while(|c| c.is_ascii_digit()).count();
-        if marker_len > 0
-            && (trimmed[marker_len..].starts_with(". ") || trimmed[marker_len..].starts_with(") "))
-        {
-            Some(marker_len + 2)
-        } else {
-            None
-        }
-    })
+    parse_list_item_from_lines_generic(input, ordered_list_marker_len)
 }
 
+/// Parses consecutive numbered list items from a slice of lines into one list.
 fn parse_ordered_list_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Element<'a>> {
     let items = repeat(1.., parse_ordered_list_item_from_lines).parse_next(input)?;
     Ok(Element::List(ListData {
@@ -363,7 +364,7 @@ fn parse_blocks_from_lines<'a, 'b>(input: &mut &'b [&'a str]) -> ModalResult<Vec
     repeat(
         0..,
         alt((
-            parse_empty_lines.map(|_| None),
+            parse_empty_lines.map(|()| None),
             parse_fenced_code_block_from_lines.map(Some),
             parse_indented_code_block_from_lines.map(Some),
             parse_html_comment_from_lines.map(Some),
@@ -405,6 +406,7 @@ fn parse_blockquote<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     }))
 }
 
+/// Parses a single-line list item whose marker is recognized by `parse_marker`.
 fn parse_list_item_generic<'a, F>(input: &mut &'a str, parse_marker: F) -> ModalResult<Element<'a>>
 where
     F: winnow::Parser<&'a str, &'a str, winnow::error::ContextError>,
@@ -434,7 +436,7 @@ where
                     .take(),
                 opt(line_ending)
             )
-            .map(|(full_line, _): (&str, _)| &full_line[indent_level..]),
+            .map(|(full_line, _): (&str, _)| full_line.get(indent_level..).unwrap_or_default()),
         )),
     )
     .parse_next(input)
@@ -452,10 +454,12 @@ where
     }))
 }
 
+/// Parses a single-line `-` or `*` list item.
 fn parse_unordered_list_item<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     parse_list_item_generic(input, alt(("- ", "* ")))
 }
 
+/// Parses consecutive single-line `-` or `*` list items into one list.
 fn parse_unordered_list<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     let items = repeat(1.., parse_unordered_list_item).parse_next(input)?;
     Ok(Element::List(ListData {
@@ -464,6 +468,7 @@ fn parse_unordered_list<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     }))
 }
 
+/// Parses a single-line `1.` or `1)` list item.
 fn parse_ordered_list_item<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     parse_list_item_generic(
         input,
@@ -475,6 +480,7 @@ fn parse_ordered_list_item<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> 
     )
 }
 
+/// Parses consecutive single-line numbered list items into one list.
 fn parse_ordered_list<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     let items = repeat(1.., parse_ordered_list_item).parse_next(input)?;
     Ok(Element::List(ListData {
@@ -483,6 +489,7 @@ fn parse_ordered_list<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     }))
 }
 
+/// Parses a thematic break made of three or more `*`, `-` or `_` characters.
 fn parse_horizontal_rule<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     seq!(
         winnow::token::take_while(0..=3, ' '),
@@ -496,7 +503,9 @@ fn parse_horizontal_rule<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
             return false;
         }
         let mut chars = line_content.chars();
-        let first_char = chars.next().unwrap();
+        let Some(first_char) = chars.next() else {
+            return false;
+        };
         if !matches!(first_char, '*' | '-' | '_') {
             return false;
         }
@@ -506,6 +515,7 @@ fn parse_horizontal_rule<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     .parse_next(input)
 }
 
+/// Parses an HTML comment from `<!--` to `-->`, splitting its content into lines.
 fn parse_html_comment<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     let content = delimited("<!--", take_until(0.., "-->"), "-->")
         .context(Label("HTML comment"))
@@ -519,6 +529,7 @@ fn parse_html_comment<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     Ok(Element::HtmlComment(HtmlCommentData { lines }))
 }
 
+/// Parses consecutive lines indented by four spaces or a tab as one indented code block.
 fn parse_indented_code_block<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     let backup = *input;
     let mut content_lines = Vec::new();
@@ -581,6 +592,7 @@ fn parse_block_element<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     .parse_next(input)
 }
 
+/// Parses text delimited by `inner_parser` and builds an element from the inline elements inside it using `construct`.
 fn parse_inline_formatting<'a, P, F>(
     input: &mut &'a str,
     mut inner_parser: P,
@@ -600,6 +612,7 @@ where
     Ok(construct(elements))
 }
 
+/// Parses `**strong**` text.
 fn parse_strong<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     parse_inline_formatting(
         input,
@@ -633,6 +646,7 @@ fn parse_strong<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     )
 }
 
+/// Parses `*emphasis*` or `_emphasis_` text.
 fn parse_emphasis<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     parse_inline_formatting(
         input,
@@ -644,6 +658,7 @@ fn parse_emphasis<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     )
 }
 
+/// Parses `~~strikethrough~~` text.
 fn parse_strikethrough<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     parse_inline_formatting(
         input,
@@ -695,6 +710,10 @@ fn parse_elements<'a>(input: &mut &'a str) -> ModalResult<Vec<Element<'a>>> {
 ///
 /// `name` is used for diagnostics, `path` is retained in the resulting AST when available,
 /// and `input` must be valid UTF-8 Markdown text.
+///
+/// # Errors
+///
+/// Returns an error if the Markdown cannot be parsed; the message names the document and the parse failure.
 pub fn parse_document<'s>(
     name: &'s str,
     path: Option<&'s std::path::Path>,
@@ -706,7 +725,7 @@ pub fn parse_document<'s>(
             let doc = crate::Document::new(name, path, input, elements);
             Ok(doc)
         }
-        Err(e) => anyhow::bail!("Failed to parse document '{}':\n{}", name, e),
+        Err(e) => anyhow::bail!("Failed to parse document '{name}':\n{e}"),
     }
 }
 
@@ -717,12 +736,12 @@ mod tests {
 
     #[test]
     fn test_parser() {
-        let text_input = r#"# Title
+        let text_input = "# Title
 
 Hello [link](url)
 [label]: url
-"#;
-        let doc = parse_document("test.md", None, text_input).unwrap();
+";
+        let doc = parse_document("test.md", None, text_input).expect("input should parse");
         // Since parse_plain_text is currently consuming character by character,
         // we'll have a lot of Text elements.
         assert!(doc.elements.len() >= 5);
@@ -732,7 +751,9 @@ Hello [link](url)
     fn test_parse_task_item() {
         let input = "- [x] task 1";
         let mut input_ref = input;
-        let result = parse_task_item.parse_next(&mut input_ref).unwrap();
+        let result = parse_task_item
+            .parse_next(&mut input_ref)
+            .expect("input should parse");
         if let Element::TaskItem(task) = result {
             assert!(task.completed);
             assert_eq!(task.content, "task 1");
@@ -745,7 +766,9 @@ Hello [link](url)
     fn test_parse_task_item_incomplete() {
         let input = "- [ ] todo item";
         let mut input_ref = input;
-        let result = parse_task_item.parse_next(&mut input_ref).unwrap();
+        let result = parse_task_item
+            .parse_next(&mut input_ref)
+            .expect("input should parse");
         if let Element::TaskItem(task) = result {
             assert!(!task.completed);
             assert_eq!(task.content, "todo item");
@@ -758,14 +781,18 @@ Hello [link](url)
     fn test_parse_task_item_invalid() {
         let input = "- [y] invalid";
         let mut input_ref = input;
-        assert!(parse_task_item.parse_next(&mut input_ref).is_err());
+        parse_task_item
+            .parse_next(&mut input_ref)
+            .expect_err("input should be rejected");
     }
 
     #[test]
     fn test_parse_table() {
         let input = "| h1 | h2 |\n|---|---|\n| r1c1 | r1c2 |";
         let mut input_ref = input;
-        let result = parse_table.parse_next(&mut input_ref).unwrap();
+        let result = parse_table
+            .parse_next(&mut input_ref)
+            .expect("input should parse");
         if let Element::Table(table) = result {
             assert_eq!(table.header, vec!["h1", "h2"]);
             assert_eq!(table.rows[0], vec!["r1c1", "r1c2"]);
@@ -778,7 +805,9 @@ Hello [link](url)
     fn test_parse_table_no_outer_pipes() {
         let input = "h1 | h2\n---|---\nr1c1 | r1c2";
         let mut input_ref = input;
-        let result = parse_table.parse_next(&mut input_ref).unwrap();
+        let result = parse_table
+            .parse_next(&mut input_ref)
+            .expect("input should parse");
         if let Element::Table(table) = result {
             assert_eq!(table.header, vec!["h1", "h2"]);
             assert_eq!(table.rows[0], vec!["r1c1", "r1c2"]);
@@ -791,7 +820,9 @@ Hello [link](url)
     fn test_parse_table_multiple_rows() {
         let input = "| a | b |\n| --- | --- |\n| 1 | 2 |\n| 3 | 4 |";
         let mut input_ref = input;
-        let result = parse_table.parse_next(&mut input_ref).unwrap();
+        let result = parse_table
+            .parse_next(&mut input_ref)
+            .expect("input should parse");
         if let Element::Table(table) = result {
             assert_eq!(table.rows.len(), 2);
             assert_eq!(table.rows[1], vec!["3", "4"]);
@@ -808,7 +839,9 @@ Hello [link](url)
             "| Sort values | {{#crate std}} | {{#categories algorithms=Algorithms}} |"
         );
         let mut input_ref = input;
-        let result = parse_table.parse_next(&mut input_ref).unwrap();
+        let result = parse_table
+            .parse_next(&mut input_ref)
+            .expect("input should parse");
         let Element::Table(table) = result else {
             panic!("Expected Table");
         };
@@ -830,17 +863,17 @@ Hello [link](url)
 
     #[test]
     fn test_simple_list_in_blockquote() {
-        let input = r#"> - one
+        let input = "> - one
 > - two
-"#;
-        let doc = parse_document("test.md", None, input).unwrap();
+";
+        let doc = parse_document("test.md", None, input).expect("input should parse");
 
         assert_eq!(
             doc.elements.len(),
             1,
             "Document should have one root element"
         );
-        let blockquote = doc.elements.first().unwrap();
+        let blockquote = doc.elements.first().expect("element should exist");
 
         // Check that the root element is a Blockquote
         if let Element::Blockquote(blockquote_data) = blockquote {
@@ -849,32 +882,39 @@ Hello [link](url)
                 1,
                 "Blockquote should contain one element"
             );
-            let list = blockquote_data.elements.first().unwrap();
+            let list = blockquote_data
+                .elements
+                .first()
+                .expect("element should exist");
 
             // Check that the blockquote contains a List
             if let Element::List(list_data) = list {
                 assert!(!list_data.ordered, "List should be unordered");
                 assert_eq!(list_data.items.len(), 2, "List should have two items");
             } else {
-                panic!("Expected List inside Blockquote, found {:?}", list);
+                panic!("Expected List inside Blockquote, found {list:?}");
             }
         } else {
-            panic!("Expected Blockquote element, found {:?}", blockquote);
+            panic!("Expected Blockquote element, found {blockquote:?}");
         }
     }
 
     #[test]
+    #[expect(
+        clippy::excessive_nesting,
+        reason = "The assertions walk a deliberately nested blockquote, list and list item."
+    )]
     fn test_nested_list_in_blockquote() {
-        let input = r#"> A paragraph.
+        let input = "> A paragraph.
 >
 > - list item 1
 >   - nested item 1.1
 > - list item 2
-"#;
-        let doc = parse_document("test.md", None, input).unwrap();
+";
+        let doc = parse_document("test.md", None, input).expect("input should parse");
 
         assert_eq!(doc.elements.len(), 1);
-        let blockquote = doc.elements.first().unwrap();
+        let blockquote = doc.elements.first().expect("element should exist");
 
         // Root element should be a Blockquote
         if let Element::Blockquote(blockquote_data) = blockquote {
@@ -882,33 +922,31 @@ Hello [link](url)
             assert_eq!(blockquote_data.elements.len(), 2);
 
             // Check the List element
-            let list = blockquote_data.elements.get(1).unwrap();
+            let list = &blockquote_data.elements[1];
             if let Element::List(list_data) = list {
                 assert!(!list_data.ordered);
                 assert_eq!(list_data.items.len(), 2);
 
                 // -- Check first list item and its nested list --
-                let item1 = list_data.items.first().unwrap();
+                let item1 = list_data.items.first().expect("element should exist");
                 if let Element::ListItem(item1_data) = item1 {
                     // Item 1 should contain a Paragraph ("list item 1") and a nested List
                     assert_eq!(item1_data.elements.len(), 2);
 
-                    let nested_list = item1_data.elements.get(1).unwrap();
-                    if let Element::List(nested_list_data) = nested_list {
-                        assert_eq!(
-                            nested_list_data.items.len(),
-                            1,
-                            "Nested list should have one item"
-                        );
-                    } else {
+                    let Some(Element::List(nested_list_data)) = item1_data.elements.get(1) else {
                         panic!("Expected nested List in first list item");
-                    }
+                    };
+                    assert_eq!(
+                        nested_list_data.items.len(),
+                        1,
+                        "Nested list should have one item"
+                    );
                 } else {
                     panic!("Expected ListItem");
                 }
 
                 // -- Check second list item --
-                let item2 = list_data.items.get(1).unwrap();
+                let item2 = &list_data.items[1];
                 if let Element::ListItem(item2_data) = item2 {
                     // Item 2 should just contain a single Paragraph
                     assert_eq!(item2_data.elements.len(), 1);
@@ -926,10 +964,10 @@ Hello [link](url)
     #[test]
     fn test_list_with_fenced_code_block() {
         let input = "- item 1\n  ```rust\n  let x = 1;\n  ```\n- item 2\n";
-        let doc = parse_document("test.md", None, input).unwrap();
+        let doc = parse_document("test.md", None, input).expect("input should parse");
 
         assert_eq!(doc.elements.len(), 1);
-        let list = doc.elements.first().unwrap();
+        let list = doc.elements.first().expect("element should exist");
 
         if let Element::List(list_data) = list {
             assert_eq!(list_data.items.len(), 2);
@@ -951,7 +989,7 @@ Hello [link](url)
         let mut input_ref = input;
         let result = parse_indented_code_block
             .parse_next(&mut input_ref)
-            .unwrap();
+            .expect("input should parse");
 
         if let Element::FencedCodeBlock(data) = result {
             assert_eq!(data.language, None);
@@ -966,7 +1004,9 @@ Hello [link](url)
     fn test_parse_strong_and_emphasis() {
         let input = "**bold *italic***";
         let mut input_ref = input;
-        let result = parse_inline_element.parse_next(&mut input_ref).unwrap();
+        let result = parse_inline_element
+            .parse_next(&mut input_ref)
+            .expect("input should parse");
 
         if let Element::Strong(strong) = result {
             assert!(strong.elements.len() >= 2);
@@ -992,7 +1032,9 @@ Hello [link](url)
     fn test_parse_strikethrough() {
         let input = "~~deleted~~";
         let mut input_ref = input;
-        let result = parse_inline_element.parse_next(&mut input_ref).unwrap();
+        let result = parse_inline_element
+            .parse_next(&mut input_ref)
+            .expect("input should parse");
 
         if let Element::Strikethrough(strikethrough) = result {
             assert_eq!(strikethrough.elements.len(), 1);
@@ -1011,18 +1053,20 @@ Hello [link](url)
         );
         assert_eq!(input, "");
 
-        let mut input = "  * * * \nnext line";
+        let mut rule_input = "  * * * \nnext line";
         assert_eq!(
-            parse_horizontal_rule.parse_next(&mut input),
+            parse_horizontal_rule.parse_next(&mut rule_input),
             Ok(Element::HorizontalRule)
         );
-        assert_eq!(input, "next line");
+        assert_eq!(rule_input, "next line");
     }
 
     #[test]
     fn test_parse_html_comment() {
         let mut input = "<!-- hidden \n text -->\n";
-        let result = parse_html_comment.parse_next(&mut input).unwrap();
+        let result = parse_html_comment
+            .parse_next(&mut input)
+            .expect("input should parse");
         if let Element::HtmlComment(comment) = result {
             assert_eq!(comment.lines, vec![" hidden ", " text "]);
         } else {
@@ -1034,9 +1078,9 @@ Hello [link](url)
     #[test]
     fn test_parse_html_comment_from_lines() {
         let input_doc = "- item 1\n  <!-- multi\n  line\n  comment -->\n  Paragraph";
-        let doc = parse_document("test.md", None, input_doc).unwrap();
+        let doc = parse_document("test.md", None, input_doc).expect("input should parse");
 
-        let list = doc.elements.first().unwrap();
+        let list = doc.elements.first().expect("element should exist");
         if let Element::List(list_data) = list {
             if let Element::ListItem(item) = &list_data.items[0] {
                 assert_eq!(item.elements.len(), 3); // Para, Comment, Para

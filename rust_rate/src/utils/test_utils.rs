@@ -1,6 +1,6 @@
 // TODO Reviewed ??-??-2026
 use std::fs::File;
-use std::io::Write;
+use std::io::Write as _;
 use std::path::Path;
 
 use anyhow::Result;
@@ -20,6 +20,11 @@ pub struct TestCase {
 ///
 /// Each [`TestCase`] is created inside the temporary directory before `func_to_test`
 /// is invoked. After the function runs, the helper validates the resulting file contents.
+///
+/// # Errors
+///
+/// Returns an error if a fixture cannot be created, `func_to_test` fails, the file is missing afterwards,
+/// or its contents differ from the expected ones.
 pub fn test_with<F>(test_cases: &[TestCase], func_to_test: F) -> Result<()>
 where
     F: Fn(&Path) -> Result<()>,
@@ -44,10 +49,18 @@ where
         // Call the function to test.
         func_to_test(temp_dir_path)?;
         // Check that the file contains the expected contents afterwards.
-        assert!(file_path.exists());
+        anyhow::ensure!(
+            file_path.exists(),
+            "{} should exist after the function under test runs",
+            file_path.display()
+        );
         if let Some(expected) = expected_final_contents {
-            let final_contents = std::fs::read_to_string(file_path)?;
-            assert_eq!(&final_contents, expected);
+            let final_contents = std::fs::read_to_string(&file_path)?;
+            anyhow::ensure!(
+                &final_contents == expected,
+                "unexpected contents in {}",
+                file_path.display()
+            );
         }
     }
     temp_dir.close()?;

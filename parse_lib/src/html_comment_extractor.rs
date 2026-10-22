@@ -1,5 +1,5 @@
 // TODO Reviewed ??-??-2026
-use crate::ast::*;
+use crate::ast::HtmlCommentData;
 use crate::visit::Visitor;
 
 /// A visitor that extracts all HTML comments from a Markdown document.
@@ -11,6 +11,7 @@ pub struct HtmlCommentExtractor {
 
 impl HtmlCommentExtractor {
     /// Creates an empty HTML comment extractor.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -30,14 +31,14 @@ mod tests {
     #[test]
     fn test_html_comment_extraction() {
         let input = "Hello <!-- TODO: fix this section --> world!";
-        let doc = parse_document("test.md", None, input).unwrap();
+        let doc = parse_document("test.md", None, input).expect("input should parse");
 
         let mut extractor = HtmlCommentExtractor::new();
         extractor.visit_document(&doc);
 
         assert_eq!(
             extractor.comments,
-            vec![" TODO: fix this section ".to_string()]
+            vec![" TODO: fix this section ".to_owned()]
         );
     }
 }

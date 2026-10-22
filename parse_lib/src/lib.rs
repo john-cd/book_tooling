@@ -1,4 +1,4 @@
-//! # parse_lib
+//! # `parse_lib`
 //!
 //! A high-performance, non-destructive Markdown parser and transformation library.
 //!
@@ -53,6 +53,7 @@ pub mod parse_directives;
 pub mod parse_document;
 /// Parsers for hidden HTML blocks used by mdBook-style content.
 pub mod parse_hidden;
+/// Reusable parsers for the pieces of links and link destinations.
 mod parse_parts;
 /// Parsers and URL classifiers for naked URLs and autolinks.
 pub mod parse_urls;

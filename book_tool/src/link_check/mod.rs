@@ -5,7 +5,7 @@
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-use anyhow::Context;
+use anyhow::Context as _;
 use anyhow::Result;
 use parse_lib::ast::AutolinkData;
 use parse_lib::ast::InlineImageData;
@@ -22,8 +22,9 @@ use crate::links::AsyncLinkChecker;
 use crate::refdefs::find_unused_refdefs_in_scopes;
 use crate::refdefs::normalize_reference_label;
 
+/// Collects the external http(s) URLs of `doc`, skipping links that use unused reference definitions.
 fn collect_active_external_links(
-    doc: &parse_lib::Document,
+    doc: &parse_lib::Document<'_>,
     unused_refdefs: Option<&HashSet<String>>,
 ) -> HashSet<Url> {
     struct ActiveLinkCollector<'a> {
@@ -79,6 +80,14 @@ fn collect_active_external_links(
 ///
 /// When `check_refdefs` is `true`, the workflow reports unused reference definitions.
 /// When `delete_unused` is also `true`, those definitions are removed before link verification.
+///
+/// # Errors
+///
+/// Returns an error if a directory cannot be processed, a link is broken, or unused definitions cannot be deleted.
+#[expect(
+    clippy::too_many_lines,
+    reason = "Linear workflow: check links, report them, then optionally clean up definitions."
+)]
 pub async fn execute(
     directories: Vec<PathBuf>,
     check_refdefs: bool,
@@ -183,21 +192,20 @@ pub async fn execute(
     results.sort_by(|(left, _), (right, _)| left.as_str().cmp(right.as_str()));
     let verified_links = results.len();
 
-    let mut broken_links = 0;
+    let mut broken_links = 0_usize;
     for (url, result) in results {
-        if !result.success {
+        if result.success {
+            tracing::info!("OK: {}", url);
+        } else {
             broken_links += 1;
             tracing::error!("BROKEN: {} (Error: {:?})", url, result.error);
-        } else {
-            tracing::info!("OK: {}", url);
         }
     }
 
     if broken_links > 0 {
-        anyhow::bail!("Found {} broken links.", broken_links);
-    } else {
-        tracing::info!(verified_links, "All external links verified successfully");
-        println!("All links verified successfully.");
+        anyhow::bail!("Found {broken_links} broken links.");
     }
+    tracing::info!(verified_links, "All external links verified successfully");
+    println!("All links verified successfully.");
     Ok(())
 }

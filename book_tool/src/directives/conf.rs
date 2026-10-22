@@ -2,7 +2,7 @@
 use std::default::Default;
 use std::path::Path;
 
-use anyhow::Context;
+use anyhow::Context as _;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -10,8 +10,12 @@ use serde::Serialize;
 ///
 /// When deserializing, missing fields are filled from [`Default`]. The same
 /// shape is accepted from `config.toml` through [`Config::from_file`].
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default, rename_all = "kebab-case")]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "Each flag independently toggles one directive family in config.toml."
+)]
 pub struct Config {
     /// If true, process crate and category block directives e.g.
     /// `{{#crate my_crate}}`
@@ -56,19 +60,23 @@ impl Default for Config {
             process_example_directives: true,
             process_link_and_badge_directives: true,
             process_wikilinks: true,
-            included_extensions: vec!["md".to_string()],
-            excluded_filenames: vec!["refs.incl.md".to_string(), "SUMMARY.md".to_string()],
+            included_extensions: vec!["md".to_owned()],
+            excluded_filenames: vec!["refs.incl.md".to_owned(), "SUMMARY.md".to_owned()],
         }
     }
 }
 
 impl Config {
     /// Loads directive-processing configuration from a TOML file.
-    pub fn from_file(path: impl AsRef<Path>) -> anyhow::Result<Self> {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the file cannot be read or is not valid configuration TOML.
+    pub fn from_file<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
         let path = path.as_ref();
         let content = std::fs::read_to_string(path)
             .with_context(|| format!("Failed to read config file: {}", path.display()))?;
-        let config: Config = toml::from_str(&content)
+        let config: Self = toml::from_str(&content)
             .with_context(|| format!("Failed to parse config file: {}", path.display()))?;
         Ok(config)
     }

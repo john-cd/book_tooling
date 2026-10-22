@@ -9,12 +9,16 @@ use std::io::BufWriter;
 
 use fmt2io::Writer;
 
-use super::Visitable;
+use super::Visitable as _;
 use super::Visitor;
-use crate::ast::*;
+use crate::ast::Document;
 
 impl<'d> Document<'d> {
     /// Adapt from `fmt::Write` to `io::Write`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an I/O error if writing to `io_writer` fails.
     pub fn to_io<'v, IO, F, V>(&'d self, mut io_writer: IO, f: F) -> io::Result<()>
     where
         IO: io::Write,
@@ -35,8 +39,12 @@ impl<'d> Document<'d> {
     }
 
     /// Create a buffer writer from an IO writer,
-    /// convert to fmt::Write, pass to a closure that returns a visitor,
+    /// convert to `fmt::Write`, pass to a closure that returns a visitor,
     /// accept the visitor.
+    ///
+    /// # Errors
+    ///
+    /// Returns an I/O error if writing to `io_writer` fails.
     pub fn with_buffer<'v, IO, F, V>(
         &'d self,
         capacity: usize,
@@ -50,7 +58,7 @@ impl<'d> Document<'d> {
         'd: 'v,
     {
         use io::BufWriter;
-        use io::Write;
+        use io::Write as _;
         let mut io_writer = BufWriter::with_capacity(capacity, inner_io_writer);
         fmt2io::write(&mut io_writer, |writer| {
             let mut visitor = f(writer);
@@ -63,6 +71,10 @@ impl<'d> Document<'d> {
 
     /// Adapt from `fmt::Write` to `stdout`.
     /// Accept the visitor returned by the closure.
+    ///
+    /// # Errors
+    ///
+    /// Returns an I/O error if writing to standard output fails.
     pub fn to_stdout<'v, F, V>(&'d self, f: F) -> io::Result<()>
     where
         'd: 'v,

@@ -1,17 +1,17 @@
 // TODO Reviewed ??-??-2026
 use winnow::ModalResult;
-use winnow::Parser;
+use winnow::Parser as _;
 use winnow::Result;
 use winnow::ascii::Caseless;
 use winnow::ascii::space0;
 use winnow::ascii::space1;
 use winnow::combinator::delimited;
 use winnow::error::ErrMode;
-use winnow::error::StrContext::*;
-use winnow::error::StrContextValue::*;
+use winnow::error::StrContext::{Expected, Label};
+use winnow::error::StrContextValue::Description;
 use winnow::token::take_until;
 
-use crate::ast::*;
+use crate::ast::{Element, HiddenHtmlDivData};
 
 /// Parses an HTML opening `<div>` tag with `class="hidden"`.
 ///
@@ -20,7 +20,7 @@ use crate::ast::*;
 ///
 /// Examples:
 /// `<div class="hidden">`
-/// `<div   class="hidden"  >`
+/// `<div   class="hidden"  >`.
 ///
 /// Simplification: partially case-insensitive.
 fn parse_hidden_div_open_tag(input: &mut &str) -> Result<()> {
@@ -45,6 +45,10 @@ fn parse_hidden_div_open_tag(input: &mut &str) -> Result<()> {
 
 /// Parses a hidden HTML div block: `<div class="hidden">...</div>`.
 /// This is a simplified parser and does not handle nested divs properly.
+///
+/// # Errors
+///
+/// Returns a backtrack error if the input does not begin with a hidden HTML `div`.
 pub fn parse_hidden_html_div<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     delimited(
         parse_hidden_div_open_tag,
@@ -121,13 +125,13 @@ mod tests {
     #[test]
     fn test_fail_on_missing_closing_tag() {
         let mut input = r#"<div class="hidden">no closing tag"#;
-        assert!(parse_hidden_html_div(&mut input).is_err());
+        parse_hidden_html_div(&mut input).expect_err("input should be rejected");
     }
 
     #[test]
     fn test_fail_on_wrong_class() {
         let mut input = r#"<div class="other">content</div>"#;
-        assert!(parse_hidden_html_div(&mut input).is_err());
+        parse_hidden_html_div(&mut input).expect_err("input should be rejected");
     }
 
     #[test]
@@ -187,7 +191,7 @@ mod tests {
     #[test]
     fn test_parse_hidden_div_open_tag_no_match() {
         // Missing class
-        assert!(parse_hidden_div_open_tag(&mut r#"<div>"#).is_err());
+        assert!(parse_hidden_div_open_tag(&mut "<div>").is_err());
         // Wrong class value
         assert!(parse_hidden_div_open_tag(&mut r#"<div class="visible">"#).is_err());
         // Different tag

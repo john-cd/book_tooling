@@ -1,3 +1,5 @@
+//! Tests the contract between directive processing and caller-supplied example resolvers.
+
 use anyhow::anyhow;
 use book_tool::directives::Config;
 use book_tool::directives::process_markdown_with_example_resolver;
