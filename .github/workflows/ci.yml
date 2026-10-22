@@ -1,0 +1,21 @@
+## Continuous integration: runs the reusable Rust CI on Linux, macOS and Windows.
+name: CI
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+  ## Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    uses: ./.github/workflows/rust-ci.yml
