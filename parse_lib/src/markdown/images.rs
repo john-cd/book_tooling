@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! Parsers for inline and reference-style images.
+//!
+//! TODO Reviewed ??-??-2026
+
 use winnow::ModalResult;
 use winnow::Parser as _;
 use winnow::ascii::space0;

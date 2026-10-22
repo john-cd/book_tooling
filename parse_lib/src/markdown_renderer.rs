@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! Renders AST elements back to Markdown, with resolvers that rewrite links.
+//!
+//! TODO Reviewed ??-??-2026
+
 use std::ops::Range;
 
 use crate::ast::{

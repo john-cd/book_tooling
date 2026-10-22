@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! How an index anchor directive renders its text: as is, in italics or hidden.
+//!
+//! TODO Reviewed ??-??-2026
+
 use std::fmt::Display;
 
 /// Rendering mode for an index anchor directive.
