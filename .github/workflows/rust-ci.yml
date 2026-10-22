@@ -1,0 +1,69 @@
+## Reusable workflow: format, build, lint and test the Cargo workspace on every OS.
+##
+## Called by `ci.yml`. Shape and step names match `mdbook-utils/.github/workflows/rust-ci.yml`.
+## See `.github/workflows/README.md` for the full picture.
+name: Rust CI (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      runners:
+        description: "JSON array of GitHub runner labels to run on"
+        type: string
+        default: '["ubuntu-latest", "windows-latest", "macos-latest"]'
+
+permissions:
+  contents: read
+
+## Every step runs in bash (Git Bash on Windows) so that the commands below are identical on all platforms.
+defaults:
+  run:
+    shell: bash
+
+env:
+  CARGO_TERM_COLOR: always
+  ## `.cargo/config.toml` holds developer-machine paths (`D:/target/...`) and enables `sccache`;
+  ## CI uses runner-local paths and no compiler wrapper instead.
+  CARGO_TARGET_DIR: ${{ github.workspace }}/target
+  CARGO_BUILD_BUILD_DIR: ${{ github.workspace }}/target/build
+  RUSTC_WRAPPER: ""
+
+jobs:
+  validate:
+    name: Validate (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(inputs.runners) }}
+    steps:
+      - name: Code checkout
+        # actions/checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Set up Rust (1.99.1 + pinned nightly rustfmt)
+        uses: ./.github/actions/setup-rust
+
+      - name: Install cargo-nextest
+        # taiki-e/install-action v2.87.30
+        uses: taiki-e/install-action@a4d3f3f761dcd95cce1b72cb61cb6d1963438177
+        with:
+          tool: cargo-nextest
+
+      - name: Check the formatting
+        run: cargo +nightly-2026-10-22 fmt --all --check
+
+      - name: Fetch
+        run: cargo fetch --locked
+
+      - name: Build
+        run: cargo build --workspace --all-targets --locked --profile ci
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked --profile ci -- --deny warnings
+
+      - name: Run tests
+        run: cargo nextest run --workspace --all-targets --locked --cargo-profile ci --hide-progress-bar
+
+      - name: Run doctests
+        run: cargo test --workspace --doc --locked --profile ci -- --show-output
