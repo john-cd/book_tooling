@@ -152,6 +152,18 @@ Extracts all `<!-- comment -->` blocks into a single output file.
 book_tool extract-comments ./src --output comments.md
 ```
 
+### Choosing Files
+
+`link-check`, `inline-links`, `search` and `extract-comments` process `.md` files and skip
+`refs.incl.md` and `SUMMARY.md` by default. Use `--extension` (repeatable; replaces `md`) and
+`--exclude` (repeatable; adds to the skipped names) to change that:
+
+```bash
+book_tool search "some query" ./src --extension md --extension markdown --exclude drafts.md
+```
+
+`directives` takes its file filters from `config.toml`, and `refdefs-audit` always analyzes Markdown.
+
 ## Supported Directives
 
 - `{{cat name}}`: Link to a crates.io category.
