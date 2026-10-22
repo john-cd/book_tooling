@@ -1,6 +1,7 @@
 // TODO Reviewed ??-??-2026
 //! Parsers for naked URLs and autolinks.
 
+use url::Url;
 use winnow::ModalResult;
 use winnow::Parser;
 use winnow::combinator::alt;
@@ -38,12 +39,64 @@ pub(crate) fn parse_url_chars<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 
 /// Parses a naked URL (e.g. `https://example.com`) directly from text.
 pub fn parse_naked_url<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
-    let url_text = (alt(("https://", "http://")), parse_url_chars)
+    let original = *input;
+    let parsed_url = (alt(("https://", "http://")), parse_url_chars)
         .take()
         .context(Label("naked URL"))
         .parse_next(input)?;
+    let url_text = trim_naked_url_punctuation(parsed_url);
+    if !is_valid_http_url(url_text) {
+        *input = original;
+        return winnow::combinator::fail.parse_next(input);
+    }
+    if let Some(remaining) = original.get(url_text.len()..) {
+        *input = remaining;
+    }
 
     Ok(Element::Autolink(AutolinkData { url: url_text }))
+}
+
+/// Removes sentence punctuation and unmatched closing delimiters from a naked URL.
+fn trim_naked_url_punctuation(url: &str) -> &str {
+    let mut end = url.len();
+    loop {
+        let Some(prefix) = url.get(..end) else {
+            return url;
+        };
+        let Some(last) = prefix.chars().next_back() else {
+            return prefix;
+        };
+        let unmatched_closing_delimiter = match last {
+            ')' => prefix.matches(')').count() > prefix.matches('(').count(),
+            ']' => prefix.matches(']').count() > prefix.matches('[').count(),
+            _ => false,
+        };
+        if matches!(last, '.' | ',' | ';' | ':' | '!') || unmatched_closing_delimiter {
+            end -= last.len_utf8();
+        } else {
+            return prefix;
+        }
+    }
+}
+
+/// Validates an absolute HTTP URL and rejects malformed percent escapes.
+fn is_valid_http_url(url: &str) -> bool {
+    has_valid_percent_encoding(url)
+        && Url::parse(url).is_ok_and(|parsed| matches!(parsed.scheme(), "http" | "https"))
+}
+
+/// Checks that every percent sign in a URL is followed by two hexadecimal digits.
+fn has_valid_percent_encoding(url: &str) -> bool {
+    let mut bytes = url.bytes();
+    while let Some(byte) = bytes.next() {
+        if byte == b'%' {
+            match (bytes.next(), bytes.next()) {
+                (Some(high), Some(low)) if high.is_ascii_hexdigit() && low.is_ascii_hexdigit() => {}
+                _ => return false,
+            }
+        }
+    }
+    true
 }
 
 /// Parses an autolink enclosed in angle brackets (e.g. `<https://example.com>`).
@@ -57,6 +110,7 @@ pub fn parse_autolink<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
             .take(),
         ">",
     )
+    .verify(is_valid_http_url)
     .context(Label("autolink"))
     .parse_next(input)?;
 
@@ -134,5 +188,72 @@ mod tests {
             parse_url_chars.parse_peek("newline\nchar"),
             Ok(("\nchar", "newline"))
         );
+    }
+
+    /// Verifies path, query, fragment, and percent-encoded bytes stay inside a valid URL.
+    #[test]
+    fn naked_url_preserves_path_query_fragment_and_percent_encoding() {
+        let source = "https://docs.rs/crate/path?query=api%2Fbindings#fragment";
+        let mut input = source;
+        assert_eq!(
+            parse_naked_url(&mut input).expect("parse fully-qualified URL"),
+            Element::Autolink(AutolinkData { url: source })
+        );
+        assert!(input.is_empty());
+    }
+
+    /// Verifies trailing sentence punctuation and unmatched closers remain in the input.
+    #[test]
+    fn naked_url_leaves_adjacent_punctuation_and_keeps_balanced_parentheses() {
+        let mut input = "https://example.com/path(a), next";
+        assert_eq!(
+            parse_naked_url(&mut input).expect("parse URL followed by a comma"),
+            Element::Autolink(AutolinkData {
+                url: "https://example.com/path(a)"
+            })
+        );
+        assert_eq!(input, ", next");
+
+        let mut input = "https://example.com/path).";
+        assert_eq!(
+            parse_naked_url(&mut input).expect("parse URL followed by unmatched punctuation"),
+            Element::Autolink(AutolinkData {
+                url: "https://example.com/path"
+            })
+        );
+        assert_eq!(input, ").");
+    }
+
+    /// Verifies malformed URLs fail without consuming their source text.
+    #[test]
+    fn malformed_naked_and_angle_urls_are_rejected_without_consuming_input() {
+        for source in ["https://example.com/%GG", "https://[invalid-host]/path"] {
+            let mut input = source;
+            assert!(parse_naked_url(&mut input).is_err());
+            assert_eq!(input, source);
+        }
+
+        let mut autolink = "<https://example.com/%GG>";
+        assert!(parse_autolink(&mut autolink).is_err());
+        assert_eq!(autolink, "<https://example.com/%GG>");
+    }
+
+    /// Verifies the public document parser and no-op renderer preserve URLs and neighboring text.
+    #[test]
+    fn document_rendering_preserves_url_punctuation_and_malformed_source() {
+        use crate::markdown_renderer::MarkdownRenderer;
+        use crate::visit::Visitor;
+
+        let source = concat!(
+            "See https://example.com/path(a), and ",
+            "https://example.com/path?query=api%2Fffi#fragment.\n",
+            "Malformed https://example.com/%GG stays literal.\n"
+        );
+        let document = crate::parse_document("fixture.md", None, source)
+            .expect("parse mixed valid and malformed URL text");
+        let mut renderer = MarkdownRenderer::new(|directive| directive.to_string());
+        renderer.visit_document(&document);
+
+        assert_eq!(renderer.markdown, source);
     }
 }
