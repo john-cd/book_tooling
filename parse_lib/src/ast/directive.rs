@@ -68,26 +68,29 @@ pub enum DirectiveData<'a> {
     },
 }
 
+/// Formats a directive using canonical, parseable double-brace syntax.
+///
+/// Formatting normalizes spacing and does not preserve the original source bytes.
 impl Display for DirectiveData<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            DirectiveData::Link { kind, name } => write!(f, "{{{kind} {name}}}"),
-            DirectiveData::Badge { kind, name } => write!(f, "{{!{kind} {name}}}"),
+            DirectiveData::Link { kind, name } => write!(f, "{{{{{kind} {name}}}}}"),
+            DirectiveData::Badge { kind, name } => write!(f, "{{{{!{kind} {name}}}}}"),
             DirectiveData::CrateBlock {
                 crate_name,
                 additional_categories,
             } => {
                 if additional_categories.is_empty() {
-                    write!(f, "{{#crate {crate_name}}}")
+                    write!(f, "{{{{#crate {crate_name}}}}}")
                 } else {
                     let categories = &additional_categories.join(" ");
-                    write!(f, "{{#crate {crate_name} {categories}}}")
+                    write!(f, "{{{{#crate {crate_name} {categories}}}}}")
                 }
             }
             DirectiveData::CategoryBlock { categories } => {
-                write!(f, "{{#categories {}}}", categories.join(","))
+                write!(f, "{{{{#categories {}}}}}", categories.join(","))
             }
-            DirectiveData::ExampleBlock { name } => write!(f, "{{#example {name}}}"),
+            DirectiveData::ExampleBlock { name } => write!(f, "{{{{#example {name}}}}}"),
         }
     }
 }
