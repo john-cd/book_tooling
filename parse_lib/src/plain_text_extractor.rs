@@ -87,6 +87,7 @@ mod tests {
     use super::*;
     use crate::parse_document;
 
+    /// Covers plain text extraction.
     #[test]
     fn test_plain_text_extraction() {
         let input = "Hello world! Check out [my link](https://example.com).";

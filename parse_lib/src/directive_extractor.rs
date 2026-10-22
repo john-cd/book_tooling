@@ -38,6 +38,7 @@ mod tests {
     use super::*;
     use crate::parse_document;
 
+    /// Covers directive extractor skips code blocks.
     #[test]
     fn test_directive_extractor_skips_code_blocks() {
         let input = "\

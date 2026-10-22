@@ -68,6 +68,7 @@ pub fn parse_reference_style_image<'s>(input: &mut &'s str) -> ModalResult<Eleme
 mod tests {
     use super::*;
 
+    /// Covers parse inline image.
     #[test]
     fn test_parse_inline_image() {
         let input = r#"![img](http://example.com/image.png "An example image")"#;
@@ -108,6 +109,7 @@ mod tests {
         );
     }
 
+    /// Covers parse reference style image.
     #[test]
     fn test_parse_reference_style_image() {
         let input = "![img][label]";
@@ -146,6 +148,7 @@ mod tests {
         );
     }
 
+    /// Covers parse inline image with invalid input.
     #[test]
     fn test_parse_inline_image_with_invalid_input() {
         let invalid_input = r#"![img](http://example.com/image.png "An example image"#;

@@ -185,6 +185,7 @@ fn parse_example_block_directive<'a>(input: &mut &'a str) -> ModalResult<Directi
 mod tests {
     use super::*;
 
+    /// Categories directive parses comma separated titles.
     #[test]
     fn categories_directive_parses_comma_separated_titles() {
         let mut input = "{{#categories filesystem=Filesystem,api-bindings=\"API bindings\"}}";
@@ -201,6 +202,7 @@ mod tests {
         assert!(input.is_empty());
     }
 
+    /// Crate directive keeps additional categories separate.
     #[test]
     fn crate_directive_keeps_additional_categories_separate() {
         let mut input = "{{#crate same-file filesystem=Filesystem,api-bindings=API}}";

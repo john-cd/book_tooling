@@ -782,6 +782,7 @@ mod tests {
     use super::*;
     use crate::ast::DirectiveData;
 
+    /// Covers parser.
     #[test]
     fn test_parser() {
         let text_input = "# Title
@@ -865,11 +866,13 @@ Hello [link](url)
         }
     }
 
+    /// Snake case words are plain text.
     #[test]
     fn snake_case_words_are_plain_text() {
         assert!(emphasis_texts("snake_case_word and fs_extra\n").is_empty());
     }
 
+    /// Underscore emphasis still requires word boundaries.
     #[test]
     fn underscore_emphasis_still_requires_word_boundaries() {
         assert_eq!(emphasis_texts("an _emphasized_ word"), vec!["emphasized"]);
@@ -878,6 +881,7 @@ Hello [link](url)
         assert!(emphasis_texts("_ not emphasis _").is_empty());
     }
 
+    /// Emphasis and strong do not span blank lines.
     #[test]
     fn emphasis_and_strong_do_not_span_blank_lines() {
         assert!(emphasis_texts("*first\n\nsecond*").is_empty());
@@ -891,6 +895,7 @@ Hello [link](url)
         );
     }
 
+    /// Covers parse task item.
     #[test]
     fn test_parse_task_item() {
         let input = "- [x] task 1";
@@ -906,6 +911,7 @@ Hello [link](url)
         }
     }
 
+    /// Covers parse task item incomplete.
     #[test]
     fn test_parse_task_item_incomplete() {
         let input = "- [ ] todo item";
@@ -921,6 +927,7 @@ Hello [link](url)
         }
     }
 
+    /// Covers parse task item invalid.
     #[test]
     fn test_parse_task_item_invalid() {
         let input = "- [y] invalid";
@@ -930,6 +937,7 @@ Hello [link](url)
             .expect_err("input should be rejected");
     }
 
+    /// Covers parse table.
     #[test]
     fn test_parse_table() {
         let input = "| h1 | h2 |\n|---|---|\n| r1c1 | r1c2 |";
@@ -945,6 +953,7 @@ Hello [link](url)
         }
     }
 
+    /// Covers parse table no outer pipes.
     #[test]
     fn test_parse_table_no_outer_pipes() {
         let input = "h1 | h2\n---|---\nr1c1 | r1c2";
@@ -960,6 +969,7 @@ Hello [link](url)
         }
     }
 
+    /// Covers parse table multiple rows.
     #[test]
     fn test_parse_table_multiple_rows() {
         let input = "| a | b |\n| --- | --- |\n| 1 | 2 |\n| 3 | 4 |";
@@ -975,6 +985,7 @@ Hello [link](url)
         }
     }
 
+    /// Covers parse table inline directives in cells.
     #[test]
     fn test_parse_table_inline_directives_in_cells() {
         let input = concat!(
@@ -1005,6 +1016,7 @@ Hello [link](url)
         ));
     }
 
+    /// Covers simple list in blockquote.
     #[test]
     fn test_simple_list_in_blockquote() {
         let input = "> - one
@@ -1043,6 +1055,7 @@ Hello [link](url)
         }
     }
 
+    /// Covers nested list in blockquote.
     #[test]
     #[expect(
         clippy::excessive_nesting,
@@ -1105,6 +1118,7 @@ Hello [link](url)
         }
     }
 
+    /// Covers list with fenced code block.
     #[test]
     fn test_list_with_fenced_code_block() {
         let input = "- item 1\n  ```rust\n  let x = 1;\n  ```\n- item 2\n";
@@ -1127,6 +1141,7 @@ Hello [link](url)
         }
     }
 
+    /// Covers parse indented code block.
     #[test]
     fn test_parse_indented_code_block() {
         let input = "    let x = 1;\n    let y = 2;\n\nParagraph";
@@ -1144,6 +1159,7 @@ Hello [link](url)
         assert_eq!(input_ref, "\nParagraph");
     }
 
+    /// Covers parse strong and emphasis.
     #[test]
     fn test_parse_strong_and_emphasis() {
         let input = "**bold *italic***";
@@ -1172,6 +1188,7 @@ Hello [link](url)
         }
     }
 
+    /// Covers parse strikethrough.
     #[test]
     fn test_parse_strikethrough() {
         let input = "~~deleted~~";
@@ -1188,6 +1205,7 @@ Hello [link](url)
         }
     }
 
+    /// Covers parse horizontal rule.
     #[test]
     fn test_parse_horizontal_rule() {
         let mut input = "--- \n";
@@ -1205,6 +1223,7 @@ Hello [link](url)
         assert_eq!(rule_input, "next line");
     }
 
+    /// Covers parse html comment.
     #[test]
     fn test_parse_html_comment() {
         let mut input = "<!-- hidden \n text -->\n";
@@ -1219,6 +1238,7 @@ Hello [link](url)
         assert_eq!(input, "\n");
     }
 
+    /// Covers parse html comment from lines.
     #[test]
     fn test_parse_html_comment_from_lines() {
         let input_doc = "- item 1\n  <!-- multi\n  line\n  comment -->\n  Paragraph";

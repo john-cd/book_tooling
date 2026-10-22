@@ -130,6 +130,7 @@ pub fn parse_autolink<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
 mod tests {
     use super::*;
 
+    /// Covers parse autolink.
     #[test]
     fn test_parse_autolink() {
         let mut input = "<https://example.com/foo>";
@@ -144,6 +145,7 @@ mod tests {
         );
     }
 
+    /// Covers parse url chars basic.
     #[test]
     fn test_parse_url_chars_basic() {
         // Stops at `|`, which is not a reserved char. Otherwise we would get an `Incomplete`.
@@ -161,6 +163,7 @@ mod tests {
             .expect_err("input should be rejected");
     }
 
+    /// Covers parse url chars reserved.
     #[test]
     fn test_parse_url_chars_reserved() {
         assert_eq!(
@@ -175,6 +178,7 @@ mod tests {
         );
     }
 
+    /// Covers parse url chars url like.
     #[test]
     fn test_parse_url_chars_url_like() {
         assert_eq!(
@@ -191,6 +195,7 @@ mod tests {
         );
     }
 
+    /// Covers parse url chars invalid.
     #[test]
     fn test_parse_url_chars_invalid() {
         assert_eq!(

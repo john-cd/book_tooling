@@ -22,6 +22,7 @@ pub struct Scope {
 }
 
 impl Default for Scope {
+    /// Returns the default scope: Markdown files except `refs.incl.md` and `SUMMARY.md`.
     fn default() -> Self {
         Self {
             included_extensions: vec![OsString::from("md")],
@@ -179,6 +180,7 @@ mod tests {
 
     use super::*;
 
+    /// A file reachable from two overlapping roots is processed once.
     #[test]
     fn overlapping_roots_process_each_file_once() -> Result<()> {
         let temp = tempdir()?;
@@ -225,6 +227,7 @@ mod tests {
         Ok(())
     }
 
+    /// A missing root fails the walk instead of looking empty.
     #[test]
     fn traversal_failure_is_reported() -> Result<()> {
         let temp = tempdir()?;

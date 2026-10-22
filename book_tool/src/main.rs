@@ -85,6 +85,7 @@ enum Commands {
     },
 }
 
+/// Parses the command line, initializes tracing, and runs the selected workflow.
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()

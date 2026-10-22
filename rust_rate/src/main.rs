@@ -82,6 +82,7 @@ async fn run_stats(crate_name: &str, limit: usize, token_env: &str) -> Result<()
     Ok(())
 }
 
+/// Parses the command line, initializes tracing, and runs the selected workflow.
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();

@@ -74,6 +74,7 @@ fn search_page(count: usize) -> String {
     response("200 OK", "", &format!(r#"{{"items":[{items}]}}"#))
 }
 
+/// Search follows pagination until a short page.
 #[tokio::test]
 async fn search_follows_pagination_until_a_short_page() {
     let server =
@@ -91,6 +92,7 @@ async fn search_follows_pagination_until_a_short_page() {
     assert!(requests[1].contains("page=2"), "{requests:?}");
 }
 
+/// Search reports rate limiting with the reset time.
 #[tokio::test]
 async fn search_reports_rate_limiting_with_the_reset_time() {
     let server = MockServer::spawn(vec![response(
@@ -113,6 +115,7 @@ async fn search_reports_rate_limiting_with_the_reset_time() {
     assert!(message.contains("1700000000"), "{message}");
 }
 
+/// Search reports other http errors by status.
 #[tokio::test]
 async fn search_reports_other_http_errors_by_status() {
     let server = MockServer::spawn(vec![response("422 Unprocessable Entity", "", "{}")])
@@ -129,6 +132,7 @@ async fn search_reports_other_http_errors_by_status() {
     assert!(error.to_string().contains("422"), "{error}");
 }
 
+/// Download rejects error statuses instead of returning the body.
 #[tokio::test]
 async fn download_rejects_error_statuses_instead_of_returning_the_body() {
     let server = MockServer::spawn(vec![
@@ -151,6 +155,7 @@ async fn download_rejects_error_statuses_instead_of_returning_the_body() {
     assert!(error.to_string().contains("404"), "{error}");
 }
 
+/// Crates io summary decodes the crate record.
 #[tokio::test]
 async fn crates_io_summary_decodes_the_crate_record() {
     let body = r#"{"crate":{"name":"anyhow","description":"Flexible errors","repository":null,"downloads":42,"recent_downloads":7}}"#;
@@ -167,6 +172,7 @@ async fn crates_io_summary_decodes_the_crate_record() {
     assert_eq!(server.requests(), ["GET /crates/anyhow HTTP/1.1"]);
 }
 
+/// Crates io failures are reported.
 #[tokio::test]
 async fn crates_io_failures_are_reported() {
     let server = MockServer::spawn(vec![

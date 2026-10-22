@@ -69,6 +69,7 @@ pub fn parse_hidden_html_div<'s>(input: &mut &'s str) -> ModalResult<Element<'s>
 mod tests {
     use super::*;
 
+    /// Covers parse simple hidden div.
     #[test]
     fn test_parse_simple_hidden_div() {
         let input = r#"<div class="hidden">some content</div>"#;
@@ -84,6 +85,7 @@ mod tests {
         );
     }
 
+    /// Covers parse hidden div with trailing text.
     #[test]
     fn test_parse_hidden_div_with_trailing_text() {
         let input = r#"<div class="hidden">content</div> and more"#;
@@ -97,6 +99,7 @@ mod tests {
         );
     }
 
+    /// Covers parse empty hidden div.
     #[test]
     fn test_parse_empty_hidden_div() {
         let input = r#"<div class="hidden"></div>"#;
@@ -110,6 +113,7 @@ mod tests {
         );
     }
 
+    /// Covers parse multiline hidden div.
     #[test]
     fn test_parse_multiline_hidden_div() {
         let input = "<div class=\"hidden\">line 1\nline 2</div>";
@@ -125,18 +129,21 @@ mod tests {
         );
     }
 
+    /// Covers fail on missing closing tag.
     #[test]
     fn test_fail_on_missing_closing_tag() {
         let mut input = r#"<div class="hidden">no closing tag"#;
         parse_hidden_html_div(&mut input).expect_err("input should be rejected");
     }
 
+    /// Covers fail on wrong class.
     #[test]
     fn test_fail_on_wrong_class() {
         let mut input = r#"<div class="other">content</div>"#;
         parse_hidden_html_div(&mut input).expect_err("input should be rejected");
     }
 
+    /// Covers nested div behavior.
     #[test]
     fn test_nested_div_behavior() {
         // The parser is simple and takes until the first "</div>".
@@ -155,6 +162,7 @@ mod tests {
 
     // Tests for `parse_hidden_div_open_tag`.
 
+    /// Covers parse hidden div open tag basic.
     #[test]
     fn test_parse_hidden_div_open_tag_basic() {
         assert_eq!(
@@ -163,6 +171,7 @@ mod tests {
         );
     }
 
+    /// Covers parse hidden div open tag flexible whitespace.
     #[test]
     fn test_parse_hidden_div_open_tag_flexible_whitespace() {
         assert_eq!(
@@ -179,6 +188,7 @@ mod tests {
         );
     }
 
+    /// Covers parse hidden div open tag case insensitivity.
     #[test]
     fn test_parse_hidden_div_open_tag_case_insensitivity() {
         assert_eq!(
@@ -191,6 +201,7 @@ mod tests {
         );
     }
 
+    /// Covers parse hidden div open tag no match.
     #[test]
     fn test_parse_hidden_div_open_tag_no_match() {
         // Missing class
