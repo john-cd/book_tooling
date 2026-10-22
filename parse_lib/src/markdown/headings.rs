@@ -10,7 +10,6 @@ use winnow::ascii::line_ending;
 use winnow::ascii::space0;
 use winnow::ascii::space1;
 use winnow::combinator::alt;
-use winnow::combinator::cut_err;
 use winnow::combinator::delimited;
 use winnow::combinator::eof;
 use winnow::combinator::opt;
@@ -60,15 +59,12 @@ fn parse_attribute_block<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
         }
     });
 
-    terminated(
-        delimited("{", parse_attributes_content, cut_err("}")),
-        space0,
-    )
-    .context(Label("attribute block"))
-    .context(Expected(Description(
-        r"attribute block with ID within {# }. No { } < > \ or newlines inside.",
-    )))
-    .parse_next(input)
+    terminated(delimited("{", parse_attributes_content, "}"), space0)
+        .context(Label("attribute block"))
+        .context(Expected(Description(
+            r"attribute block with ID within {# }. No { } < > \ or newlines inside.",
+        )))
+        .parse_next(input)
 }
 
 /// Parses the heading text up to an optional attribute block or closing hashes.
