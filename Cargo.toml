@@ -6,6 +6,7 @@ members = [
     "parse_lib",
     "rust_rate"
 ]
+exclude = ["parse_lib/fuzz"]
 
 # Default values for packages in the workspace
 [workspace.package]
