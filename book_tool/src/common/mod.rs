@@ -2,7 +2,6 @@
 //!
 //! TODO Reviewed ??-??-2026
 
-use std::borrow::Cow;
 use std::io::Write as _;
 use std::path::Path;
 
@@ -30,51 +29,6 @@ pub fn warn_and_continue_on_parse_failure(path: &Path, error: &anyhow::Error) {
         error = %error,
         "Failed to parse Markdown file; skipping file and continuing"
     );
-}
-
-/// Reads a UTF-8 text file, optionally transforms it, and writes changes back atomically.
-///
-/// The file is only rewritten when `should_process` returns `true` and the transformed
-/// contents differ from the original text.
-///
-/// # Errors
-///
-/// Returns an error if the file cannot be read, transformed or atomically replaced.
-pub fn process_text_file<P, C, T>(path: P, should_process: C, transform: T) -> Result<()>
-where
-    P: AsRef<Path>,
-    C: Fn(&str) -> bool,
-    T: FnOnce(&str) -> Cow<'_, str>,
-{
-    let path = path.as_ref();
-    tracing::debug!(path = %path.display(), "Reading text file");
-    let content = std::fs::read_to_string(path)
-        .with_context(|| format!("Failed to read file: {}", path.display()))?;
-
-    if !should_process(&content) {
-        tracing::debug!(
-            path = %path.display(),
-            "Skipping file because the fast-path predicate returned false"
-        );
-        return Ok(());
-    }
-
-    tracing::debug!(path = %path.display(), "Transforming text file");
-    let transformed = transform(&content);
-
-    if transformed == content {
-        tracing::debug!(path = %path.display(), "Transformation produced no file changes");
-    } else {
-        tracing::info!(
-            path = %path.display(),
-            old_bytes = content.len(),
-            new_bytes = transformed.len(),
-            "Writing updated file contents"
-        );
-        replace_text_file_atomically(path, transformed.as_ref())?;
-    }
-
-    Ok(())
 }
 
 /// Replaces a regular text file only after the full replacement has been staged beside it.
@@ -124,50 +78,6 @@ pub fn replace_text_file_atomically(path: &Path, contents: &str) -> Result<()> {
         .map(|_| ())
         .map_err(|error| error.error)
         .with_context(|| format!("Failed to replace {}", path.display()))
-}
-
-/// Reads a UTF-8 Markdown file, parses it, and writes a transformed version atomically.
-///
-/// Parse failures are delegated to `on_parse_error`, leave the original file unchanged, and
-/// are returned to the caller as errors.
-///
-/// # Errors
-///
-/// Returns an error if the file cannot be read or parsed, if processing fails, or if the file cannot be rewritten.
-pub fn process_parsed_markdown_file<P, C, T, E>(
-    path: P,
-    should_process: C,
-    transform: T,
-    on_parse_error: E,
-) -> Result<()>
-where
-    P: AsRef<Path>,
-    C: Fn(&str) -> bool,
-    T: for<'input> FnOnce(&Path, &parse_lib::Document<'input>) -> Cow<'input, str>,
-    E: FnOnce(&Path, &anyhow::Error),
-{
-    let path = path.as_ref();
-    let content = std::fs::read_to_string(path)
-        .with_context(|| format!("Failed to read file: {}", path.display()))?;
-    if !should_process(&content) {
-        return Ok(());
-    }
-
-    tracing::debug!(path = %path.display(), "Parsing Markdown document");
-    let doc = match parse_lib::parse_document("file", None, &content) {
-        Ok(doc) => doc,
-        Err(error) => {
-            on_parse_error(path, &error);
-            return Err(error)
-                .with_context(|| format!("Failed to parse Markdown file: {}", path.display()));
-        }
-    };
-    tracing::debug!(path = %path.display(), "Parsed Markdown document successfully");
-    let transformed = transform(path, &doc);
-    if transformed != content {
-        replace_text_file_atomically(path, transformed.as_ref())?;
-    }
-    Ok(())
 }
 
 #[cfg(test)]

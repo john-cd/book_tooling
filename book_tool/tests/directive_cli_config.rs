@@ -112,3 +112,49 @@ fn directives_cli_reports_invalid_config_without_rewriting_chapters() {
         source
     );
 }
+
+/// Verifies `--config` selects a configuration file outside the working directory.
+#[test]
+fn directives_cli_reads_the_configuration_named_by_the_config_flag() {
+    let book = tempdir().expect("create temporary book directory");
+    let elsewhere = tempdir().expect("create temporary configuration directory");
+    let chapter = book.path().join("chapter.md");
+    fs::write(&chapter, "{{docs serde}}\n").expect("write chapter");
+    let config = elsewhere.path().join("custom.toml");
+    fs::write(&config, "process-link-and-badge-directives = false\n")
+        .expect("write directive configuration");
+
+    let output = Command::new(env!("CARGO_BIN_EXE_book_tool"))
+        .args(["directives", "--config"])
+        .arg(&config)
+        .arg(book.path())
+        .current_dir(elsewhere.path())
+        .output()
+        .expect("run directives CLI with --config");
+
+    assert!(
+        output.status.success(),
+        "directives stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        fs::read_to_string(chapter).expect("read chapter"),
+        "{{docs serde}}\n"
+    );
+
+    let missing = Command::new(env!("CARGO_BIN_EXE_book_tool"))
+        .args(["directives", "--config"])
+        .arg(elsewhere.path().join("missing.toml"))
+        .arg(book.path())
+        .output()
+        .expect("run directives CLI with a missing --config");
+    assert!(
+        !missing.status.success(),
+        "a missing explicit configuration must be an error"
+    );
+    assert!(
+        String::from_utf8_lossy(&missing.stderr).contains("missing.toml"),
+        "stderr: {}",
+        String::from_utf8_lossy(&missing.stderr)
+    );
+}

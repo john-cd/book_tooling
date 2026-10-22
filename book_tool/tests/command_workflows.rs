@@ -157,7 +157,7 @@ fn directives_execute_expands_example_directives() {
     let temp = tempdir().expect("create temp dir");
     let file = write_markdown_file(temp.path(), "doc.md", "{{#example demo}}\n");
 
-    book_tool::directives::execute(vec![temp.path().to_path_buf()]).expect("run directives");
+    book_tool::directives::execute(vec![temp.path().to_path_buf()], None).expect("run directives");
 
     let updated = fs::read_to_string(file).expect("read transformed markdown");
     assert_eq!(updated, "{{#include examples/demo.md}}\n");
