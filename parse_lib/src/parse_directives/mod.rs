@@ -4,6 +4,7 @@
 use winnow::ModalResult;
 use winnow::Parser;
 use winnow::ascii::space0;
+use winnow::ascii::space1;
 use winnow::combinator::alt;
 use winnow::combinator::delimited;
 use winnow::combinator::opt;
@@ -38,27 +39,35 @@ pub fn parse_directive_element<'a>(input: &mut &'a str) -> ModalResult<Element<'
 fn parse_destination_kind(input: &mut &str) -> ModalResult<DestinationKind> {
     alt((
         "cat".value(DestinationKind::Category),
+        "crates.io".value(DestinationKind::CratesIo),
         "crate".value(DestinationKind::Crate),
         "docs".value(DestinationKind::Docs),
         "github".value(DestinationKind::GithubRepo),
         "lib.rs".value(DestinationKind::LibRs),
-        "crates.io".value(DestinationKind::CratesIo),
         "web".value(DestinationKind::Web),
     ))
+    .parse_next(input)
+}
+
+fn parse_link_or_badge_name<'a>(input: &mut &'a str) -> ModalResult<&'a str> {
+    alt((
+        preceded(':', preceded(space0, take_until(1.., "}}"))),
+        preceded(space1, take_until(1.., "}}")),
+    ))
+    .verify(|name: &str| !name.trim().is_empty())
+    .map(str::trim)
     .parse_next(input)
 }
 
 fn parse_link_directive<'a>(input: &mut &'a str) -> ModalResult<DirectiveData<'a>> {
     delimited(
         "{{",
-        (
-            parse_destination_kind,
-            preceded(space0, take_until(1.., "}}")),
-        )
-            .map(|(kind, name)| DirectiveData::Link {
+        (parse_destination_kind, parse_link_or_badge_name).map(|(kind, name)| {
+            DirectiveData::Link {
                 kind,
                 name: name.trim(),
-            }),
+            }
+        }),
         "}}",
     )
     .parse_next(input)
@@ -67,14 +76,12 @@ fn parse_link_directive<'a>(input: &mut &'a str) -> ModalResult<DirectiveData<'a
 fn parse_badge_directive<'a>(input: &mut &'a str) -> ModalResult<DirectiveData<'a>> {
     delimited(
         "{{!",
-        (
-            parse_destination_kind,
-            preceded(space0, take_until(1.., "}}")),
-        )
-            .map(|(kind, name)| DirectiveData::Badge {
+        (parse_destination_kind, parse_link_or_badge_name).map(|(kind, name)| {
+            DirectiveData::Badge {
                 kind,
                 name: name.trim(),
-            }),
+            }
+        }),
         "}}",
     )
     .parse_next(input)
@@ -110,11 +117,10 @@ fn parse_crate_block_directive<'a>(input: &mut &'a str) -> ModalResult<Directive
 fn parse_category_block_directive<'a>(input: &mut &'a str) -> ModalResult<DirectiveData<'a>> {
     delimited(
         "{{#categories",
-        (opt(":"), space0, take_until(1.., "}}")).map(|(_, _, categories): (_, _, &str)| {
-            DirectiveData::CategoryBlock {
-                categories: split_category_arguments(categories),
-            }
-        }),
+        (opt(":"), space0, take_until(1.., "}}"))
+            .map(|(_, _, categories): (_, _, &str)| split_category_arguments(categories))
+            .verify(|categories: &Vec<&str>| !categories.is_empty())
+            .map(|categories| DirectiveData::CategoryBlock { categories }),
         "}}",
     )
     .parse_next(input)
@@ -157,6 +163,7 @@ fn parse_example_block_directive<'a>(input: &mut &'a str) -> ModalResult<Directi
     // Actually, commonmark-style directives usually aren't that complex but let's allow
     // the content to contain {{ if we can.
     delimited("{{#example ", take_until(1.., "}}"), "}}")
+        .verify(|name: &str| !name.trim().is_empty())
         .map(|name: &str| DirectiveData::ExampleBlock { name: name.trim() })
         .parse_next(input)
 }
@@ -192,5 +199,78 @@ mod tests {
             })
         );
         assert!(input.is_empty());
+    }
+    /// Verifies category destinations require a name and preserve punctuation and URL escapes.
+    #[test]
+    fn category_links_and_badges_parse_encoded_names_and_reject_empty_names() {
+        assert_eq!(
+            parse_directive_element(&mut "{{cat: api-bindings%2Fffi}}")
+                .expect("parse colon-separated category link"),
+            Element::CustomDirective(DirectiveData::Link {
+                kind: DestinationKind::Category,
+                name: "api-bindings%2Fffi",
+            })
+        );
+        assert_eq!(
+            parse_directive_element(&mut "{{!cat C++ / FFI}}")
+                .expect("parse category badge with punctuation"),
+            Element::CustomDirective(DirectiveData::Badge {
+                kind: DestinationKind::Category,
+                name: "C++ / FFI",
+            })
+        );
+
+        let mut empty_name = "{{cat }}";
+        assert!(parse_directive_element(&mut empty_name).is_err());
+        let mut invalid_destination = "{{catalog accessibility}}";
+        assert!(parse_directive_element(&mut invalid_destination).is_err());
+    }
+
+    /// Verifies every directive variant has canonical double-brace formatting that reparses.
+    #[test]
+    fn every_directive_variant_round_trips_through_display() {
+        let sources = [
+            "{{cat accessibility}}",
+            "{{!crates.io serde}}",
+            "{{#crate serde filesystem api-bindings}}",
+            "{{#categories filesystem=Filesystem,api-bindings=\"API bindings\"}}",
+            "{{#example ../../crates/language/examples/constants_and_statics/constants.rs:example}}",
+        ];
+
+        for source in sources {
+            let mut original_input = source;
+            let original = parse_directive_element(&mut original_input)
+                .expect("parse supported directive variant");
+            assert!(original_input.is_empty());
+
+            let formatted = original.to_string();
+            assert_eq!(formatted, source);
+            let mut formatted_input = formatted.as_str();
+            let reparsed = parse_directive_element(&mut formatted_input)
+                .expect("parse canonical directive formatting");
+            assert!(formatted_input.is_empty());
+            assert_eq!(reparsed, original);
+        }
+    }
+
+    /// Verifies empty directive payloads and native helpers are not parsed as custom directives.
+    #[test]
+    fn empty_payloads_and_native_helpers_are_not_custom_directives() {
+        for source in [
+            "{{cat }}",
+            "{{!docs }}",
+            "{{#crate }}",
+            "{{#categories }}",
+            "{{#example }}",
+            "{{#include refs.incl.md}}",
+            "{{#rustdoc_include snippet.rs}}",
+            "{{#playground code}}",
+        ] {
+            let mut input = source;
+            assert!(
+                parse_directive_element(&mut input).is_err(),
+                "source: {source}"
+            );
+        }
     }
 }
