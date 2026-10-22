@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! A visitor that pretty-prints the AST to any writer.
+//!
+//! TODO Reviewed ??-??-2026
+
 use std::fmt;
 
 use super::Visitable as _;

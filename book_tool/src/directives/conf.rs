@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! Configuration of the directives subcommand, loaded from a TOML file.
+//!
+//! TODO Reviewed ??-??-2026
+
 use std::default::Default;
 use std::path::Path;
 

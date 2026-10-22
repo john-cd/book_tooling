@@ -21,16 +21,19 @@ impl<'v> Visitor<'v> for UrlCollector<'_> {
             self.urls.insert(url);
         }
     }
+
     fn visit_inline_link(&mut self, data: &'v InlineLinkData<'v>) {
         if let Ok(url) = Url::parse(data.url) {
             self.urls.insert(url);
         }
     }
+
     fn visit_inline_image(&mut self, data: &'v InlineImageData<'v>) {
         if let Ok(url) = Url::parse(data.url) {
             self.urls.insert(url);
         }
     }
+
     fn visit_reference_definition(&mut self, data: &'v ReferenceDefinitionData<'v>) {
         if let Ok(url) = Url::parse(data.url) {
             self.urls.insert(url);

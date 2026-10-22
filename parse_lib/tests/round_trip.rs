@@ -2,6 +2,8 @@
 //!
 //! Commands rewrite authored files in place, so `parse_document` must accept every input and
 //! rendering the result without directive expansion must reproduce the input byte for byte.
+//!
+//! TODO Reviewed ??-??-2026
 
 use std::fs;
 use std::path::Path;

@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! Parser for the hidden HTML `div` that holds link reference definitions.
+//!
+//! TODO Reviewed ??-??-2026
+
 use winnow::ModalResult;
 use winnow::Parser as _;
 use winnow::Result;

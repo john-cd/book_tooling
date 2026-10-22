@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! A visitor that collects the link destinations of a document.
+//!
+//! TODO Reviewed ??-??-2026
+
 use std::collections::HashSet;
 
 use crate::ast::{AutolinkData, InlineImageData, InlineLinkData, ReferenceDefinitionData};

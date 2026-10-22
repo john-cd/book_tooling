@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! Parsers for code spans and fenced code blocks.
+//!
+//! TODO Reviewed ??-??-2026
+
 use winnow::ModalResult;
 use winnow::Parser as _;
 use winnow::combinator::delimited;

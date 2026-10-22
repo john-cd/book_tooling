@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! Renders AST elements as HTML, with HTML escaping.
+//!
+//! TODO Reviewed ??-??-2026
+
 use crate::ast::{
     BlockquoteData, EmphasisData, FencedCodeBlockData, HtmlCommentData, InlineLinkData, ListData,
     ListItemData, ParagraphData, StrikethroughData, StrongData, TableData, TextData,

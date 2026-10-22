@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! Collects the reference definitions of a document.
+//!
+//! TODO Reviewed ??-??-2026
+
 use super::Visitable as _;
 use crate::ast::{Documents, ReferenceDefinitionData};
 

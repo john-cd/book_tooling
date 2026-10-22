@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! Parser for reference-style links.
+//!
+//! TODO Reviewed ??-??-2026
+
 use winnow::ModalResult;
 use winnow::Parser as _;
 use winnow::combinator::seq;

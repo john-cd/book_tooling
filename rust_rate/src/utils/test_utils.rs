@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! Helpers to run table-driven tests.
+//!
+//! TODO Reviewed ??-??-2026
+
 use std::fs::File;
 use std::io::Write as _;
 use std::path::Path;

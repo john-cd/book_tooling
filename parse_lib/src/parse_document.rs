@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! Parses a whole Markdown document into AST elements.
+//!
+//! TODO Reviewed ??-??-2026
+
 use winnow::ModalResult;
 use winnow::Parser as _;
 use winnow::ascii::line_ending;

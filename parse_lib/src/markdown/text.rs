@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! Parsers for plain text and for the fallback single character.
+//!
+//! TODO Reviewed ??-??-2026
+
 use winnow::ModalResult;
 use winnow::Parser as _;
 use winnow::combinator::alt;

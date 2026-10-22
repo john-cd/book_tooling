@@ -1,4 +1,7 @@
-// TODO Reviewed ??-??-2026
+//! Rebuilds Markdown source text from a sequence of AST elements.
+//!
+//! TODO Reviewed ??-??-2026
+
 use super::Element;
 
 /// Reconstructs Markdown for a sequence of AST elements using their display implementation.
