@@ -104,8 +104,8 @@ book_tool link-check ./src --refdefs --delete
 
 Link checking requires outbound network access; there is no offline mode. The checker sends `HEAD`
 requests first and falls back to `GET` when a response is not successful. Only `2xx` responses pass.
-Each method retries `429` and `503` responses up to three times using a numeric `Retry-After` value,
-or one second when the header is absent or not numeric. Requests time out after ten seconds, with up
+Each method retries `429` and `503` responses up to three times using the `Retry-After` value (seconds or an HTTP-date, capped at 30 seconds),
+or exponential backoff starting at one second when the header is absent or malformed. Requests time out after ten seconds, with up
 to 32 links checked concurrently. Local HTTP fixtures can exercise the command without contacting
 external sites.
 
