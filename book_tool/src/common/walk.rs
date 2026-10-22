@@ -73,33 +73,6 @@ fn collect_files(root: &Path, scope: &Scope, seen: &mut HashSet<String>) -> Resu
     Ok(files)
 }
 
-/// Walks through a directory and processes all files matching the specified scope.
-///
-/// # Errors
-///
-/// Returns an error if the root cannot be traversed or if processing a file fails.
-pub fn walk_directory_and_process_files<F>(root: &Path, scope: &Scope, mut f: F) -> Result<()>
-where
-    F: FnMut(&Path) -> Result<()> + Sync + Send,
-{
-    tracing::debug!(
-        root = %root.display(),
-        included_extensions = ?scope.included_extensions,
-        excluded_filenames = ?scope.excluded_filenames,
-        "Scanning directory for matching files"
-    );
-
-    let mut seen = HashSet::new();
-    let files = collect_files(root, scope, &mut seen)?;
-    tracing::debug!(root = %root.display(), file_count = files.len(), "Collected matching files");
-
-    for file in files {
-        tracing::info!("Processing {}.", file.display());
-        f(&file).with_context(|| format!("Error while processing file: {}", file.display()))?;
-    }
-    Ok(())
-}
-
 /// Walks multiple directories and processes each matching file once, including when roots overlap.
 ///
 /// # Errors
@@ -236,7 +209,7 @@ mod tests {
         }
         let mut visited = Vec::new();
 
-        walk_directory_and_process_files(temp.path(), &Scope::default(), |path| {
+        walk_directories_and_process_files([temp.path()], &Scope::default(), |path| {
             visited.push(
                 path.strip_prefix(temp.path())?
                     .to_string_lossy()
@@ -254,7 +227,7 @@ mod tests {
         let temp = tempdir()?;
         let missing = temp.path().join("missing");
 
-        let error = walk_directory_and_process_files(&missing, &Scope::default(), |_| Ok(()))
+        let error = walk_directories_and_process_files([&missing], &Scope::default(), |_| Ok(()))
             .expect_err("missing roots must fail instead of looking empty");
 
         assert!(error.to_string().contains("traverse"));

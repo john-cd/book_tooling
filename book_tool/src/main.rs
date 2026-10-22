@@ -25,6 +25,9 @@ enum Commands {
         /// Directories to process.
         #[arg(required = true)]
         directories: Vec<PathBuf>,
+        /// Configuration file (default: `config.toml` in the current directory, if present).
+        #[arg(short, long)]
+        config: Option<PathBuf>,
     },
     /// Check for broken links in Markdown files.
     LinkCheck {
@@ -91,8 +94,11 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::Directives { directories } => {
-            book_tool::directives::execute(directories.clone())?;
+        Commands::Directives {
+            directories,
+            config,
+        } => {
+            book_tool::directives::execute(directories.clone(), config.as_deref())?;
         }
         Commands::LinkCheck {
             directories,

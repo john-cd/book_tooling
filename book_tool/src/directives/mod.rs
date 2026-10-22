@@ -28,19 +28,28 @@ use crate::common::walk_parsed_markdown_files;
 
 /// Processes directives in all configured Markdown files under the given directories.
 ///
-/// The command loads `config.toml` from the current working directory when present,
-/// and otherwise falls back to [`Config::default`]. Files are rewritten in place.
+/// The command loads `config_path` when given, otherwise `config.toml` from the current
+/// working directory when present, and otherwise falls back to [`Config::default`].
+/// Files are rewritten in place.
 ///
 /// # Errors
 ///
-/// Returns an error if the configuration cannot be loaded or a directory cannot be processed.
-pub fn execute(directories: Vec<PathBuf>) -> Result<()> {
+/// Returns an error if an explicitly named configuration file is missing, the configuration
+/// cannot be loaded, or a directory cannot be processed.
+pub fn execute(directories: Vec<PathBuf>, config_path: Option<&Path>) -> Result<()> {
     tracing::info!(
         directory_count = directories.len(),
         "Starting directive processing workflow"
     );
 
-    let config_path = Path::new("config.toml");
+    if let Some(explicit) = config_path {
+        anyhow::ensure!(
+            explicit.try_exists()?,
+            "Configuration file not found: {}",
+            explicit.display()
+        );
+    }
+    let config_path = config_path.unwrap_or_else(|| Path::new("config.toml"));
     let conf = if config_path.try_exists()? {
         match Config::from_file(config_path) {
             Ok(conf) => {
