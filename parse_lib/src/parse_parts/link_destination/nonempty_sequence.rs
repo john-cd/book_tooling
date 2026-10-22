@@ -99,6 +99,7 @@ pub(crate) fn parse_non_empty_sequence<'s>(input: &mut &'s str) -> ModalResult<&
 mod tests_parse_non_empty_sequence {
     use super::*;
 
+    /// Covers valid sequences.
     #[test]
     fn test_valid_sequences() {
         assert_eq!(
@@ -150,6 +151,7 @@ mod tests_parse_non_empty_sequence {
         );
     }
 
+    /// Covers invalid sequences.
     #[test]
     fn test_invalid_sequences() {
         // Empty string.
@@ -171,6 +173,7 @@ mod tests_parse_non_empty_sequence {
 mod text_with_escapes_tests {
     use super::*;
 
+    /// Covers text with escapes basic.
     #[test]
     fn test_text_with_escapes_basic() {
         // Simple allowed chars.
@@ -208,6 +211,7 @@ mod text_with_escapes_tests {
         );
     }
 
+    /// Covers text with escapes partial.
     #[test]
     fn test_text_with_escapes_partial() {
         // Stops at unescaped parenthesis.
@@ -227,6 +231,7 @@ mod text_with_escapes_tests {
         );
     }
 
+    /// Covers text with escapes invalid.
     #[test]
     fn test_text_with_escapes_invalid() {
         // Starts with forbidden char.

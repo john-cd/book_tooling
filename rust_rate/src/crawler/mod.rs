@@ -202,6 +202,7 @@ impl GithubCrawler {
 mod tests {
     use super::*;
 
+    /// The query is percent-encoded and paging parameters are appended.
     #[test]
     fn test_build_search_url_encoding() {
         let url = GithubCrawler::build_search_url(GITHUB_API, "anyhow&sort=stars", 2);
@@ -211,6 +212,7 @@ mod tests {
         );
     }
 
+    /// A token that is not a valid header value is rejected.
     #[test]
     fn test_new_rejects_invalid_token() {
         let result = GithubCrawler::new(Some("bad\nvalue"));

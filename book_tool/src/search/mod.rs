@@ -112,6 +112,7 @@ pub fn execute(query: &str, directories: &[PathBuf]) -> Result<()> {
 mod tests {
     use super::*;
 
+    /// Matching ignores case and returns offsets into the original text.
     #[test]
     fn matching_is_case_insensitive_and_reports_original_offsets() {
         assert_eq!(find_case_insensitive("Hello World", "WORLD"), Some(6..11));
@@ -119,6 +120,7 @@ mod tests {
         assert_eq!(find_case_insensitive("Hello", ""), None);
     }
 
+    /// Offsets stay correct when lowercasing changes a character's byte length.
     #[test]
     fn offsets_stay_valid_when_lowercasing_changes_byte_length() {
         // `İ` (2 bytes) lowercases to `i̇` (3 bytes), which shifts every later offset in a lowercased copy.
@@ -127,6 +129,7 @@ mod tests {
         assert_eq!(text.get(range), Some("needle"));
     }
 
+    /// Snippet edges never split a multi-byte character.
     #[test]
     fn snippets_are_cut_on_character_boundaries() {
         let text = format!("{}needle{}", "\u{e9}".repeat(40), "\u{fc}".repeat(40));
@@ -135,6 +138,7 @@ mod tests {
         assert!(snippet.starts_with('\u{e9}') && snippet.ends_with('\u{fc}'));
     }
 
+    /// Snippets are flattened to a single line.
     #[test]
     fn snippets_replace_newlines_with_spaces() {
         let snippet = find_snippet("one\ntwo needle\nthree", "needle").expect("match");

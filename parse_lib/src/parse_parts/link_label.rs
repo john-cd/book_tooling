@@ -52,6 +52,7 @@ mod tests {
 
     use super::*;
 
+    /// Covers parse link label simple.
     #[test]
     fn test_parse_link_label_simple() {
         let mut input = "[my label]";
@@ -59,6 +60,7 @@ mod tests {
         assert_eq!(input, "");
     }
 
+    /// Covers parse link label with arbitrary escapes.
     #[test]
     fn test_parse_link_label_with_arbitrary_escapes() {
         let mut input = r"[my \ label \*]";
@@ -68,6 +70,7 @@ mod tests {
         );
     }
 
+    /// Covers parse link label with escaped brackets.
     #[test]
     fn test_parse_link_label_with_escaped_brackets() {
         let mut input = r"[my \[esc\] label]";
@@ -77,12 +80,14 @@ mod tests {
         );
     }
 
+    /// Covers parse link label with escaped backslash.
     #[test]
     fn test_parse_link_label_with_escaped_backslash() {
         let mut input = r"[my \\ label]";
         assert_eq!(parse_link_label.parse_next(&mut input), Ok(r"my \\ label"));
     }
 
+    /// Covers parse link label fails on empty.
     #[test]
     fn test_parse_link_label_fails_on_empty() {
         let mut input = "[]";
@@ -91,6 +96,7 @@ mod tests {
             .expect_err("input should be rejected");
     }
 
+    /// Covers parse link label fails on whitespace only.
     #[test]
     fn test_parse_link_label_fails_on_whitespace_only() {
         let mut input = "[   ]";
@@ -99,6 +105,7 @@ mod tests {
             .expect_err("input should be rejected");
     }
 
+    /// Covers parse link label fails on unescaped bracket.
     #[test]
     fn test_parse_link_label_fails_on_unescaped_bracket() {
         let mut input = "[my [unescaped] label]";
@@ -107,6 +114,7 @@ mod tests {
             .expect_err("input should be rejected");
     }
 
+    /// Covers parse link label fails on too long.
     #[test]
     fn test_parse_link_label_fails_on_too_long() {
         let long_string = "a".repeat(1000);
@@ -117,6 +125,7 @@ mod tests {
             .expect_err("input should be rejected");
     }
 
+    /// Covers parse link label exact max length.
     #[test]
     fn test_parse_link_label_exact_max_length() {
         let max_string = "a".repeat(999);

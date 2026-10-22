@@ -8,6 +8,7 @@ mod template_tests {
     use crate::templates::render_badge;
     use crate::templates::render_link;
 
+    /// Covers render badge crate.
     #[test]
     fn test_render_badge_crate() {
         let name = "clap";
@@ -15,6 +16,7 @@ mod template_tests {
         assert_eq!(render_badge(DestinationKind::Crate, name), expected);
     }
 
+    /// Covers render badge docs.
     #[test]
     fn test_render_badge_docs() {
         let name = "clap";
@@ -22,6 +24,7 @@ mod template_tests {
         assert_eq!(render_badge(DestinationKind::Docs, name), expected);
     }
 
+    /// Covers render link category.
     #[test]
     fn test_render_link_category() {
         let name = "accessibility";

@@ -574,6 +574,7 @@ mod tests {
     use crate::ast::Element;
     use crate::parse_document;
 
+    /// Covers markdown renderer text.
     #[test]
     fn test_markdown_renderer_text() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -583,6 +584,7 @@ mod tests {
         assert_eq!(renderer.markdown, "Hello, world!");
     }
 
+    /// Document no op render preserves titles native helpers and crlf.
     #[test]
     fn document_no_op_render_preserves_titles_native_helpers_and_crlf() {
         let source = concat!(
@@ -601,6 +603,7 @@ mod tests {
         assert_eq!(renderer.markdown, source);
     }
 
+    /// Changed directive preserves untouched markdown source.
     #[test]
     fn changed_directive_preserves_untouched_markdown_source() {
         let source = "[Rust](https://rust-lang.org/ \"Rust title\")\r\n{{#example demo}}\r\n";
@@ -621,6 +624,7 @@ mod tests {
         );
     }
 
+    /// Covers markdown renderer inline link.
     #[test]
     fn test_markdown_renderer_inline_link() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -632,6 +636,7 @@ mod tests {
         assert_eq!(renderer.markdown, "[Rust](https://rust-lang.org)");
     }
 
+    /// Covers markdown renderer wikilink default.
     #[test]
     fn test_markdown_renderer_wikilink_default() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -643,6 +648,7 @@ mod tests {
         assert_eq!(renderer.markdown, "[[page | display]]s");
     }
 
+    /// Covers markdown renderer wikilink resolver.
     #[test]
     fn test_markdown_renderer_wikilink_resolver() {
         let mut renderer =
@@ -660,6 +666,7 @@ mod tests {
         assert_eq!(renderer.markdown, "[My Page][my-page]");
     }
 
+    /// Covers markdown renderer table aligned.
     #[test]
     fn test_markdown_renderer_table_aligned() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -677,6 +684,7 @@ mod tests {
         assert_eq!(renderer.markdown.trim(), expected.trim());
     }
 
+    /// Covers markdown renderer fenced code block.
     #[test]
     fn test_markdown_renderer_fenced_code_block() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -690,6 +698,7 @@ mod tests {
         );
     }
 
+    /// Covers markdown renderer heading.
     #[test]
     fn test_markdown_renderer_heading() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -709,6 +718,7 @@ mod tests {
         assert_eq!(renderer_no_id.markdown, "# Top Level\n");
     }
 
+    /// Covers markdown renderer task item.
     #[test]
     fn test_markdown_renderer_task_item() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -726,6 +736,7 @@ mod tests {
         assert_eq!(renderer_uncompleted.markdown, "- [ ] Todo task\n");
     }
 
+    /// Covers markdown renderer table.
     #[test]
     fn test_markdown_renderer_table() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -738,6 +749,7 @@ mod tests {
         assert_eq!(renderer.markdown, expected);
     }
 
+    /// Covers markdown renderer paragraph.
     #[test]
     fn test_markdown_renderer_paragraph() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -747,6 +759,7 @@ mod tests {
         assert_eq!(renderer.markdown, "Para 1\n\n");
     }
 
+    /// Covers markdown renderer blockquote.
     #[test]
     fn test_markdown_renderer_blockquote() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -765,6 +778,7 @@ mod tests {
         assert_eq!(renderer.markdown, "> Line 1\n>\n> Line 2\n\n");
     }
 
+    /// Covers markdown renderer strong and emphasis.
     #[test]
     fn test_markdown_renderer_strong_and_emphasis() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -781,6 +795,7 @@ mod tests {
         assert_eq!(renderer.markdown, "**bold and *italic***");
     }
 
+    /// Covers markdown renderer strikethrough.
     #[test]
     fn test_markdown_renderer_strikethrough() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -790,6 +805,7 @@ mod tests {
         assert_eq!(renderer.markdown, "~~deleted~~");
     }
 
+    /// Covers markdown renderer horizontal rule.
     #[test]
     fn test_markdown_renderer_horizontal_rule() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());

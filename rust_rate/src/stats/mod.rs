@@ -113,6 +113,7 @@ impl CrateStats {
 mod tests {
     use super::*;
 
+    /// Dependencies and categories of a manifest are counted.
     #[test]
     fn test_process_cargo_toml() {
         let mut stats = CrateStats::new();
@@ -136,6 +137,7 @@ mod tests {
         assert_eq!(stats.category_stats.get("api-bindings"), Some(&1));
     }
 
+    /// Every dependency table counts once per manifest, honouring renames.
     #[test]
     fn test_all_dependency_tables_renames_and_per_manifest_counting() {
         let mut stats = CrateStats::new();
@@ -165,6 +167,7 @@ mod tests {
         assert_eq!(stats.usage_count.get("json"), None);
     }
 
+    /// A manifest that fails to parse changes no counters.
     #[test]
     fn test_invalid_manifest_is_skipped() {
         let mut stats = CrateStats::new();
@@ -172,6 +175,7 @@ mod tests {
         assert!(stats.usage_count.is_empty());
     }
 
+    /// Ranking sorts by count descending, then name ascending.
     #[test]
     fn test_ranked_usage_orders_by_count_then_name() {
         let mut stats = CrateStats::new();

@@ -193,6 +193,7 @@ pub fn validate_no_unexpanded_directives(markdown: &str) -> Result<()> {
     }
 
     impl ProtectedSpanCollector {
+        /// Records the byte range of `text` when it borrows from the scanned source.
         fn add_span(&mut self, text: &str) {
             let Some(start) = text.as_ptr().addr().checked_sub(self.source_base) else {
                 return;
@@ -207,16 +208,19 @@ pub fn validate_no_unexpanded_directives(markdown: &str) -> Result<()> {
     }
 
     impl<'a> Visitor<'a> for ProtectedSpanCollector {
+        /// Protects the lines of a fenced code block from the directive scan.
         fn visit_fenced_code_block(&mut self, data: &'a FencedCodeBlockData<'a>) {
             for line in &data.lines {
                 self.add_span(line);
             }
         }
 
+        /// Protects the content of an inline code span from the directive scan.
         fn visit_code_span(&mut self, data: &'a CodeSpanData<'a>) {
             self.add_span(data.content);
         }
 
+        /// Protects the lines of an HTML comment from the directive scan.
         fn visit_html_comment(&mut self, data: &'a HtmlCommentData<'a>) {
             for line in &data.lines {
                 self.add_span(line);
@@ -373,6 +377,7 @@ mod tests {
 
     use super::*;
 
+    /// In-memory processing expands custom directives but leaves native helpers and code alone.
     #[test]
     fn in_memory_processing_expands_directives_and_preserves_native_helpers_and_code() {
         let source = concat!(
@@ -410,6 +415,7 @@ mod tests {
         assert!(rendered.contains("```rust\n{{#crate untouched}}\n{{#example untouched}}\n```"));
     }
 
+    /// A failing example resolver aborts processing with the resolver error.
     #[test]
     fn in_memory_processing_returns_example_resolution_errors() {
         let error = process_markdown_with_example_resolver(
@@ -423,6 +429,7 @@ mod tests {
         assert!(format!("{error:#}").contains("no such example: missing.rs:example"));
     }
 
+    /// Crate and category directives expand to the badges the book already uses.
     #[test]
     fn crate_and_category_directives_preserve_existing_book_badges() {
         let config = Config::default();
@@ -437,6 +444,7 @@ mod tests {
         );
     }
 
+    /// Directives inside table cells expand, and expanding again changes nothing.
     #[test]
     fn crate_and_category_directives_expand_inside_tables_idempotently() {
         let config = Config::default();
@@ -465,6 +473,7 @@ mod tests {
         );
     }
 
+    /// The unresolved-directive check skips code and native mdBook helpers.
     #[test]
     fn unresolved_check_ignores_code_and_native_mdbook_helpers() {
         let source = concat!(
@@ -474,6 +483,7 @@ mod tests {
         validate_no_unexpanded_directives(source).expect("input should parse");
     }
 
+    /// Unknown and unterminated directives are reported.
     #[test]
     fn unresolved_check_reports_unknown_and_malformed_directives() {
         let error = validate_no_unexpanded_directives("{{#unknown thing}} {{#example}}")

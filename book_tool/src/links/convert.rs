@@ -90,6 +90,7 @@ struct ExistingRefDefCollector<'a> {
 }
 
 impl<'ast> Visitor<'ast> for ExistingRefDefCollector<'_> {
+    /// Records an existing reference definition so conversion can reuse its label.
     fn visit_reference_definition(&mut self, data: &'ast ReferenceDefinitionData<'ast>) {
         self.existing_url_to_label
             .insert(data.url.to_owned(), data.label.to_owned());
@@ -254,6 +255,7 @@ mod tests {
 
     use super::*;
 
+    /// A link whose URL already has a definition reuses that label.
     #[test]
     fn conversion_reuses_existing_reference_definitions() {
         let input = "[Rust](https://www.rust-lang.org/)\n\n[docs]: https://www.rust-lang.org/\n";
@@ -272,6 +274,7 @@ mod tests {
         assert_eq!(conversion.stats.appended_reference_definitions, 0);
     }
 
+    /// New labels continue after the highest existing numeric label.
     #[test]
     fn conversion_appends_new_reference_definitions_after_existing_numeric_labels() {
         let input = "[Rust](https://www.rust-lang.org/)\n\n[1]: https://example.com/already-used\n";
@@ -288,6 +291,7 @@ mod tests {
         assert_eq!(conversion.stats.appended_reference_definitions, 1);
     }
 
+    /// Issue links stay inline when configured to be preserved.
     #[test]
     fn conversion_preserves_configured_issue_links() {
         let input = "[Issue](https://github.com/john-cd/rust_howto/issues/42)\n";

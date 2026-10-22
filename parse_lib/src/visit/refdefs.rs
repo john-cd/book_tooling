@@ -95,6 +95,7 @@ mod tests {
     use super::*;
     use crate::parse_document;
 
+    /// Reports duplicate labels and urls independently.
     #[test]
     fn reports_duplicate_labels_and_urls_independently() {
         let doc = parse_document(
@@ -110,6 +111,7 @@ mod tests {
         assert_eq!(manager.dupe_urls(), vec!["https://one.example"]);
     }
 
+    /// Get sorted dedupe refdefs removes only exact duplicates.
     #[test]
     fn get_sorted_dedupe_refdefs_removes_only_exact_duplicates() {
         let doc = parse_document(

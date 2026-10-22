@@ -50,6 +50,7 @@ mod tests {
 
     use super::*;
 
+    /// Covers parse link text simple.
     #[test]
     fn test_parse_link_text_simple() {
         let mut input = "[my text]";
@@ -57,6 +58,7 @@ mod tests {
         assert_eq!(input, "");
     }
 
+    /// Covers parse link text with escaped brackets.
     #[test]
     fn test_parse_link_text_with_escaped_brackets() {
         let mut input = r"[my \[esc\] text]";
@@ -66,18 +68,21 @@ mod tests {
         );
     }
 
+    /// Covers parse link text with arbitrary escapes.
     #[test]
     fn test_parse_link_text_with_arbitrary_escapes() {
         let mut input = r"[my \ text \*]";
         assert_eq!(parse_link_text.parse_next(&mut input), Ok(r"my \ text \*"));
     }
 
+    /// Covers parse link text empty.
     #[test]
     fn test_parse_link_text_empty() {
         let mut input = "[]";
         assert_eq!(parse_link_text.parse_next(&mut input), Ok(""));
     }
 
+    /// Covers parse link text fails on unbalanced bracket.
     #[test]
     fn test_parse_link_text_fails_on_unbalanced_bracket() {
         let mut input = "[my [unbalanced text]";
@@ -86,6 +91,7 @@ mod tests {
             .expect_err("input should be rejected");
     }
 
+    /// Covers parse link text with balanced brackets.
     #[test]
     fn test_parse_link_text_with_balanced_brackets() {
         let mut input = "[my [nested [and] balanced] text]";

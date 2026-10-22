@@ -183,6 +183,7 @@ mod tests {
     use super::*;
     use crate::ast::Element;
 
+    /// Covers escape html to string.
     #[test]
     fn test_escape_html_to_string() {
         let mut dest = String::new();
@@ -210,6 +211,7 @@ mod tests {
         );
     }
 
+    /// Covers html renderer escaping.
     #[test]
     fn test_html_renderer_escaping() {
         let mut renderer = HtmlRenderer::new();
@@ -233,6 +235,7 @@ mod tests {
         );
     }
 
+    /// Covers html renderer paragraph.
     #[test]
     fn test_html_renderer_paragraph() {
         let mut renderer = HtmlRenderer::new();
@@ -242,6 +245,7 @@ mod tests {
         assert_eq!(renderer.html, "<p>Para 1</p>\n");
     }
 
+    /// Covers html renderer blockquote.
     #[test]
     fn test_html_renderer_blockquote() {
         let mut renderer = HtmlRenderer::new();
@@ -251,6 +255,7 @@ mod tests {
         assert_eq!(renderer.html, "<blockquote>\nQuote</blockquote>\n");
     }
 
+    /// Covers html renderer list.
     #[test]
     fn test_html_renderer_list() {
         let mut renderer = HtmlRenderer::new();
@@ -272,6 +277,7 @@ mod tests {
         assert_eq!(renderer2.html, "<ol>\n<li>Item</li>\n</ol>\n");
     }
 
+    /// Covers html renderer inline formatting.
     #[test]
     fn test_html_renderer_inline_formatting() {
         let mut renderer = HtmlRenderer::new();
@@ -293,6 +299,7 @@ mod tests {
         assert_eq!(renderer.html, "<del>strike</del>");
     }
 
+    /// Covers html renderer horizontal rule.
     #[test]
     fn test_html_renderer_horizontal_rule() {
         let mut renderer = HtmlRenderer::new();
@@ -300,6 +307,7 @@ mod tests {
         assert_eq!(renderer.html, "<hr>\n");
     }
 
+    /// Covers html renderer html comment.
     #[test]
     fn test_html_renderer_html_comment() {
         let mut renderer = HtmlRenderer::new();
@@ -309,6 +317,7 @@ mod tests {
         assert_eq!(renderer.html, "<!-- comment line 1 \n comment line 2 -->");
     }
 
+    /// Covers html renderer fenced code block.
     #[test]
     fn test_html_renderer_fenced_code_block() {
         let mut renderer = HtmlRenderer::new();
@@ -329,6 +338,7 @@ mod tests {
         assert_eq!(renderer.html, "<pre><code>plain text\n</code></pre>\n");
     }
 
+    /// Covers html renderer table.
     #[test]
     fn test_html_renderer_table() {
         let mut renderer = HtmlRenderer::new();

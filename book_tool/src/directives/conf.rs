@@ -57,6 +57,7 @@ pub struct Config {
 }
 
 impl Default for Config {
+    /// Returns the default configuration: every directive family enabled, Markdown files only.
     fn default() -> Self {
         Self {
             process_crate_block_directives: true,

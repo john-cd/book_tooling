@@ -19,17 +19,20 @@ mod tests {
     use super::*;
     use crate::ast::*;
 
+    /// Covers reconstruct empty.
     #[test]
     fn test_reconstruct_empty() {
         assert_eq!(reconstruct_markdown(&[]), "");
     }
 
+    /// Covers reconstruct text only.
     #[test]
     fn test_reconstruct_text_only() {
         let elements = vec![Element::Text(TextData { content: "hello" })];
         assert_eq!(reconstruct_markdown(&elements), "hello");
     }
 
+    /// Covers reconstruct multiple elements.
     #[test]
     fn test_reconstruct_multiple_elements() {
         let elements = vec![
@@ -50,6 +53,7 @@ mod tests {
         );
     }
 
+    /// Covers reconstruct task items.
     #[test]
     fn test_reconstruct_task_items() {
         let elements = vec![
@@ -69,6 +73,7 @@ mod tests {
         );
     }
 
+    /// Covers reconstruct various elements.
     #[test]
     fn test_reconstruct_various_elements() {
         let elements = vec![
