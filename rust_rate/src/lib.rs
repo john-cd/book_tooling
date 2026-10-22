@@ -1,4 +1,3 @@
-// TODO Reviewed ??-??-2026
 //! GitHub- and crates.io-based Rust crate analysis utilities.
 //!
 //! The crate is organized around three main concerns:
@@ -7,6 +6,8 @@
 //! - [`patterns`]: source analysis for crate-specific usage patterns.
 //! - [`rust_rate`]: a small crates.io summary workflow.
 //! - [`templates`] and [`utils`]: formatting and test helpers.
+//!
+//! TODO Reviewed ??-??-2026
 
 /// GitHub API crawling utilities.
 pub mod crawler;

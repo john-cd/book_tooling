@@ -1,5 +1,6 @@
-// TODO Reviewed ??-??-2026
 //! Process {{#example some_example}} directives.
+//!
+//! TODO Reviewed ??-??-2026
 
 use parse_lib::ast::DirectiveData;
 

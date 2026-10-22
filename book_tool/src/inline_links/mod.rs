@@ -1,5 +1,6 @@
-// TODO Reviewed ??-??-2026
 //! Converts inline links and autolinks into reference-style links.
+//!
+//! TODO Reviewed ??-??-2026
 
 use std::path::PathBuf;
 

@@ -1,4 +1,3 @@
-// TODO Reviewed ??-??-2026
 //! Parse naked link destinations (e.g. naked URLs).
 //!
 //! Simplified from <https://spec.commonmark.org/0.31.2/#link-destination>
@@ -9,6 +8,8 @@
 //! (b) they are part of a balanced pair of unescaped parentheses.
 //! (Implementations may impose limits on parentheses nesting to avoid performance issues,
 //! but at least three levels of nesting should be supported.)
+//!
+//! TODO Reviewed ??-??-2026
 
 use winnow::ModalResult;
 use winnow::Parser;

@@ -1,4 +1,3 @@
-// TODO Reviewed ??-??-2026
 //! Command-oriented Markdown tooling built on top of `parse_lib`.
 //!
 //! `book_tool` exposes reusable modules behind the CLI commands defined in
@@ -13,6 +12,8 @@
 //! - [`links`]: lower-level link conversion, extraction, and asynchronous verification utilities.
 //! - [`refdefs`]: reference-definition analysis and cleanup helpers.
 //! - [`search`]: plain-text search across Markdown documents.
+//!
+//! TODO Reviewed ??-??-2026
 
 /// Shared helpers used by multiple command modules.
 #[cfg(any(feature = "cli", feature = "directives"))]

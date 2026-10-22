@@ -1,8 +1,9 @@
-// TODO Reviewed ??-??-2026
 //! Template system for rendering Markdown badges and links.
 //!
 //! This module provides a centralized way to render common Markdown elements used
 //! across the book tooling, such as crate badges and external links.
+//!
+//! TODO Reviewed ??-??-2026
 
 #[cfg(test)]
 mod tests;

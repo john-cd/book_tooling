@@ -1,5 +1,6 @@
-// TODO Reviewed ??-??-2026
 //! AST visitor traits and helper visitors for traversing Markdown documents.
+//!
+//! TODO Reviewed ??-??-2026
 
 /// Debug-print visitor implementations.
 mod debugger;
@@ -71,14 +72,23 @@ pub trait Visitor<'a> {
 
     // --- Leaf Nodes (No children) ---
     fn visit_text(&mut self, _data: &'a TextData<'a>) {}
+
     fn visit_horizontal_rule(&mut self) {}
+
     fn visit_fenced_code_block(&mut self, _data: &'a FencedCodeBlockData<'a>) {}
+
     fn visit_code_span(&mut self, _data: &'a CodeSpanData<'a>) {}
+
     fn visit_inline_link(&mut self, _data: &'a InlineLinkData<'a>) {}
+
     fn visit_reference_style_link(&mut self, _data: &'a ReferenceStyleLinkData<'a>) {}
+
     fn visit_wikilink(&mut self, _data: &'a WikiLinkData<'a>) {}
+
     fn visit_heading(&mut self, _data: &'a HeadingData<'a>) {}
+
     fn visit_task_item(&mut self, _data: &'a TaskItemData<'a>) {}
+
     fn visit_table(&mut self, data: &'a TableData<'a>) {
         self.visit_table_cells(data);
     }
@@ -98,12 +108,19 @@ pub trait Visitor<'a> {
             }
         }
     }
+
     fn visit_autolink(&mut self, _data: &'a AutolinkData<'a>) {}
+
     fn visit_inline_image(&mut self, _data: &'a InlineImageData<'a>) {}
+
     fn visit_reference_style_image(&mut self, _data: &'a ReferenceStyleImageData<'a>) {}
+
     fn visit_reference_definition(&mut self, _data: &'a ReferenceDefinitionData<'a>) {}
+
     fn visit_hidden_html_div(&mut self, _data: &'a HiddenHtmlDivData<'a>) {}
+
     fn visit_html_comment(&mut self, _data: &'a HtmlCommentData<'a>) {}
+
     fn visit_custom_directive(&mut self, _data: &'a DirectiveData<'a>) {}
 
     // --- Container Nodes (Recursive by default) ---

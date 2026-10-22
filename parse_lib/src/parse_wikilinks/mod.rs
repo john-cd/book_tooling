@@ -1,5 +1,6 @@
-// TODO Reviewed ??-??-2026
 //! Parsers for `[[wikilink]]` syntax.
+//!
+//! TODO Reviewed ??-??-2026
 
 mod parser;
 
