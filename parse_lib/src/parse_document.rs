@@ -602,9 +602,14 @@ where
     P: winnow::Parser<&'a str, &'a str, winnow::error::ContextError>,
     F: Fn(Vec<Element<'a>>) -> Element<'a>,
 {
+    let checkpoint = *input;
     let inner_str = inner_parser
         .parse_next(input)
         .map_err(winnow::error::ErrMode::Backtrack)?;
+    if contains_blank_line(inner_str) {
+        *input = checkpoint;
+        return Err(ErrMode::Backtrack(ContextError::new()));
+    }
     let mut inner_ref = inner_str;
     let elements = parse_inline_sequence
         .parse_next(&mut inner_ref)
@@ -646,13 +651,53 @@ fn parse_strong<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     )
 }
 
+/// Returns `true` when `text` contains a blank line, which ends a paragraph and so cannot lie inside inline formatting.
+fn contains_blank_line(text: &str) -> bool {
+    let mut lines = text.split('\n');
+    // The first and last lines are partial: only the lines between them can be blank.
+    lines.next();
+    lines.next_back();
+    lines.any(|line| line.trim().is_empty())
+}
+
+/// Parses text between single `delimiter` characters (`*` or `_`) that satisfies the `CommonMark` flanking rules.
+///
+/// The opening delimiter must be followed, and the closing delimiter preceded, by non-whitespace.
+/// A closing `_` must not be followed by an alphanumeric character (intraword underscores are text).
+/// The opening `_` is checked by [`parse_plain_text`], which keeps intraword underscores in the text.
+fn emphasis_inner<'a>(input: &mut &'a str, delimiter: char) -> Result<&'a str, ContextError> {
+    let backtrack = ContextError::new;
+    let body = input.strip_prefix(delimiter).ok_or_else(backtrack)?;
+    if body.starts_with(|c: char| c.is_whitespace() || c == delimiter) {
+        return Err(backtrack());
+    }
+    let mut previous = delimiter;
+    for (index, character) in body.char_indices() {
+        let closes = character == delimiter
+            && index > 0
+            && !previous.is_whitespace()
+            && (delimiter != '_'
+                || !body
+                    .get(index + 1..)
+                    .and_then(|rest| rest.chars().next())
+                    .is_some_and(char::is_alphanumeric));
+        if closes {
+            let inner = body.get(..index).ok_or_else(backtrack)?;
+            *input = body.get(index + 1..).ok_or_else(backtrack)?;
+            return Ok(inner);
+        }
+        previous = character;
+    }
+    Err(backtrack())
+}
+
 /// Parses `*emphasis*` or `_emphasis_` text.
 fn parse_emphasis<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     parse_inline_formatting(
         input,
         alt((
-            delimited("*", take_until(1.., "*"), "*"),
-            delimited("_", take_until(1.., "_"), "_"),
+            |text: &mut &'a str| emphasis_inner(text, '*'),
+            |text: &mut &'a str| emphasis_inner(text, '_'),
         )),
         |elements| Element::Emphasis(EmphasisData { elements }),
     )
@@ -745,6 +790,102 @@ Hello [link](url)
         // Since parse_plain_text is currently consuming character by character,
         // we'll have a lot of Text elements.
         assert!(doc.elements.len() >= 5);
+    }
+
+    /// Counts the block-level tables of a parsed document.
+    fn count_tables(document: &crate::Document<'_>) -> usize {
+        document
+            .elements
+            .iter()
+            .filter(|element| matches!(element, Element::Table(_)))
+            .count()
+    }
+
+    /// Concatenates the plain-text children of `elements`.
+    fn plain_text(elements: &[Element<'_>]) -> String {
+        let mut combined = String::new();
+        for element in elements {
+            let Element::Text(text) = element else {
+                continue;
+            };
+            combined.push_str(text.content);
+        }
+        combined
+    }
+
+    /// Collects the inner text of every top-level emphasis element.
+    fn emphasis_texts(markdown: &str) -> Vec<String> {
+        let document = parse_document("test.md", None, markdown).expect("input should parse");
+        let mut texts = Vec::new();
+        for element in &document.elements {
+            let Element::Emphasis(emphasis) = element else {
+                continue;
+            };
+            texts.push(plain_text(&emphasis.elements));
+        }
+        texts
+    }
+
+    /// An intraword underscore in the preamble must not swallow the table that follows (john-cd/book_tooling#47).
+    #[test]
+    fn intraword_underscore_before_a_table_does_not_hide_the_table() {
+        let markdown = concat!(
+            "# File System\n\n",
+            "Use [`fs_extra`][c~fs_extra~docs]{{hi:fs_extra}} for more.\n\n",
+            "| Topic | Crates |\n",
+            "|---|---|\n",
+            "| Operations | [`fs_extra`][c~fs_extra~docs]{{hi:fs_extra}} copies trees. |\n",
+        );
+        let document = parse_document("test.md", None, markdown).expect("input should parse");
+        assert_eq!(count_tables(&document), 1);
+    }
+
+    /// Unbalanced delimiters in link destinations, reference definitions and heading attributes stay literal text (john-cd/book_tooling#48).
+    #[test]
+    fn unbalanced_delimiters_degrade_to_text_instead_of_failing() {
+        for markdown in [
+            "[](( ",
+            "[](<",
+            "[x](foo(bar)",
+            "[x]: u(",
+            "[x]: <u",
+            "# Heading {#id",
+            "![alt](<img.png",
+            "text [a](b(c) more text\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+        ] {
+            let document = parse_document("test.md", None, markdown)
+                .unwrap_or_else(|error| panic!("{markdown:?} should parse: {error}"));
+            let mut renderer =
+                crate::markdown_renderer::MarkdownRenderer::new(|directive| directive.to_string());
+            crate::visit::Visitor::visit_document(&mut renderer, &document);
+            assert_eq!(renderer.markdown, markdown, "round trip of {markdown:?}");
+        }
+    }
+
+    #[test]
+    fn snake_case_words_are_plain_text() {
+        assert!(emphasis_texts("snake_case_word and fs_extra\n").is_empty());
+    }
+
+    #[test]
+    fn underscore_emphasis_still_requires_word_boundaries() {
+        assert_eq!(emphasis_texts("an _emphasized_ word"), vec!["emphasized"]);
+        assert_eq!(emphasis_texts("an *emphasized* word"), vec!["emphasized"]);
+        assert!(emphasis_texts("2 * 3 * 4").is_empty());
+        assert!(emphasis_texts("_ not emphasis _").is_empty());
+    }
+
+    #[test]
+    fn emphasis_and_strong_do_not_span_blank_lines() {
+        assert!(emphasis_texts("*first\n\nsecond*").is_empty());
+        let document =
+            parse_document("test.md", None, "**first\n\nsecond**").expect("input should parse");
+        assert!(
+            !document
+                .elements
+                .iter()
+                .any(|element| matches!(element, Element::Strong(_)))
+        );
     }
 
     #[test]
