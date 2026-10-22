@@ -6,6 +6,7 @@
     reason = "Helpers in this test file fail loudly when test setup breaks."
 )]
 
+use book_tool::common::Scope;
 use std::collections::VecDeque;
 use std::fs;
 use std::io::Read as _;
@@ -140,7 +141,8 @@ fn inline_links_execute_converts_links_to_reference_definitions() {
     let markdown = "See [Rust](https://www.rust-lang.org/).\n";
     let file = write_markdown_file(temp.path(), "doc.md", markdown);
 
-    book_tool::inline_links::execute(&[temp.path().to_path_buf()]).expect("run inline-links");
+    book_tool::inline_links::execute(&[temp.path().to_path_buf()], &Scope::default())
+        .expect("run inline-links");
 
     let updated = fs::read_to_string(file).expect("read transformed markdown");
     assert!(
@@ -176,9 +178,14 @@ async fn link_check_execute_skips_deleted_unused_reference_definitions() {
     );
     let file = write_markdown_file(temp.path(), "doc.md", &markdown);
 
-    book_tool::link_check::execute(vec![temp.path().to_path_buf()], true, true)
-        .await
-        .expect("run link-check");
+    book_tool::link_check::execute(
+        vec![temp.path().to_path_buf()],
+        true,
+        true,
+        &Scope::default(),
+    )
+    .await
+    .expect("run link-check");
 
     let updated = fs::read_to_string(file).expect("read transformed markdown");
     assert!(
@@ -199,9 +206,14 @@ async fn link_check_execute_retries_retry_after_responses() {
     let markdown = format!("[retry me]({})\n", server.url("/rate-limited"));
     write_markdown_file(temp.path(), "doc.md", &markdown);
 
-    book_tool::link_check::execute(vec![temp.path().to_path_buf()], false, false)
-        .await
-        .expect("run link-check with retry");
+    book_tool::link_check::execute(
+        vec![temp.path().to_path_buf()],
+        false,
+        false,
+        &Scope::default(),
+    )
+    .await
+    .expect("run link-check with retry");
 }
 
 /// Link check execute retries service unavailable without retry after.
@@ -215,9 +227,14 @@ async fn link_check_execute_retries_service_unavailable_without_retry_after() {
     let markdown = format!("[retry me]({})\n", server.url("/service-unavailable"));
     write_markdown_file(temp.path(), "doc.md", &markdown);
 
-    book_tool::link_check::execute(vec![temp.path().to_path_buf()], false, false)
-        .await
-        .expect("run link-check with missing retry-after");
+    book_tool::link_check::execute(
+        vec![temp.path().to_path_buf()],
+        false,
+        false,
+        &Scope::default(),
+    )
+    .await
+    .expect("run link-check with missing retry-after");
 }
 
 /// Link check execute retries invalid retry after responses.
@@ -231,9 +248,14 @@ async fn link_check_execute_retries_invalid_retry_after_responses() {
     let markdown = format!("[retry me]({})\n", server.url("/invalid-retry-after"));
     write_markdown_file(temp.path(), "doc.md", &markdown);
 
-    book_tool::link_check::execute(vec![temp.path().to_path_buf()], false, false)
-        .await
-        .expect("run link-check with invalid retry-after");
+    book_tool::link_check::execute(
+        vec![temp.path().to_path_buf()],
+        false,
+        false,
+        &Scope::default(),
+    )
+    .await
+    .expect("run link-check with invalid retry-after");
 }
 
 /// A server that rejects `HEAD` with 405 is retried with `GET` and counts as healthy.
@@ -247,9 +269,14 @@ async fn link_check_execute_falls_back_to_get_when_head_is_not_allowed() {
     let markdown = format!("[head-hostile]({})\n", server.url("/no-head"));
     write_markdown_file(temp.path(), "doc.md", &markdown);
 
-    book_tool::link_check::execute(vec![temp.path().to_path_buf()], false, false)
-        .await
-        .expect("GET fallback should succeed");
+    book_tool::link_check::execute(
+        vec![temp.path().to_path_buf()],
+        false,
+        false,
+        &Scope::default(),
+    )
+    .await
+    .expect("GET fallback should succeed");
 }
 
 /// Redirects are followed to their final destination.
@@ -263,9 +290,14 @@ async fn link_check_execute_follows_redirects() {
     let markdown = format!("[moved]({})\n", server.url("/old"));
     write_markdown_file(temp.path(), "doc.md", &markdown);
 
-    book_tool::link_check::execute(vec![temp.path().to_path_buf()], false, false)
-        .await
-        .expect("redirected link should verify");
+    book_tool::link_check::execute(
+        vec![temp.path().to_path_buf()],
+        false,
+        false,
+        &Scope::default(),
+    )
+    .await
+    .expect("redirected link should verify");
 }
 
 /// Link check execute fails after max retry exhaustion.
@@ -276,9 +308,14 @@ async fn link_check_execute_fails_after_max_retry_exhaustion() {
     let markdown = format!("[retry me]({})\n", server.url("/always-rate-limited"));
     write_markdown_file(temp.path(), "doc.md", &markdown);
 
-    let error = book_tool::link_check::execute(vec![temp.path().to_path_buf()], false, false)
-        .await
-        .expect_err("link-check should fail after exhausting retries");
+    let error = book_tool::link_check::execute(
+        vec![temp.path().to_path_buf()],
+        false,
+        false,
+        &Scope::default(),
+    )
+    .await
+    .expect_err("link-check should fail after exhausting retries");
 
     assert!(
         error.to_string().contains("broken links"),
@@ -350,7 +387,7 @@ fn inline_links_reports_failed_input_and_leaves_it_unchanged() {
     let invalid_file = temp.path().join("invalid.md");
     fs::write(&invalid_file, [0xff, 0xfe, 0x00]).expect("write invalid UTF-8 Markdown");
 
-    let error = book_tool::inline_links::execute(&[temp.path().to_path_buf()])
+    let error = book_tool::inline_links::execute(&[temp.path().to_path_buf()], &Scope::default())
         .expect_err("incomplete inline-link processing must fail");
     assert!(error.to_string().contains("incomplete"));
 

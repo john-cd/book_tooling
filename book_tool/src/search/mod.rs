@@ -67,19 +67,18 @@ fn find_snippet(text: &str, query: &str) -> Option<String> {
 /// # Errors
 ///
 /// Returns an error if a directory cannot be traversed or a file cannot be read.
-pub fn execute(query: &str, directories: &[PathBuf]) -> Result<()> {
+pub fn execute(query: &str, directories: &[PathBuf], scope: &Scope) -> Result<()> {
     tracing::info!(
         query = %query,
         directory_count = directories.len(),
         "Starting plain-text search workflow"
     );
 
-    let scope = Scope::default();
     let mut matched_files = 0_usize;
 
     walk_parsed_markdown_files(
         directories,
-        &scope,
+        scope,
         |path, doc| {
             let mut extractor = PlainTextExtractor::new();
             extractor.visit_document(doc);
