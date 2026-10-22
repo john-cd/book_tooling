@@ -97,6 +97,7 @@ pub async fn execute(
     directories: Vec<PathBuf>,
     check_refdefs: bool,
     delete_unused: bool,
+    scope: &Scope,
 ) -> Result<()> {
     if delete_unused && !check_refdefs {
         anyhow::bail!("--delete requires --refdefs to be enabled");
@@ -152,7 +153,7 @@ pub async fn execute(
         None
     };
 
-    let mut scope = Scope::default();
+    let mut scope = scope.clone();
     if check_refdefs {
         scope
             .excluded_filenames

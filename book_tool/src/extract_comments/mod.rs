@@ -21,21 +21,20 @@ use crate::common::warn_and_continue_on_parse_failure;
 /// # Errors
 ///
 /// Returns an error if a directory cannot be processed or the output file cannot be written.
-pub fn execute(directories: &[PathBuf], output: &Path) -> Result<()> {
+pub fn execute(directories: &[PathBuf], output: &Path, scope: &Scope) -> Result<()> {
     tracing::info!(
         directory_count = directories.len(),
         output = %output.display(),
         "Starting HTML comment extraction workflow"
     );
 
-    let scope = Scope::default();
     let mut all_comments_output = String::new();
     let mut extracted_comments = 0_usize;
     let mut files_with_comments = 0_usize;
 
     walk_parsed_markdown_files(
         directories,
-        &scope,
+        scope,
         |path, doc| {
             let mut extractor = parse_lib::html_comment_extractor::HtmlCommentExtractor::new();
             extractor.visit_document(doc);
