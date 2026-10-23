@@ -1,4 +1,5 @@
 <!-- TODO Reviewed ??-??-2026 -->
+
 # Book Tooling
 
 A collection of Rust-based tools for processing Markdown files, particularly for books and documentation projects.
@@ -191,9 +192,16 @@ The binaries will be available in `target/release/book_tool` and `target/release
 
 ## Documentation
 
-- [Requirements](./documentation/requirements.md)
-- [Architecture](./documentation/architecture.md)
+- [Workspace documentation](./documentation/README.md)
 - [TODO](./TODO.md)
+
+## Development checks
+
+- `just fa` formats Rust code with the pinned nightly toolchain.
+- `just ca` runs Clippy across all targets and features.
+- `just nta` runs the workspace tests with cargo-nextest and includes doctests.
+- `dprint fmt` formats Markdown, JSON, YAML, and TOML files.
+- `prek run --all-files` runs repository hooks, including the format checks.
 
 ## License
 
