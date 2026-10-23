@@ -1016,6 +1016,50 @@ Hello [link](url)
         ));
     }
 
+    /// Keeps a directive-bearing table recognizable after a filesystem chapter preamble.
+    #[test]
+    fn filesystem_preamble_preserves_directives_in_following_table() {
+        let input = concat!(
+            "# File System\n\n",
+            "[![cat~filesystem][cat~filesystem~badge]][cat~filesystem]\n\n",
+            "This chapter deals with files{{hi:Files}} and file systems.{{hi:File systems}}\n\n",
+            "For common tasks, [`fs_extra`][c~fs_extra~docs]↗{{hi:fs_extra}} and ",
+            "[`std::path`][c~std::path~docs]↗{{hi:std::path}} are sufficient.\n\n",
+            "| Topic | Rust Crates or Modules |\n",
+            "|---|---|\n",
+            "| File I/O | {{#crate std}} provides file operations. |\n",
+            "| Paths | [`Path`][c~std::path::Path~docs] and `PathBuf`. |\n",
+        );
+
+        let document = parse_document("filesystem/index.md", None, input)
+            .expect("parse filesystem preamble and table");
+        let table = document
+            .elements
+            .iter()
+            .find_map(|element| {
+                if let Element::Table(table) = element {
+                    Some(table)
+                } else {
+                    None
+                }
+            })
+            .expect("find table following filesystem preamble");
+
+        assert!(table.row_elements.first().is_some_and(|row| {
+            row.get(1).is_some_and(|cell| {
+                cell.iter().any(|element| {
+                    matches!(
+                        element,
+                        Element::CustomDirective(DirectiveData::CrateBlock {
+                            crate_name: "std",
+                            ..
+                        })
+                    )
+                })
+            })
+        }));
+    }
+
     /// An unordered list inside a blockquote becomes a list element nested in the blockquote.
     #[test]
     fn test_simple_list_in_blockquote() {
