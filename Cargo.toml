@@ -1,43 +1,36 @@
 # TODO Reviewed ??-??-2026
+
 [workspace]
-resolver = "3" # 3 is valid
-members = [
-    "book_tool",
-    "parse_lib",
-    "rust_rate"
-]
+resolver = "3"
+members = ["book_tool", "parse_lib", "rust_rate"]
 exclude = ["parse_lib/fuzz"]
 
 # Default values for packages in the workspace
 [workspace.package]
 version = "0.1.3"
 authors = ["John CD"]
-edition = "2024"
-rust-version = "1.99"
-description = "A collection of Rust-based tools for processing Markdown files, particularly for books and documentation projects."
+categories = ["command-line-utilities", "development-tools", "text-processing"]
 documentation = "https://docs.rs/book_tooling/"
+edition = "2024"
 homepage = "https://github.com/john-cd/book_tooling"
-repository = "https://github.com/john-cd/book_tooling"
 keywords = ["markdown", "book", "tooling", "cli", "rust"]
-categories = [
-    "command-line-utilities",
-    "development-tools",
-    "text-processing",
-]
 license = "MIT OR Apache-2.0"
 publish = false
+repository = "https://github.com/john-cd/book_tooling"
+rust-version = "1.99"
+description = "A collection of Rust-based tools for processing Markdown files, particularly for books and documentation projects."
 
 [workspace.dependencies]
-annotate-snippets = "0.12.16"
+annotate-snippets = "0.12.17"
 anyhow = "1.0.104"
 clap = { version = "4.6.7", features = ["derive"] }
 fmt2io = "1.0.0"
 futures = "0.3.34"
 futures-util = "0.3.34"
+httpdate = "1.0.3"
 memmap2 = "0.9.12"
 multimap = "0.10.1"
 parse_lib = { path = "./parse_lib" }
-httpdate = "1.0.3"
 proptest = "1.12.0"
 rayon = "1.12.0"
 regex = "1.13.1"
@@ -54,7 +47,6 @@ walkdir = "2.5.0"
 winnow = "1.0.4"
 
 [workspace.lints.rust]
-
 # Prohibit unsafe code blocks across the workspace unless explicitly audited
 unsafe_code = "deny"
 
@@ -87,7 +79,7 @@ trivial_numeric_casts = "warn"
 
 # Catch unexpected cfg condition names or values. `cargo llvm-cov` supplies `coverage`
 # when it instruments a build, allowing timing tests to distinguish measurement from execution.
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)'] }
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(coverage)"] }
 
 # Require unsafe operations inside unsafe fn to be wrapped in unsafe blocks
 unsafe_op_in_unsafe_fn = "warn"
@@ -629,7 +621,6 @@ unsafe_derive_deserialize = "warn"
 
 # Checks for functions that are declared async but have no .awaits inside of them.
 unused_async = "warn"
-
 # Checks for trait method implementations that are declared async but have no .awaits inside of
 # them.
 
@@ -647,7 +638,6 @@ verbose_bit_mask = "warn"
 
 # Checks for wildcard imports use _::*.
 wildcard_imports = "warn"
-
 # Checks for calls to with_capacity(0) on standard library collections and types.
 
 # Checks for maps with zero-sized value types anywhere in the code.
