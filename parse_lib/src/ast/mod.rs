@@ -7,14 +7,19 @@
 
 /// Directive-related AST types.
 mod directive;
+
 /// Single-document AST container.
 mod document;
+
 /// Multi-document AST container.
 mod documents;
+
 /// Element payload types and the top-level [`Element`] enum.
 mod element;
+
 /// Index-anchor helper types.
 mod indexanchor;
+
 /// Utilities for reconstructing Markdown from AST nodes.
 mod reconstruct;
 

@@ -53,14 +53,24 @@ pub fn delete_unused_refdefs<S: BuildHasher>(
     doc: &Document<'_>,
     unused_labels: &HashSet<String, S>,
 ) -> Result<String> {
+    /// Collects source ranges for reference definitions proven unused.
     struct RemovalCollector<'a, S> {
+        /// Original Markdown text that owns the borrowed AST fragments.
         source: &'a str,
+        /// Normalized labels that may be removed.
         unused: &'a HashSet<String, S>,
+        /// Whole-line ranges to remove after traversal completes.
         ranges: Vec<Range<usize>>,
+        /// First source-location error encountered during traversal.
         error: Option<anyhow::Error>,
     }
 
     impl<S> RemovalCollector<'_, S> {
+        /// Locates a borrowed fragment in the source document.
+        ///
+        /// # Errors
+        ///
+        /// Returns an error if `fragment` does not belong to the source document.
         fn source_range(&self, fragment: &str) -> Result<Range<usize>> {
             parse_lib::source_span(self.source, fragment)
                 .context("Reference definition does not belong to its source document")
@@ -148,6 +158,7 @@ mod tests {
     use super::super::find_unused_refdefs;
     use super::*;
 
+    /// Removes definitions identified as unused from the parsed document.
     #[test]
     fn test_delete_unused_refdefs() {
         let content = "# Title\n\n[Used][used]\n\n[used]: https://example.com\n[unused]: https://unused.com\n";
@@ -161,6 +172,7 @@ mod tests {
         assert!(!cleaned.contains("[unused]: https://unused.com"));
     }
 
+    /// Preserves CRLF and unrelated Markdown bytes while removing an unused definition.
     #[test]
     fn deleting_definitions_preserves_unrelated_source_bytes() -> Result<()> {
         let content = "[Rust](https://rust-lang.org/ \"Rust title\")\r\n\r\n[unused]: https://example.com/unused \"title\"\r\n";

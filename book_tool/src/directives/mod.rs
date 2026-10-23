@@ -193,8 +193,11 @@ pub fn validate_no_unexpanded_directives(markdown: &str) -> Result<()> {
     use parse_lib::ast::HtmlCommentData;
     use parse_lib::visit::Visitor;
 
+    /// Collects source ranges that must be excluded from directive scanning.
     struct ProtectedSpanCollector<'s> {
+        /// Original Markdown source borrowed by the parsed document.
         source: &'s str,
+        /// Ranges occupied by code spans, fenced blocks, and HTML comments.
         spans: Vec<Range<usize>>,
     }
 
@@ -265,6 +268,7 @@ pub fn validate_no_unexpanded_directives(markdown: &str) -> Result<()> {
 
 /// Appends every `{{#...}}` directive in `text` that is not a native mdBook helper to `unresolved`.
 fn collect_unresolved_directive_text(text: &str, unresolved: &mut Vec<String>) {
+    /// Native mdBook helper names that are valid outside code blocks.
     const NATIVE_MDBOOK_HELPERS: [&str; 3] = ["include", "rustdoc_include", "playground"];
     let mut offset = 0;
 

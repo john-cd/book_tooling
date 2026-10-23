@@ -7,6 +7,7 @@ use std::process::Command;
 
 use tempfile::tempdir;
 
+/// Creates a command for the compiled `book_tool` binary.
 fn book_tool_command() -> Command {
     Command::new(env!("CARGO_BIN_EXE_book_tool"))
 }

@@ -12,6 +12,7 @@ use tempfile::NamedTempFile;
 
 /// Markdown rendering helpers shared by directive processing and other workflows.
 mod templates;
+
 /// Directory traversal helpers shared by file-oriented commands.
 mod walk;
 

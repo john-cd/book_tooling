@@ -4,8 +4,8 @@
 
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Eq)]
 /// Parsed representation of a custom `{{ ... }}` directive.
+#[derive(Debug, PartialEq, Eq)]
 pub enum DirectiveData<'a> {
     /// Insert a Markdown link.
     ///

@@ -11,13 +11,18 @@
 
 /// crates.io summary workflow utilities.
 pub mod crates_io;
+
 /// GitHub API crawling utilities.
 pub mod crawler;
+
 /// Source-pattern analysis utilities.
 pub mod patterns;
+
 /// Cargo.toml statistics aggregation utilities.
 pub mod stats;
+
 /// Markdown link and badge rendering helpers.
 pub mod templates;
+
 /// Test helpers and other shared support utilities.
 pub mod utils;

@@ -13,8 +13,8 @@ use tracing::debug;
 use tracing::warn;
 use url::Url;
 
-#[derive(Debug, Clone)]
 /// Result of checking a single URL.
+#[derive(Debug, Clone)]
 pub struct UrlCheck {
     /// Whether the final HTTP check succeeded with a `2xx` status code.
     pub success: bool,
@@ -67,8 +67,8 @@ fn retry_delay(headers: &HeaderMap, attempt: usize, now: SystemTime) -> Duration
     requested.unwrap_or(backoff).min(MAX_RETRY_DELAY)
 }
 
-#[derive(Clone)]
 /// Concurrent HTTP/HTTPS link checker.
+#[derive(Clone)]
 pub struct AsyncLinkChecker {
     /// HTTP client shared by all checks.
     client: Client,
@@ -122,6 +122,7 @@ impl AsyncLinkChecker {
     where
         I: IntoIterator<Item = Url>,
     {
+        /// Allows at most 32 URL requests to be in flight at once.
         const MAX_CONCURRENT_CHECKS: usize = 32;
 
         let mut pending = urls.into_iter();
@@ -154,6 +155,7 @@ impl AsyncLinkChecker {
     /// Requests `url` with `HEAD` or `GET`, retrying transient failures, and summarizes the
     /// outcome.
     async fn do_check(&self, url: &Url, use_head: bool) -> UrlCheck {
+        /// Maximum number of attempts after the initial transient HTTP failure.
         const MAX_RETRIES: usize = 3;
         let mut retries = 0;
 

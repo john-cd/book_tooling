@@ -72,6 +72,7 @@ mod tests {
 
     use super::*;
 
+    /// Finds definitions that are never used by a link or image.
     #[test]
     fn test_unused_refdefs() {
         let content = "# Title\n\n[Used][used]\n\n[used]: https://example.com\n[unused]: https://unused.com\n";
@@ -84,6 +85,7 @@ mod tests {
         assert_eq!(unused.len(), 1);
     }
 
+    /// Matches labels case-insensitively after collapsing whitespace.
     #[test]
     fn labels_match_case_insensitively_and_collapse_whitespace() {
         let content = "[Full][SeRdE] [serde][] [SERDE] ![crate][ SErDe ]\n[  seRde   ]: https://example.com\n";
@@ -92,6 +94,7 @@ mod tests {
         assert!(find_unused_refdefs(&doc).is_empty());
     }
 
+    /// Keeps duplicate definitions ambiguous instead of treating them as unused.
     #[test]
     fn duplicate_labels_are_preserved_as_ambiguous() {
         let content = "[Use][x]\n[x]: https://one.example\n[X]: https://two.example\n";

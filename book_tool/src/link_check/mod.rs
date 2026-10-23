@@ -28,8 +28,11 @@ fn collect_active_external_links(
     doc: &parse_lib::Document<'_>,
     unused_refdefs: Option<&HashSet<String>>,
 ) -> HashSet<Url> {
+    /// Collects unique external URLs while visiting a parsed Markdown document.
     struct ActiveLinkCollector<'a> {
+        /// HTTP and HTTPS destinations found in the document.
         urls: HashSet<Url>,
+        /// Labels of definitions to skip because analysis proved them unused.
         unused_refdefs: Option<&'a HashSet<String>>,
     }
 

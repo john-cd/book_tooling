@@ -429,6 +429,7 @@ mod tests {
     use super::super::ReferenceUseKind;
     use super::*;
 
+    /// Keeps a shared definition when an including chapter references it.
     #[test]
     fn scoped_analysis_keeps_shared_definitions_used_by_an_including_chapter() -> Result<()> {
         let temp = tempfile::tempdir()?;
@@ -453,6 +454,7 @@ mod tests {
         Ok(())
     }
 
+    /// Reports the source path and line for every reference use.
     #[test]
     fn scoped_report_lists_definition_provenance_and_every_reference_use() -> Result<()> {
         let temp = tempfile::tempdir()?;
@@ -504,6 +506,7 @@ mod tests {
         Ok(())
     }
 
+    /// Keeps reference-definition namespaces separate across chapters.
     #[test]
     fn scoped_analysis_keeps_chapter_namespaces_separate() -> Result<()> {
         let temp = tempfile::tempdir()?;
@@ -518,6 +521,7 @@ mod tests {
         Ok(())
     }
 
+    /// Rejects missing includes and cycles rather than returning partial analysis.
     #[test]
     fn scoped_analysis_rejects_missing_includes_and_cycles() -> Result<()> {
         let temp = tempfile::tempdir()?;
@@ -534,6 +538,7 @@ mod tests {
         Ok(())
     }
 
+    /// Ignores SUMMARY navigation links when building chapter include scopes.
     #[test]
     fn summary_navigation_is_not_treated_as_a_chapter_include_scope() -> Result<()> {
         let temp = tempfile::tempdir()?;

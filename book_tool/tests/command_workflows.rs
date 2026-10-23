@@ -27,17 +27,23 @@ use std::time::Duration;
 use book_tool::common::Scope;
 use tempfile::tempdir;
 
+/// Local HTTP server fixture for command integration tests.
 struct TestHttpServer {
+    /// Address assigned to the server's loopback listener.
     address: SocketAddr,
+    /// Signal that asks the server thread to stop.
     shutdown: Arc<AtomicBool>,
+    /// Server thread joined when the fixture is dropped.
     handle: Option<JoinHandle<()>>,
 }
 
 impl TestHttpServer {
+    /// Starts a loopback server that returns an empty HTTP 200 response.
     fn spawn() -> Self {
         Self::spawn_with_responses(Vec::new())
     }
 
+    /// Starts a loopback server that returns the supplied responses in order.
     fn spawn_with_responses(responses: Vec<String>) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind test server");
         listener
@@ -76,25 +82,30 @@ impl TestHttpServer {
         }
     }
 
+    /// Builds a URL for `path` on this server.
     fn url(&self, path: &str) -> String {
         format!("http://{}{}", self.address, path)
     }
 }
 
+/// Creates a command for the compiled `book_tool` binary.
 fn book_tool_command() -> Command {
     Command::new(env!("CARGO_BIN_EXE_book_tool"))
 }
 
+/// Reads one request and writes its configured response to the connection.
 fn respond(stream: &mut TcpStream, response: &str) -> std::io::Result<()> {
     let mut buffer = [0_u8; 1024];
     let _ = stream.read(&mut buffer)?;
     stream.write_all(response.as_bytes())
 }
 
+/// Builds an empty HTTP 200 response that closes the connection.
 fn ok_response() -> String {
     "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_owned()
 }
 
+/// Builds an empty response with the supplied status line and headers.
 fn status_response(status_line: &str, headers: &[&str]) -> String {
     let mut response = format!("HTTP/1.1 {status_line}\r\n");
     for header in headers {
@@ -105,16 +116,19 @@ fn status_response(status_line: &str, headers: &[&str]) -> String {
     response
 }
 
+/// Builds a 429 response with a numeric `Retry-After` value.
 fn retry_after_response(seconds: u64) -> String {
     format!(
         "HTTP/1.1 429 Too Many Requests\r\nRetry-After: {seconds}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
     )
 }
 
+/// Builds a 429 response with a nonnumeric `Retry-After` value.
 fn invalid_retry_after_response(value: &str) -> String {
     status_response("429 Too Many Requests", &[&format!("Retry-After: {value}")])
 }
 
+/// Builds a 503 response with the supplied headers.
 fn service_unavailable_response_with_headers(headers: &[&str]) -> String {
     status_response("503 Service Unavailable", headers)
 }
@@ -129,6 +143,7 @@ impl Drop for TestHttpServer {
     }
 }
 
+/// Writes `content` to `name` under `root` and returns the created path.
 fn write_markdown_file(root: &Path, name: &str, content: &str) -> std::path::PathBuf {
     let path = root.join(name);
     fs::write(&path, content).expect("write markdown file");
