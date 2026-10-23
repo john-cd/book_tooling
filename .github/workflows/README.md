@@ -1,13 +1,16 @@
 # GitHub Actions workflows
 
-| File | Trigger | Purpose |
-|---|---|---|
-| `ci.yml` | push / PR to `develop`, manual | Entry point. Calls `rust-ci.yml`. |
-| `rust-ci.yml` | `workflow_call` | Reusable: format, build, clippy, tests and doctests on Linux, macOS and Windows, plus an informational `cargo llvm-cov` coverage job (Linux, never fails the run, no gate). |
+| File          | Trigger                        | Purpose                                                                                                                                                                      |
+| ------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ci.yml`      | push / PR to `develop`, manual | Entry point. Calls `rust-ci.yml`.                                                                                                                                            |
+| `rust-ci.yml` | `workflow_call`                | Reusable: prek/dprint formatting hooks, build, Clippy, nextest and doctests on Linux, macOS and Windows, plus informational `cargo llvm-cov` coverage (Linux, never a gate). |
 
 Shared building block: [`../actions/setup-rust`](../actions/setup-rust/action.yml) installs the pinned stable
 toolchain (1.99.1) and the pinned nightly used only for `rustfmt` (`nightly-2026-10-22`), then restores the Cargo cache.
 The same action and the same `rust-ci.yml` shape are used in `mdbook-utils` and `rust_howto`.
+
+The workflow pins `cargo-nextest` 0.9.145, `prek` 0.5.6, and `dprint` 0.64.1. Keep these aligned with
+`.config/nextest.toml`, `prek.toml`, and `dprint.jsonc` when updating the tools.
 
 ## Conventions
 

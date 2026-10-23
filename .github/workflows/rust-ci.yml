@@ -44,14 +44,18 @@ jobs:
       - name: Set up Rust (1.99.1 + pinned nightly rustfmt)
         uses: ./.github/actions/setup-rust
 
-      - name: Install cargo-nextest
+      - name: Install workspace tools (cargo-nextest, prek, dprint)
         # taiki-e/install-action v2.87.30
         uses: taiki-e/install-action@a4d3f3f761dcd95cce1b72cb61cb6d1963438177
         with:
-          tool: cargo-nextest
+          tool: |
+            cargo-nextest@0.9.145
+            prek@0.5.6
+            dprint@0.64.1
+          fallback: none
 
-      - name: Check the formatting
-        run: cargo +nightly-2026-10-22 fmt --all --check
+      - name: Run repository hooks
+        run: prek run --all-files
 
       - name: Fetch
         run: cargo fetch --locked
