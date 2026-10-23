@@ -1,4 +1,5 @@
 // TODO Reviewed ??-??-2026
+
 //! End-to-end tests of the `book_tool` subcommands.
 
 #![expect(
@@ -6,7 +7,6 @@
     reason = "Helpers in this test file fail loudly when test setup breaks."
 )]
 
-use book_tool::common::Scope;
 use std::collections::VecDeque;
 use std::fs;
 use std::io::Read as _;
@@ -24,6 +24,7 @@ use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
+use book_tool::common::Scope;
 use tempfile::tempdir;
 
 struct TestHttpServer {

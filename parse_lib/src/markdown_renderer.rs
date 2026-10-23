@@ -2,17 +2,33 @@
 //!
 //! TODO Reviewed ??-??-2026
 
-use std::ops::Range;
-
-use crate::ast::{
-    AutolinkData, BlockquoteData, DirectiveData, Document, EmphasisData, FencedCodeBlockData,
-    HeadingData, HtmlCommentData, InlineImageData, InlineLinkData, ListData, ListItemData,
-    ParagraphData, ReferenceDefinitionData, ReferenceStyleImageData, ReferenceStyleLinkData,
-    StrikethroughData, StrongData, TableData, TaskItemData, TextData, WikiLinkData,
-};
-use crate::visit::Visitor;
 use std::fmt;
 use std::fmt::Write as _;
+use std::ops::Range;
+
+use crate::ast::AutolinkData;
+use crate::ast::BlockquoteData;
+use crate::ast::DirectiveData;
+use crate::ast::Document;
+use crate::ast::EmphasisData;
+use crate::ast::FencedCodeBlockData;
+use crate::ast::HeadingData;
+use crate::ast::HtmlCommentData;
+use crate::ast::InlineImageData;
+use crate::ast::InlineLinkData;
+use crate::ast::ListData;
+use crate::ast::ListItemData;
+use crate::ast::ParagraphData;
+use crate::ast::ReferenceDefinitionData;
+use crate::ast::ReferenceStyleImageData;
+use crate::ast::ReferenceStyleLinkData;
+use crate::ast::StrikethroughData;
+use crate::ast::StrongData;
+use crate::ast::TableData;
+use crate::ast::TaskItemData;
+use crate::ast::TextData;
+use crate::ast::WikiLinkData;
+use crate::visit::Visitor;
 
 /// A pending replacement of a byte range of the original source.
 #[derive(Clone)]

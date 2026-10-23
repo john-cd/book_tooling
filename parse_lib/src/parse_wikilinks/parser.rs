@@ -10,12 +10,14 @@ use winnow::combinator::delimited;
 use winnow::combinator::opt;
 use winnow::combinator::seq;
 use winnow::error::ErrMode;
-use winnow::error::StrContext::{Expected, Label};
+use winnow::error::StrContext::Expected;
+use winnow::error::StrContext::Label;
 use winnow::error::StrContextValue::Description;
 use winnow::token::take_until;
 use winnow::token::take_while;
 
-use crate::ast::{Element, WikiLinkData};
+use crate::ast::Element;
+use crate::ast::WikiLinkData;
 
 /// Parses the inner content of a wikilink, which can be either a simple target
 /// or a target and a display text separated by a pipe.

@@ -4,7 +4,10 @@
 
 use std::collections::HashSet;
 
-use crate::ast::{AutolinkData, InlineImageData, InlineLinkData, ReferenceDefinitionData};
+use crate::ast::AutolinkData;
+use crate::ast::InlineImageData;
+use crate::ast::InlineLinkData;
+use crate::ast::ReferenceDefinitionData;
 use crate::visit::Visitor;
 
 /// A visitor that extracts all unique external URLs from a Markdown document.

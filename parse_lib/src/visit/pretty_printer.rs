@@ -6,12 +6,23 @@ use std::fmt;
 
 use super::Visitable as _;
 use super::Visitor;
-use crate::ast::{
-    AutolinkData, CodeSpanData, DirectiveData, Document, Element, FencedCodeBlockData, HeadingData,
-    HiddenHtmlDivData, InlineImageData, InlineLinkData, ReferenceDefinitionData,
-    ReferenceStyleImageData, ReferenceStyleLinkData, TableData, TaskItemData, TextData,
-    WikiLinkData,
-};
+use crate::ast::AutolinkData;
+use crate::ast::CodeSpanData;
+use crate::ast::DirectiveData;
+use crate::ast::Document;
+use crate::ast::Element;
+use crate::ast::FencedCodeBlockData;
+use crate::ast::HeadingData;
+use crate::ast::HiddenHtmlDivData;
+use crate::ast::InlineImageData;
+use crate::ast::InlineLinkData;
+use crate::ast::ReferenceDefinitionData;
+use crate::ast::ReferenceStyleImageData;
+use crate::ast::ReferenceStyleLinkData;
+use crate::ast::TableData;
+use crate::ast::TaskItemData;
+use crate::ast::TextData;
+use crate::ast::WikiLinkData;
 
 /// A visitor that reconstructs a Markdown string from an AST.
 ///

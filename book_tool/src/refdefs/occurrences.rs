@@ -8,11 +8,12 @@ use std::path::Path;
 
 use anyhow::Context as _;
 use anyhow::Result;
+use parse_lib::ReferenceDefinitionData;
+use parse_lib::ReferenceStyleImageData;
+use parse_lib::ReferenceStyleLinkData;
+use parse_lib::parse_document;
 use parse_lib::visit::Visitable as _;
 use parse_lib::visit::Visitor;
-use parse_lib::{
-    ReferenceDefinitionData, ReferenceStyleImageData, ReferenceStyleLinkData, parse_document,
-};
 use walkdir::WalkDir;
 
 use super::normalize_reference_label;

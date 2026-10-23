@@ -1,4 +1,5 @@
 // TODO Reviewed ??-??-2026
+
 //! Tests of the `--extension` and `--exclude` options shared by file-oriented subcommands.
 
 #![expect(

@@ -3,11 +3,19 @@
 //! TODO Reviewed ??-??-2026
 
 use super::Visitor;
-use crate::ast::{
-    AutolinkData, CodeSpanData, DirectiveData, FencedCodeBlockData, HeadingData, HiddenHtmlDivData,
-    InlineImageData, InlineLinkData, ReferenceDefinitionData, ReferenceStyleImageData,
-    ReferenceStyleLinkData, TextData, WikiLinkData,
-};
+use crate::ast::AutolinkData;
+use crate::ast::CodeSpanData;
+use crate::ast::DirectiveData;
+use crate::ast::FencedCodeBlockData;
+use crate::ast::HeadingData;
+use crate::ast::HiddenHtmlDivData;
+use crate::ast::InlineImageData;
+use crate::ast::InlineLinkData;
+use crate::ast::ReferenceDefinitionData;
+use crate::ast::ReferenceStyleImageData;
+use crate::ast::ReferenceStyleLinkData;
+use crate::ast::TextData;
+use crate::ast::WikiLinkData;
 
 /// A simple visitor that prints the elements to the console.
 pub struct Debugger;

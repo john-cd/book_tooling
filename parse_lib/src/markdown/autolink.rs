@@ -4,12 +4,14 @@
 
 use winnow::Parser as _;
 use winnow::combinator::alt;
-use winnow::error::StrContext::{Expected, Label};
+use winnow::error::StrContext::Expected;
+use winnow::error::StrContext::Label;
 use winnow::error::StrContextValue::Description;
 use winnow::prelude::*;
 
 use super::super::parse_parts::link_destination::parse_angle_brackets;
-use crate::ast::{AutolinkData, Element};
+use crate::ast::AutolinkData;
+use crate::ast::Element;
 use crate::parse_urls::parse_naked_url;
 
 /// Parses an autolink (`<url>` or a naked URL).

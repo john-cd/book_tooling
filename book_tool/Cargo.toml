@@ -1,13 +1,19 @@
 # TODO Reviewed ??-??-2026
+
 [package]
 name = "book_tool"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
+license.workspace = true
+publish = false
 rust-version.workspace = true
 description = "A unified CLI for book tooling"
-publish = false
-license.workspace = true
+
+[[bin]]
+name = "book_tool"
+path = "src/main.rs"
+required-features = ["cli"]
 
 [features]
 default = ["cli"]
@@ -24,28 +30,23 @@ cli = [
     "dep:url",
 ]
 
-[[bin]]
-name = "book_tool"
-path = "src/main.rs"
-required-features = ["cli"]
-
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true, features = ["derive"], optional = true }
 httpdate = { workspace = true, optional = true }
 parse_lib = { workspace = true }
+rayon = { workspace = true, optional = true }
+regex = { workspace = true }
 reqwest = { workspace = true, optional = true }
+serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, optional = true }
+tempfile = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"], optional = true }
+toml = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"], optional = true }
 url = { workspace = true, optional = true }
-rayon = { workspace = true, optional = true }
 walkdir = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
-toml = { workspace = true }
-regex = { workspace = true }
-tempfile = { workspace = true }
 
 [lints]
 workspace = true

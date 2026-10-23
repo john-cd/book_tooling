@@ -3,7 +3,8 @@
 //! TODO Reviewed ??-??-2026
 
 use super::Visitable as _;
-use crate::ast::{Documents, ReferenceDefinitionData};
+use crate::ast::Documents;
+use crate::ast::ReferenceDefinitionData;
 
 /// A visitor that collects reference definitions.
 struct RefDefVisitor<'v>(RefDefManager<'v>);

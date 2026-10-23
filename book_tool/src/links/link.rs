@@ -4,9 +4,13 @@
 
 use std::collections::HashSet;
 
+use parse_lib::AutolinkData;
+use parse_lib::Document;
+use parse_lib::InlineImageData;
+use parse_lib::InlineLinkData;
+use parse_lib::ReferenceDefinitionData;
 use parse_lib::visit::Visitable as _;
 use parse_lib::visit::Visitor;
-use parse_lib::{AutolinkData, Document, InlineImageData, InlineLinkData, ReferenceDefinitionData};
 use url::Url;
 
 /// Visitor that records every URL-like destination it sees.

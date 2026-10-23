@@ -2,11 +2,18 @@
 //!
 //! TODO Reviewed ??-??-2026
 
-use crate::ast::{
-    AutolinkData, CodeSpanData, FencedCodeBlockData, HeadingData, HtmlCommentData, InlineImageData,
-    InlineLinkData, ReferenceStyleImageData, ReferenceStyleLinkData, TaskItemData, TextData,
-    WikiLinkData,
-};
+use crate::ast::AutolinkData;
+use crate::ast::CodeSpanData;
+use crate::ast::FencedCodeBlockData;
+use crate::ast::HeadingData;
+use crate::ast::HtmlCommentData;
+use crate::ast::InlineImageData;
+use crate::ast::InlineLinkData;
+use crate::ast::ReferenceStyleImageData;
+use crate::ast::ReferenceStyleLinkData;
+use crate::ast::TaskItemData;
+use crate::ast::TextData;
+use crate::ast::WikiLinkData;
 use crate::visit::Visitor;
 
 /// A visitor that extracts pure plain text by stripping away all Markdown structural formatting.

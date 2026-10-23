@@ -7,7 +7,9 @@ use winnow::Parser as _;
 use winnow::combinator::delimited;
 use winnow::token::take_until;
 
-use crate::ast::{CodeSpanData, Element, FencedCodeBlockData};
+use crate::ast::CodeSpanData;
+use crate::ast::Element;
+use crate::ast::FencedCodeBlockData;
 
 /// Parses text enclosed in single backticks.
 /// Simplified from <https://spec.commonmark.org/0.31.2/#code-spans>.

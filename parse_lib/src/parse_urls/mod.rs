@@ -7,7 +7,8 @@ use winnow::ModalResult;
 use winnow::Parser as _;
 use winnow::combinator::alt;
 use winnow::combinator::delimited;
-use winnow::error::StrContext::{Expected, Label};
+use winnow::error::StrContext::Expected;
+use winnow::error::StrContext::Label;
 use winnow::error::StrContextValue::Description;
 use winnow::token::take_while;
 

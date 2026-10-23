@@ -17,12 +17,14 @@ use winnow::combinator::preceded;
 use winnow::combinator::repeat;
 use winnow::combinator::seq;
 use winnow::combinator::terminated;
-use winnow::error::StrContext::{Expected, Label};
+use winnow::error::StrContext::Expected;
+use winnow::error::StrContext::Label;
 use winnow::error::StrContextValue::Description;
 use winnow::stream::Stream as _;
 use winnow::token::take_while;
 
-use crate::ast::{Element, HeadingData};
+use crate::ast::Element;
+use crate::ast::HeadingData;
 
 /// Parses the opening run of one to six `#` characters and returns the heading level.
 fn parse_opening_hashes(input: &mut &str) -> ModalResult<u8> {

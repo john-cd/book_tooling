@@ -5,10 +5,12 @@
 use winnow::ModalResult;
 use winnow::Parser as _;
 use winnow::combinator::seq;
-use winnow::error::StrContext::{Expected, Label};
+use winnow::error::StrContext::Expected;
+use winnow::error::StrContext::Label;
 use winnow::error::StrContextValue::Description;
 
-use crate::ast::{Element, ReferenceStyleLinkData};
+use crate::ast::Element;
+use crate::ast::ReferenceStyleLinkData;
 use crate::parse_parts::parse_link_label;
 use crate::parse_parts::parse_link_text;
 

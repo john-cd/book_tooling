@@ -10,11 +10,13 @@ use winnow::ascii::space0;
 use winnow::ascii::space1;
 use winnow::combinator::delimited;
 use winnow::error::ErrMode;
-use winnow::error::StrContext::{Expected, Label};
+use winnow::error::StrContext::Expected;
+use winnow::error::StrContext::Label;
 use winnow::error::StrContextValue::Description;
 use winnow::token::take_until;
 
-use crate::ast::{Element, HiddenHtmlDivData};
+use crate::ast::Element;
+use crate::ast::HiddenHtmlDivData;
 
 /// Parses an HTML opening `<div>` tag with `class="hidden"`.
 ///

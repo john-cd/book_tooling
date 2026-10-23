@@ -11,9 +11,11 @@ use winnow::combinator::eof;
 use winnow::combinator::fail;
 use winnow::combinator::opt;
 use winnow::combinator::repeat;
-use winnow::error::StrContext::{Expected, Label};
+use winnow::error::ContextError;
+use winnow::error::ErrMode;
+use winnow::error::StrContext::Expected;
+use winnow::error::StrContext::Label;
 use winnow::error::StrContextValue::Description;
-use winnow::error::{ContextError, ErrMode};
 use winnow::seq;
 use winnow::token::take_till;
 use winnow::token::take_until;
@@ -31,11 +33,16 @@ use crate::ast::StrikethroughData;
 use crate::ast::StrongData;
 use crate::ast::TableData;
 use crate::ast::TaskItemData;
-use crate::markdown::{
-    parse_atx_heading, parse_code_span, parse_fallback_char, parse_fenced_code_block,
-    parse_inline_image, parse_inline_link, parse_link_reference_definition, parse_plain_text,
-    parse_reference_style_image, parse_reference_style_link,
-};
+use crate::markdown::parse_atx_heading;
+use crate::markdown::parse_code_span;
+use crate::markdown::parse_fallback_char;
+use crate::markdown::parse_fenced_code_block;
+use crate::markdown::parse_inline_image;
+use crate::markdown::parse_inline_link;
+use crate::markdown::parse_link_reference_definition;
+use crate::markdown::parse_plain_text;
+use crate::markdown::parse_reference_style_image;
+use crate::markdown::parse_reference_style_link;
 use crate::parse_directives::parse_directive_element;
 use crate::parse_hidden::parse_hidden_html_div;
 use crate::parse_urls::parse_autolink;

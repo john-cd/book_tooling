@@ -17,13 +17,30 @@ pub use refdefs::*;
 
 use crate::Document;
 use crate::Documents;
-use crate::ast::{
-    AutolinkData, BlockquoteData, CodeSpanData, DirectiveData, Element, EmphasisData,
-    FencedCodeBlockData, HeadingData, HiddenHtmlDivData, HtmlCommentData, InlineImageData,
-    InlineLinkData, ListData, ListItemData, ParagraphData, ReferenceDefinitionData,
-    ReferenceStyleImageData, ReferenceStyleLinkData, StrikethroughData, StrongData, TableData,
-    TaskItemData, TextData, WikiLinkData,
-};
+use crate::ast::AutolinkData;
+use crate::ast::BlockquoteData;
+use crate::ast::CodeSpanData;
+use crate::ast::DirectiveData;
+use crate::ast::Element;
+use crate::ast::EmphasisData;
+use crate::ast::FencedCodeBlockData;
+use crate::ast::HeadingData;
+use crate::ast::HiddenHtmlDivData;
+use crate::ast::HtmlCommentData;
+use crate::ast::InlineImageData;
+use crate::ast::InlineLinkData;
+use crate::ast::ListData;
+use crate::ast::ListItemData;
+use crate::ast::ParagraphData;
+use crate::ast::ReferenceDefinitionData;
+use crate::ast::ReferenceStyleImageData;
+use crate::ast::ReferenceStyleLinkData;
+use crate::ast::StrikethroughData;
+use crate::ast::StrongData;
+use crate::ast::TableData;
+use crate::ast::TaskItemData;
+use crate::ast::TextData;
+use crate::ast::WikiLinkData;
 
 /// A trait for walking the Abstract Syntax Tree (AST).
 ///

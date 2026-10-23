@@ -2,10 +2,18 @@
 //!
 //! TODO Reviewed ??-??-2026
 
-use crate::ast::{
-    BlockquoteData, EmphasisData, FencedCodeBlockData, HtmlCommentData, InlineLinkData, ListData,
-    ListItemData, ParagraphData, StrikethroughData, StrongData, TableData, TextData,
-};
+use crate::ast::BlockquoteData;
+use crate::ast::EmphasisData;
+use crate::ast::FencedCodeBlockData;
+use crate::ast::HtmlCommentData;
+use crate::ast::InlineLinkData;
+use crate::ast::ListData;
+use crate::ast::ListItemData;
+use crate::ast::ParagraphData;
+use crate::ast::StrikethroughData;
+use crate::ast::StrongData;
+use crate::ast::TableData;
+use crate::ast::TextData;
 use crate::visit::Visitor;
 
 /// Appends an HTML-escaped version of the input string to the destination buffer.

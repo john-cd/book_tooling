@@ -1,4 +1,5 @@
 // TODO Reviewed ??-??-2026
+
 //! Command-line entry point for `book_tool`, a set of maintenance tools for mdBook sources.
 
 use std::path::PathBuf;

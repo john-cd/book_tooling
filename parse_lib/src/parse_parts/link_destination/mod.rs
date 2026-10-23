@@ -24,7 +24,8 @@ pub(crate) use angle_brackets::parse_angle_brackets;
 pub(crate) use nonempty_sequence::parse_non_empty_sequence;
 use winnow::combinator::alt;
 use winnow::combinator::fail;
-use winnow::error::StrContext::{Expected, Label};
+use winnow::error::StrContext::Expected;
+use winnow::error::StrContext::Label;
 use winnow::error::StrContextValue::Description;
 use winnow::prelude::*;
 

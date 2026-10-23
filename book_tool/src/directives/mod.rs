@@ -3,7 +3,8 @@
 //! TODO Reviewed ??-??-2026
 
 mod crate_blocks;
-use crate_blocks::{render_category_block, render_crate_block};
+use crate_blocks::render_category_block;
+use crate_blocks::render_crate_block;
 
 /// Directive-processing configuration types.
 mod conf;

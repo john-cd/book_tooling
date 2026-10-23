@@ -8,13 +8,17 @@ use winnow::ascii::space0;
 use winnow::combinator::opt;
 use winnow::combinator::preceded;
 use winnow::combinator::seq;
-use winnow::error::StrContext::{Expected, Label};
+use winnow::error::StrContext::Expected;
+use winnow::error::StrContext::Label;
 use winnow::error::StrContextValue::Description;
 
-use crate::ast::{Element, InlineImageData, ReferenceStyleImageData};
-use crate::parse_parts::{
-    parse_link_destination, parse_link_label, parse_link_text, parse_link_title,
-};
+use crate::ast::Element;
+use crate::ast::InlineImageData;
+use crate::ast::ReferenceStyleImageData;
+use crate::parse_parts::parse_link_destination;
+use crate::parse_parts::parse_link_label;
+use crate::parse_parts::parse_link_text;
+use crate::parse_parts::parse_link_title;
 
 /// Parses an inline image: `![desc](url "title")`.
 ///
