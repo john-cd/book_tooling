@@ -68,7 +68,7 @@ pub(crate) fn parse_link_title<'s>(input: &mut &'s str) -> ModalResult<&'s str> 
 ///
 /// Returns a backtrack error if the input does not begin with an inline link.
 pub fn parse_inline_link<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
-    let (text, _, _, dest, ws, title, _, _) = seq!(
+    let (text, _, _, dest, ws, title, ..) = seq!(
         parse_link_text,
         "(",
         take_while(0.., [' ', '\t', '\n', '\r']),
@@ -80,7 +80,8 @@ pub fn parse_inline_link<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     )
     .parse_next(input)?;
 
-    // CommonMark spec dictates that if a title is present, it must be separated from the destination by whitespace.
+    // CommonMark spec dictates that if a title is present, it must be separated from the
+    // destination by whitespace.
     if title.is_some() && dest.is_some() && ws.is_empty() {
         return fail.parse_next(input);
     }

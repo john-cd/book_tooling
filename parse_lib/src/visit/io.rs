@@ -26,8 +26,8 @@ impl<'d> Document<'d> {
         F: FnOnce(&mut Writer<&mut IO>) -> V,
         'd: 'v,
     {
-        // The `write` function takes a `io::Write`, converts it to a struct that implements `fmt::Write`
-        // and provides it to the closure.
+        // The `write` function takes a `io::Write`, converts it to a struct that implements
+        // `fmt::Write` and provides it to the closure.
         fmt2io::write(&mut io_writer, |writer| {
             let mut visitor = f(writer);
             self.accept(&mut visitor);

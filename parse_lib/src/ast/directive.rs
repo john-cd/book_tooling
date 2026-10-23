@@ -61,8 +61,8 @@ pub enum DirectiveData<'a> {
         categories: Vec<&'a str>,
     },
 
-    /// Insert a fenced code block with an `include` directive pointing to a new code example (.rs) file,
-    /// for example `{{#example some_example}}`.
+    /// Insert a fenced code block with an `include` directive pointing to a new code example (.rs)
+    /// file, for example `{{#example some_example}}`.
     ExampleBlock {
         /// Example name to resolve to an included file.
         name: &'a str,

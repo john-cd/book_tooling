@@ -89,7 +89,8 @@ pub(crate) fn parse_non_empty_sequence<'s>(input: &mut &'s str) -> ModalResult<&
     .take()
     .parse_next(input)?;
 
-    // Parsing stopped at an unmatched `(`: this is not a valid destination, so let the caller keep the text literal.
+    // Parsing stopped at an unmatched `(`: this is not a valid destination, so let the caller keep
+    // the text literal.
     if input.starts_with('(') {
         return Err(ErrMode::Backtrack(ContextError::new()));
     }
@@ -100,7 +101,8 @@ pub(crate) fn parse_non_empty_sequence<'s>(input: &mut &'s str) -> ModalResult<&
 mod tests_parse_non_empty_sequence {
     use super::*;
 
-    /// Plain text, escaped and balanced parentheses are consumed; the run stops at an unmatched `)`, a space or a control character.
+    /// Plain text, escaped and balanced parentheses are consumed; the run stops at an unmatched
+    /// `)`, a space or a control character.
     #[test]
     fn test_valid_sequences() {
         assert_eq!(
@@ -174,7 +176,8 @@ mod tests_parse_non_empty_sequence {
 mod text_with_escapes_tests {
     use super::*;
 
-    /// Plain text and backslash-escaped parentheses or backslashes are consumed, wherever they appear in the run.
+    /// Plain text and backslash-escaped parentheses or backslashes are consumed, wherever they
+    /// appear in the run.
     #[test]
     fn test_text_with_escapes_basic() {
         // Simple allowed chars.
@@ -232,7 +235,8 @@ mod text_with_escapes_tests {
         );
     }
 
-    /// Input starting with a parenthesis, `<`, a space or a control character, or ending in a lone backslash, is rejected.
+    /// Input starting with a parenthesis, `<`, a space or a control character, or ending in a lone
+    /// backslash, is rejected.
     #[test]
     fn test_text_with_escapes_invalid() {
         // Starts with forbidden char.

@@ -100,7 +100,8 @@ mod tests {
     use super::*;
 
     // Helper to easily check successful parsing.
-    /// Asserts that `input` parses with the given target and optional display text, leaving the closing `]]` unconsumed.
+    /// Asserts that `input` parses with the given target and optional display text, leaving the
+    /// closing `]]` unconsumed.
     fn assert_parse_wikilink_inner_ok<'a>(
         input: &'a str,
         expected_target: &'a str,

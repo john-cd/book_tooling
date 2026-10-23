@@ -134,7 +134,8 @@ mod tests {
 
     // --- Tests for parse_fenced_code_block ---
 
-    /// A fenced block with a language tag yields the language and every body line, indentation preserved.
+    /// A fenced block with a language tag yields the language and every body line, indentation
+    /// preserved.
     #[test]
     fn test_parse_fenced_code_block_basic() {
         let input = "```rust\nfn main() {\n    println!(\"Hello\");\n}\n```";
@@ -163,7 +164,8 @@ mod tests {
         );
     }
 
-    /// A language tag containing a comma (as in `rust,editable`) is kept whole, and text after the closing fence is left unconsumed.
+    /// A language tag containing a comma (as in `rust,editable`) is kept whole, and text after the
+    /// closing fence is left unconsumed.
     #[test]
     fn test_parse_fenced_code_block_with_trailing_text() {
         let input = "```rust,editable\nprintln!(\"hi\");\n``` more text";
@@ -189,7 +191,8 @@ mod tests {
         parse_fenced_code_block(&mut "unopened block```").expect_err("input should be rejected");
     }
 
-    /// The block ends at the first closing fence, so a later triple backtick stays in the unconsumed remainder.
+    /// The block ends at the first closing fence, so a later triple backtick stays in the
+    /// unconsumed remainder.
     #[test]
     fn test_parse_fenced_code_block_inner_triple_backticks() {
         // `take_until` stops at the *first* closing delimiter.

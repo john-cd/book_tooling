@@ -54,7 +54,8 @@ impl Scope {
     }
 }
 
-/// Normalizes a path to a string usable as a map key; lowercased on Windows, where paths are case-insensitive.
+/// Normalizes a path to a string usable as a map key; lowercased on Windows, where paths are
+/// case-insensitive.
 fn path_identity(path: &Path) -> String {
     let identity = path.to_string_lossy().replace('\\', "/");
     #[cfg(windows)]
@@ -67,7 +68,8 @@ fn path_identity(path: &Path) -> String {
     }
 }
 
-/// Returns the files under `root` that `scope` includes and that are not already in `seen`, in depth-first file-name order.
+/// Returns the files under `root` that `scope` includes and that are not already in `seen`, in
+/// depth-first file-name order.
 fn collect_files(root: &Path, scope: &Scope, seen: &mut HashSet<String>) -> Result<Vec<PathBuf>> {
     let mut files = Vec::new();
     for entry in WalkDir::new(root).sort_by_file_name() {
@@ -137,7 +139,8 @@ where
 ///
 /// # Errors
 ///
-/// Returns an error if a directory cannot be traversed, a file cannot be read, or `process` fails for a file.
+/// Returns an error if a directory cannot be traversed, a file cannot be read, or `process` fails
+/// for a file.
 pub fn walk_parsed_markdown_files<I, F, E>(
     directories: I,
     scope: &Scope,
@@ -227,7 +230,8 @@ mod tests {
         Ok(())
     }
 
-    /// Files are visited depth-first in file-name order regardless of the filesystem's directory order.
+    /// Files are visited depth-first in file-name order regardless of the filesystem's directory
+    /// order.
     #[test]
     fn traversal_order_is_deterministic() -> Result<()> {
         let temp = tempdir()?;

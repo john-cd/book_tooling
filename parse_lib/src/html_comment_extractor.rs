@@ -32,7 +32,8 @@ mod tests {
     use super::*;
     use crate::parse_document;
 
-    /// A comment in the middle of a paragraph is extracted with its inner spacing, without the delimiters.
+    /// A comment in the middle of a paragraph is extracted with its inner spacing, without the
+    /// delimiters.
     #[test]
     fn test_html_comment_extraction() {
         let input = "Hello <!-- TODO: fix this section --> world!";

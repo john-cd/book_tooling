@@ -2,9 +2,12 @@
 //!
 //! Simplified from spec: <https://spec.commonmark.org/0.31.2/#link-label>
 //!
-//! - A link label begins with a left bracket ([) and ends with the first right bracket (]) that is not backslash-escaped.
-//! - Between these brackets there must be at least one character that is not a space, tab, or line ending.
-//! - Unescaped square bracket characters are not allowed inside the opening and closing square brackets of link labels.
+//! - A link label begins with a left bracket ([) and ends with the first right bracket (]) that is
+//!   not backslash-escaped.
+//! - Between these brackets there must be at least one character that is not a space, tab, or line
+//!   ending.
+//! - Unescaped square bracket characters are not allowed inside the opening and closing square
+//!   brackets of link labels.
 //! - A link label can have at most 999 characters inside the square brackets.
 //!
 //! TODO Reviewed ??-??-2026

@@ -1,7 +1,23 @@
 # TODO Reviewed ??-??-2026
 
+# Match the workspace edition and keep formatting consistent across platforms.
+unstable_features = true
 edition = "2024"
-newline_style = "Unix" # Default: "Auto"
-# max_width = 80         # Default: 100
-imports_granularity = "Item"
+style_edition = "2024"
+newline_style = "Unix"
+
+max_width = 100
+comment_width = 100
+wrap_comments = true
+normalize_comments = true
+hard_tabs = false
+tab_spaces = 4
+
+reorder_imports = true
 group_imports = "StdExternalCrate"
+imports_granularity = "Item"
+
+condense_wildcard_suffixes = true
+format_code_in_doc_comments = true
+format_macro_matchers = true
+reorder_impl_items = true

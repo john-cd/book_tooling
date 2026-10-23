@@ -16,8 +16,8 @@ use crate::ast::AutolinkData;
 use crate::ast::Element;
 
 /// Predicate function to check if a character is one of the valid URL characters.
-/// Valid chars in URLs are A-Z, a-z, 0-9, -, ., _, ~, :, /, ?, #, [, ], @, !, $, &, ', (, ), *, +, ,, ;, %, =
-/// ":" | "/" | "@" | "?" | "#" have special meaning in URLs.
+/// Valid chars in URLs are A-Z, a-z, 0-9, -, ., _, ~, :, /, ?, #, [, ], @, !, $, &, ', (, ), *, +,
+/// ,, ;, %, = ":" | "/" | "@" | "?" | "#" have special meaning in URLs.
 fn is_valid_url_char(c: char) -> bool {
     matches!(c,
         'A'..='Z'
@@ -179,7 +179,8 @@ mod tests {
         );
     }
 
-    /// Realistic relative and absolute URLs with paths, queries and fragments are consumed up to the trailing space.
+    /// Realistic relative and absolute URLs with paths, queries and fragments are consumed up to
+    /// the trailing space.
     #[test]
     fn test_parse_url_chars_url_like() {
         assert_eq!(

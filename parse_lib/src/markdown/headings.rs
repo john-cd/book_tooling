@@ -81,7 +81,8 @@ fn parse_heading_content<'s>(
         });
 
     // Optional closing sequence of any number of unescaped # characters.
-    // The optional closing sequence of #s must be preceded by spaces or tabs and may be followed by spaces or tabs only.
+    // The optional closing sequence of #s must be preceded by spaces or tabs and may be followed by
+    // spaces or tabs only.
     let mut opt_closing_hashes = opt(terminated(take_while(1.., |c| c == '#'), space0));
 
     seq!(

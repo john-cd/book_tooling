@@ -22,7 +22,8 @@ use crate::links::AsyncLinkChecker;
 use crate::refdefs::find_unused_refdefs_in_scopes;
 use crate::refdefs::normalize_reference_label;
 
-/// Collects the external http(s) URLs of `doc`, skipping links that use unused reference definitions.
+/// Collects the external http(s) URLs of `doc`, skipping links that use unused reference
+/// definitions.
 fn collect_active_external_links(
     doc: &parse_lib::Document<'_>,
     unused_refdefs: Option<&HashSet<String>>,
@@ -88,7 +89,8 @@ fn collect_active_external_links(
 ///
 /// # Errors
 ///
-/// Returns an error if a directory cannot be processed, a link is broken, or unused definitions cannot be deleted.
+/// Returns an error if a directory cannot be processed, a link is broken, or unused definitions
+/// cannot be deleted.
 #[expect(
     clippy::too_many_lines,
     reason = "Linear workflow: check links, report them, then optionally clean up definitions."

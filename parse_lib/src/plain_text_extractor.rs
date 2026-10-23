@@ -65,7 +65,8 @@ impl<'a> Visitor<'a> for PlainTextExtractor {
         self.text.push_str(data.url);
     }
 
-    /// Appends the display text (or the target when there is none) and any text attached directly after the link.
+    /// Appends the display text (or the target when there is none) and any text attached directly
+    /// after the link.
     fn visit_wikilink(&mut self, data: &WikiLinkData<'a>) {
         self.text.push_str(data.display.unwrap_or(data.target));
         if let Some(after) = data.immediately_after {

@@ -26,8 +26,8 @@ pub struct TestCase {
 ///
 /// # Errors
 ///
-/// Returns an error if a fixture cannot be created, `func_to_test` fails, the file is missing afterwards,
-/// or its contents differ from the expected ones.
+/// Returns an error if a fixture cannot be created, `func_to_test` fails, the file is missing
+/// afterwards, or its contents differ from the expected ones.
 pub fn test_with<F>(test_cases: &[TestCase], func_to_test: F) -> Result<()>
 where
     F: Fn(&Path) -> Result<()>,

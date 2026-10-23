@@ -73,7 +73,8 @@ mod tests {
         );
     }
 
-    /// A heading with an explicit id, an inline link with a title and a reference-style link reconstruct to the original syntax.
+    /// A heading with an explicit id, an inline link with a title and a reference-style link
+    /// reconstruct to the original syntax.
     #[test]
     fn test_reconstruct_various_elements() {
         let elements = vec![

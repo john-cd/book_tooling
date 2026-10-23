@@ -172,7 +172,8 @@ impl LabelRegistry {
         format!("[{}][{}]", link.url, label)
     }
 
-    /// Returns the label for `url`, reusing an existing or earlier allocated one, or allocating a new one.
+    /// Returns the label for `url`, reusing an existing or earlier allocated one, or allocating a
+    /// new one.
     fn label_for_url(&self, url: &str) -> String {
         if let Some(label) = self.existing_url_to_label.get(url) {
             self.reused_reference_definitions

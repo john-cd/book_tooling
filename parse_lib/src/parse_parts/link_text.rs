@@ -2,7 +2,8 @@
 //!
 //! Simplified from spec: <https://spec.commonmark.org/0.31.2/#link-text>
 //!
-//! - A link text begins with a left bracket ([) and ends with the first right bracket (]) that is not backslash-escaped.
+//! - A link text begins with a left bracket ([) and ends with the first right bracket (]) that is
+//!   not backslash-escaped.
 //! - Unescaped square bracket characters are allowed only if they are nested and balanced.
 //!
 //! TODO Reviewed ??-??-2026

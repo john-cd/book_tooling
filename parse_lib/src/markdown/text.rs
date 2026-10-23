@@ -21,7 +21,8 @@ const SPECIAL_CHARS: [char; 16] = [
 ///
 /// # Errors
 ///
-/// Returns a backtrack error if the input is empty or starts with a character that begins other syntax.
+/// Returns a backtrack error if the input is empty or starts with a character that begins other
+/// syntax.
 pub fn parse_plain_text<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     let source: &'a str = input;
     // take_till with 1.. ensures we consume at least one non-special character.
@@ -49,7 +50,8 @@ pub fn parse_plain_text<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     Ok(Element::Text(crate::ast::TextData { content }))
 }
 
-/// Fallback parser that handles escaped characters and consumes exactly one character if not escaped.
+/// Fallback parser that handles escaped characters and consumes exactly one character if not
+/// escaped.
 ///
 /// # Errors
 ///

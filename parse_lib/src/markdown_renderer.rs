@@ -203,7 +203,8 @@ impl<F> MarkdownRenderer<F> {
         }
     }
 
-    /// Records a replacement for `range`, or marks the render as needing the full fallback if the range is unusable.
+    /// Records a replacement for `range`, or marks the render as needing the full fallback if the
+    /// range is unusable.
     fn record_edit(
         &mut self,
         range: Option<Range<usize>>,
@@ -229,7 +230,8 @@ impl<F> MarkdownRenderer<F> {
         }
     }
 
-    /// Applies the recorded edits to the original source, if they are all valid and non-overlapping.
+    /// Applies the recorded edits to the original source, if they are all valid and
+    /// non-overlapping.
     fn apply_source_edits(&self) -> Option<String> {
         let source = self.source.as_ref()?;
         if self.source_edit_fallback {
@@ -290,7 +292,8 @@ impl<'a, F> Visitor<'a> for MarkdownRenderer<F>
 where
     F: FnMut(&DirectiveData<'a>) -> String,
 {
-    /// Renders the whole document, remembering its source so resolver replacements can be applied to it byte for byte.
+    /// Renders the whole document, remembering its source so resolver replacements can be applied
+    /// to it byte for byte.
     fn visit_document(&mut self, doc: &'a Document<'a>) {
         self.markdown.clear();
         self.source_edits.clear();
@@ -597,7 +600,8 @@ where
         self.markdown.push_str("-->");
     }
 
-    /// Emits the directive resolver's replacement, recording the edit against the directive's source range.
+    /// Emits the directive resolver's replacement, recording the edit against the directive's
+    /// source range.
     fn visit_custom_directive(&mut self, data: &DirectiveData<'a>) {
         // Call the resolver to generate the replacement Markdown
         let replacement = (self.directive_resolver)(data);
@@ -675,7 +679,8 @@ mod tests {
         assert_eq!(renderer.markdown, "[Rust](https://rust-lang.org)");
     }
 
-    /// Without a resolver a wikilink renders back as `[[target | display]]` followed by its trailing text.
+    /// Without a resolver a wikilink renders back as `[[target | display]]` followed by its
+    /// trailing text.
     #[test]
     fn test_markdown_renderer_wikilink_default() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -687,7 +692,8 @@ mod tests {
         assert_eq!(renderer.markdown, "[[page | display]]s");
     }
 
-    /// A custom wikilink resolver replaces the default rendering, for example to emit reference-style links.
+    /// A custom wikilink resolver replaces the default rendering, for example to emit
+    /// reference-style links.
     #[test]
     fn test_markdown_renderer_wikilink_resolver() {
         let mut renderer =
@@ -798,7 +804,8 @@ mod tests {
         assert_eq!(renderer.markdown, "Para 1\n\n");
     }
 
-    /// Each paragraph in a blockquote gets a `> ` prefix, with a `>` line preserving the gap between paragraphs.
+    /// Each paragraph in a blockquote gets a `> ` prefix, with a `>` line preserving the gap
+    /// between paragraphs.
     #[test]
     fn test_markdown_renderer_blockquote() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());

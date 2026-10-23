@@ -161,7 +161,8 @@ impl<'a> Visitor<'a> for HtmlRenderer {
         self.html.push_str("-->");
     }
 
-    /// Emits a `<pre><code>` block, with a `language-` class when a language is given and escaped body lines.
+    /// Emits a `<pre><code>` block, with a `language-` class when a language is given and escaped
+    /// body lines.
     fn visit_fenced_code_block(&mut self, data: &FencedCodeBlockData<'a>) {
         if let Some(lang) = data.language {
             self.html.push_str("<pre><code class=\"language-");
@@ -177,7 +178,8 @@ impl<'a> Visitor<'a> for HtmlRenderer {
         self.html.push_str("</code></pre>\n");
     }
 
-    /// Emits a `<table>` with a `<thead>` for the header and a `<tbody>` for the rows, escaping cell text.
+    /// Emits a `<table>` with a `<thead>` for the header and a `<tbody>` for the rows, escaping
+    /// cell text.
     fn visit_table(&mut self, data: &TableData<'a>) {
         self.html.push_str("<table>\n  <thead>\n    <tr>\n");
         for &cell in &data.header {

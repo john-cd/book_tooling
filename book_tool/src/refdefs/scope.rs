@@ -30,7 +30,8 @@ struct MarkdownFile {
     includes: Vec<String>,
 }
 
-/// Normalizes a path to a string usable as a map key; lowercased on Windows, where paths are case-insensitive.
+/// Normalizes a path to a string usable as a map key; lowercased on Windows, where paths are
+/// case-insensitive.
 pub(super) fn path_identity(path: &Path) -> String {
     let identity = path.to_string_lossy().replace('\\', "/");
     #[cfg(windows)]
@@ -140,7 +141,8 @@ fn active_markdown_includes(source: &str) -> Vec<String> {
 ///
 /// # Errors
 ///
-/// Returns an error if a root cannot be read or parsed, an include is missing, or the includes form a cycle.
+/// Returns an error if a root cannot be read or parsed, an include is missing, or the includes form
+/// a cycle.
 #[expect(
     clippy::too_many_lines,
     clippy::excessive_nesting,
@@ -214,7 +216,8 @@ where
                     );
                 }
                 let include_key = path_identity(&canonical_include);
-                // The target may be visited later in the WalkDir traversal; retain its key either way.
+                // The target may be visited later in the WalkDir traversal; retain its key either
+                // way.
                 includes.push(include_key);
             }
 

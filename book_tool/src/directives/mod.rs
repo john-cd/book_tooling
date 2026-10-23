@@ -105,7 +105,8 @@ pub fn process_markdown(markdown: &str, conf: &Config) -> Result<String> {
 ///
 /// # Errors
 ///
-/// Returns an error if the Markdown cannot be parsed, a directive cannot be expanded, or `resolve_example` fails.
+/// Returns an error if the Markdown cannot be parsed, a directive cannot be expanded, or
+/// `resolve_example` fails.
 pub fn process_markdown_with_example_resolver<F>(
     markdown: &str,
     conf: &Config,
@@ -486,7 +487,8 @@ mod tests {
         assert!(error.to_string().contains("#example"));
     }
 
-    /// Verifies disabled custom directives, native helpers, code spans, and untouched Markdown survive.
+    /// Verifies disabled custom directives, native helpers, code spans, and untouched Markdown
+    /// survive.
     #[test]
     fn disabled_families_preserve_native_helpers_and_unrelated_source() {
         let source = concat!(

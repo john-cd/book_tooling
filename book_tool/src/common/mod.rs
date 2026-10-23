@@ -38,7 +38,8 @@ pub fn warn_and_continue_on_parse_failure(path: &Path, error: &anyhow::Error) {
 ///
 /// # Errors
 ///
-/// Returns an error if the target is a symlink, or if the temporary file cannot be written or persisted over the target.
+/// Returns an error if the target is a symlink, or if the temporary file cannot be written or
+/// persisted over the target.
 pub fn replace_text_file_atomically(path: &Path, contents: &str) -> Result<()> {
     let permissions = match std::fs::symlink_metadata(path) {
         Ok(metadata) if metadata.file_type().is_symlink() => {

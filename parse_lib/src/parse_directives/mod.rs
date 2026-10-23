@@ -56,7 +56,8 @@ fn parse_destination_kind(input: &mut &str) -> ModalResult<DestinationKind> {
     .parse_next(input)
 }
 
-/// Parses the non-empty name after the destination keyword, introduced by `:` or whitespace and ending at `}}`.
+/// Parses the non-empty name after the destination keyword, introduced by `:` or whitespace and
+/// ending at `}}`.
 fn parse_link_or_badge_name<'a>(input: &mut &'a str) -> ModalResult<&'a str> {
     alt((
         preceded(':', preceded(space0, take_until(1.., "}}"))),

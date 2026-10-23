@@ -141,7 +141,8 @@ pub(super) fn next_character_len(text: &str, index: usize) -> usize {
         .map_or(1, char::len_utf8)
 }
 
-/// Finds the bracket pair that opens at `opening`, honoring nesting and backslash escapes; returns `(start, end, closing)` byte offsets.
+/// Finds the bracket pair that opens at `opening`, honoring nesting and backslash escapes; returns
+/// `(start, end, closing)` byte offsets.
 fn bracket_contents(line: &str, opening: usize) -> Option<(usize, usize, usize)> {
     let bytes = line.as_bytes();
     if bytes.get(opening) != Some(&b'[') {

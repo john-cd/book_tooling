@@ -99,7 +99,8 @@ impl GithubCrawler {
         self
     }
 
-    /// Builds the GitHub code search URL for `query`, percent-encoding it and restricting results to `Cargo.toml` files.
+    /// Builds the GitHub code search URL for `query`, percent-encoding it and restricting results
+    /// to `Cargo.toml` files.
     fn build_search_url(api_base: &str, query: &str, page: usize) -> String {
         let mut encoded_query = String::with_capacity(query.len());
         for byte in query.as_bytes() {
@@ -181,7 +182,8 @@ impl GithubCrawler {
     /// Returns an error if the request fails or the API returns an error status.
     pub async fn download_content(&self, url: &str) -> Result<String> {
         debug!("Downloading content from: {}", url);
-        // GitHub search API returns a URL to the API endpoint, we need to request with proper headers.
+        // GitHub search API returns a URL to the API endpoint, we need to request with proper
+        // headers.
         let response = self
             .client
             .get(url)

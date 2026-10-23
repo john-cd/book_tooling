@@ -20,7 +20,8 @@ use super::scope::path_identity;
 ///
 /// # Errors
 ///
-/// Returns an error if the roots cannot be analyzed, the report cannot be written, or cleanup fails.
+/// Returns an error if the roots cannot be analyzed, the report cannot be written, or cleanup
+/// fails.
 pub fn audit(
     directories: &[PathBuf],
     report_path: &Path,

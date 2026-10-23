@@ -1,7 +1,7 @@
 //! Parses link destinations between < and >.
 //!
-//! A link destination can consist of a sequence of zero or more characters between an opening < and a closing >
-//! that contains no line endings or unescaped < or > characters.
+//! A link destination can consist of a sequence of zero or more characters between an opening < and
+//! a closing > that contains no line endings or unescaped < or > characters.
 //! See <https://spec.commonmark.org/0.31.2/#link-destination>.
 //!
 //! TODO Reviewed ??-??-2026
@@ -58,8 +58,8 @@ fn parse_content_chars<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     .map_err(|e: ContextError| ErrMode::Backtrack(e))
 }
 
-/// Parse link destination between angle brackets: '<' followed by zero or more `parse_content_char` sequences, followed by '>'.
-/// Returns the content between the angle brackets.
+/// Parse link destination between angle brackets: '<' followed by zero or more `parse_content_char`
+/// sequences, followed by '>'. Returns the content between the angle brackets.
 pub(crate) fn parse_angle_brackets<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     delimited("<", parse_content_chars, ">")
         .context(Label("link destination between angle brackets"))
@@ -75,7 +75,8 @@ mod tests {
 
     // parse_escaped_chars -----------
 
-    /// A backslash and the character after it are consumed together and returned with the backslash.
+    /// A backslash and the character after it are consumed together and returned with the
+    /// backslash.
     #[test]
     fn test_parse_escaped_char() {
         assert_eq!(

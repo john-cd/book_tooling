@@ -32,7 +32,8 @@ pub fn parse_link_reference_definition<'s>(input: &mut &'s str) -> ModalResult<E
     )
     .parse_next(input)?;
 
-    // CommonMark spec dictates that if a title is present, it must be separated from the destination by whitespace.
+    // CommonMark spec dictates that if a title is present, it must be separated from the
+    // destination by whitespace.
     if title.is_some() && ws2.is_empty() {
         return fail.parse_next(input);
     }
@@ -63,7 +64,8 @@ mod tests {
         assert_eq!(input, "");
     }
 
-    /// The URL may be in angle brackets and the destination and title may sit on following indented lines.
+    /// The URL may be in angle brackets and the destination and title may sit on following indented
+    /// lines.
     #[test]
     fn test_parse_reference_definition_with_title_and_newlines() {
         let mut input = "[my-label]: \n  <https://example.com> \n  \"A Title\"";

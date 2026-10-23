@@ -151,7 +151,8 @@ impl AsyncLinkChecker {
         results
     }
 
-    /// Requests `url` with `HEAD` or `GET`, retrying transient failures, and summarizes the outcome.
+    /// Requests `url` with `HEAD` or `GET`, retrying transient failures, and summarizes the
+    /// outcome.
     async fn do_check(&self, url: &Url, use_head: bool) -> UrlCheck {
         const MAX_RETRIES: usize = 3;
         let mut retries = 0;

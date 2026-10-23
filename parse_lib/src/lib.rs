@@ -12,11 +12,11 @@
 //! The public API is organized into a few layers:
 //! - [`ast`]: reusable data structures representing parsed Markdown.
 //! - [`visit`]: traits and visitors for traversing or re-rendering documents.
-//! - Extractors such as [`directive_extractor`], [`html_comment_extractor`],
-//!   [`link_extractor`], and [`plain_text_extractor`].
+//! - Extractors such as [`directive_extractor`], [`html_comment_extractor`], [`link_extractor`],
+//!   and [`plain_text_extractor`].
 //! - Renderers such as [`html_renderer`] and [`markdown_renderer`].
-//! - Parser entry points in [`markdown`], [`parse_directives`], [`parse_hidden`],
-//!   [`parse_urls`], [`parse_wikilinks`], and [`parse_document`].
+//! - Parser entry points in [`markdown`], [`parse_directives`], [`parse_hidden`], [`parse_urls`],
+//!   [`parse_wikilinks`], and [`parse_document`].
 //!
 //! TODO Reviewed ??-??-2026
 

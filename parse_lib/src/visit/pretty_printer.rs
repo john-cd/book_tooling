@@ -140,7 +140,8 @@ impl<'a, W: fmt::Write + 'a> Visitor<'a> for PrettyPrinter<W> {
         self.emit_line(format_args!("```"));
     }
 
-    /// Prints the content inside a `<div class="hidden">` element, one line each for the tags and the content.
+    /// Prints the content inside a `<div class="hidden">` element, one line each for the tags and
+    /// the content.
     fn visit_hidden_html_div(&mut self, div: &HiddenHtmlDivData<'a>) {
         self.emit_line(format_args!("<div class=\"hidden\">"));
         self.emit_line(format_args!("{}", div.content));

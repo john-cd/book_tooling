@@ -1,4 +1,5 @@
-//! Command-line entry point that analyzes crate usage on GitHub and summarizes a crate from crates.io.
+//! Command-line entry point that analyzes crate usage on GitHub and summarizes a crate from
+//! crates.io.
 //!
 //! TODO Reviewed ??-??-2026
 

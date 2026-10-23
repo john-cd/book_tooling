@@ -145,7 +145,8 @@ mod tests {
         parse_hidden_html_div(&mut input).expect_err("input should be rejected");
     }
 
-    /// The block ends at the first `</div>`, so a nested div closes the outer one early and leaves the final `</div>` in the remainder.
+    /// The block ends at the first `</div>`, so a nested div closes the outer one early and leaves
+    /// the final `</div>` in the remainder.
     #[test]
     fn test_nested_div_behavior() {
         // The parser is simple and takes until the first "</div>".

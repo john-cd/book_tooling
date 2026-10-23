@@ -122,7 +122,8 @@ mod tests {
     /// Offsets stay correct when lowercasing changes a character's byte length.
     #[test]
     fn offsets_stay_valid_when_lowercasing_changes_byte_length() {
-        // `İ` (2 bytes) lowercases to `i̇` (3 bytes), which shifts every later offset in a lowercased copy.
+        // `İ` (2 bytes) lowercases to `i̇` (3 bytes), which shifts every later offset in a
+        // lowercased copy.
         let text = "\u{130}\u{130}\u{130} needle here";
         let range = find_case_insensitive(text, "NEEDLE").expect("needle should match");
         assert_eq!(text.get(range), Some("needle"));

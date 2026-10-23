@@ -159,7 +159,8 @@ fn is_paragraph_continuation(line: &str) -> bool {
     ordered_list_marker_len(trimmed).is_none()
 }
 
-/// Returns the length of the leading `1. ` or `1) ` ordered-list marker, including the space, if there is one.
+/// Returns the length of the leading `1. ` or `1) ` ordered-list marker, including the space, if
+/// there is one.
 fn ordered_list_marker_len(trimmed: &str) -> Option<usize> {
     let digits = trimmed.chars().take_while(char::is_ascii_digit).count();
     let rest = trimmed.get(digits..)?;
@@ -287,7 +288,8 @@ fn parse_html_comment_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Elem
     }))
 }
 
-/// Parses a list item and its indented continuation lines; `check_marker` returns the length of the list marker for the kind of list being parsed.
+/// Parses a list item and its indented continuation lines; `check_marker` returns the length of the
+/// list marker for the kind of list being parsed.
 fn parse_list_item_from_lines_generic<'a, 'b, F>(
     input: &mut &'b [&'a str],
     check_marker: F,
@@ -602,7 +604,8 @@ fn parse_block_element<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     .parse_next(input)
 }
 
-/// Parses text delimited by `inner_parser` and builds an element from the inline elements inside it using `construct`.
+/// Parses text delimited by `inner_parser` and builds an element from the inline elements inside it
+/// using `construct`.
 fn parse_inline_formatting<'a, P, F>(
     input: &mut &'a str,
     mut inner_parser: P,
@@ -661,7 +664,8 @@ fn parse_strong<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     )
 }
 
-/// Returns `true` when `text` contains a blank line, which ends a paragraph and so cannot lie inside inline formatting.
+/// Returns `true` when `text` contains a blank line, which ends a paragraph and so cannot lie
+/// inside inline formatting.
 fn contains_blank_line(text: &str) -> bool {
     let mut lines = text.split('\n');
     // The first and last lines are partial: only the lines between them can be blank.
@@ -670,11 +674,13 @@ fn contains_blank_line(text: &str) -> bool {
     lines.any(|line| line.trim().is_empty())
 }
 
-/// Parses text between single `delimiter` characters (`*` or `_`) that satisfies the `CommonMark` flanking rules.
+/// Parses text between single `delimiter` characters (`*` or `_`) that satisfies the `CommonMark`
+/// flanking rules.
 ///
 /// The opening delimiter must be followed, and the closing delimiter preceded, by non-whitespace.
-/// A closing `_` must not be followed by an alphanumeric character (intraword underscores are text).
-/// The opening `_` is checked by [`parse_plain_text`], which keeps intraword underscores in the text.
+/// A closing `_` must not be followed by an alphanumeric character (intraword underscores are
+/// text). The opening `_` is checked by [`parse_plain_text`], which keeps intraword underscores in
+/// the text.
 fn emphasis_inner<'a>(input: &mut &'a str, delimiter: char) -> Result<&'a str, ContextError> {
     let backtrack = ContextError::new;
     let body = input.strip_prefix(delimiter).ok_or_else(backtrack)?;
@@ -768,7 +774,8 @@ fn parse_elements<'a>(input: &mut &'a str) -> ModalResult<Vec<Element<'a>>> {
 ///
 /// # Errors
 ///
-/// Returns an error if the Markdown cannot be parsed; the message names the document and the parse failure.
+/// Returns an error if the Markdown cannot be parsed; the message names the document and the parse
+/// failure.
 pub fn parse_document<'s>(
     name: &'s str,
     path: Option<&'s std::path::Path>,
@@ -789,7 +796,8 @@ mod tests {
     use super::*;
     use crate::ast::DirectiveData;
 
-    /// A heading, a paragraph with an inline link and a reference definition parse into several top-level elements.
+    /// A heading, a paragraph with an inline link and a reference definition parse into several
+    /// top-level elements.
     #[test]
     fn test_parser() {
         let text_input = "# Title
@@ -837,7 +845,8 @@ Hello [link](url)
         texts
     }
 
-    /// An intraword underscore in the preamble must not swallow the table that follows (john-cd/book_tooling#47).
+    /// An intraword underscore in the preamble must not swallow the table that follows
+    /// (john-cd/book_tooling#47).
     #[test]
     fn intraword_underscore_before_a_table_does_not_hide_the_table() {
         let markdown = concat!(
@@ -851,7 +860,8 @@ Hello [link](url)
         assert_eq!(count_tables(&document), 1);
     }
 
-    /// Unbalanced delimiters in link destinations, reference definitions and heading attributes stay literal text (john-cd/book_tooling#48).
+    /// Unbalanced delimiters in link destinations, reference definitions and heading attributes
+    /// stay literal text (john-cd/book_tooling#48).
     #[test]
     fn unbalanced_delimiters_degrade_to_text_instead_of_failing() {
         for markdown in [
@@ -1169,7 +1179,8 @@ Hello [link](url)
         }
     }
 
-    /// A fenced code block indented under a list item stays part of that item and does not end the list.
+    /// A fenced code block indented under a list item stays part of that item and does not end the
+    /// list.
     #[test]
     fn test_list_with_fenced_code_block() {
         let input = "- item 1\n  ```rust\n  let x = 1;\n  ```\n- item 2\n";
@@ -1192,7 +1203,8 @@ Hello [link](url)
         }
     }
 
-    /// Lines indented by four spaces form a code block that ends at the first blank line followed by unindented text.
+    /// Lines indented by four spaces form a code block that ends at the first blank line followed
+    /// by unindented text.
     #[test]
     fn test_parse_indented_code_block() {
         let input = "    let x = 1;\n    let y = 2;\n\nParagraph";
@@ -1289,7 +1301,8 @@ Hello [link](url)
         assert_eq!(input, "\n");
     }
 
-    /// An indented multi-line HTML comment inside a list item is recognised and sits between the item paragraphs.
+    /// An indented multi-line HTML comment inside a list item is recognised and sits between the
+    /// item paragraphs.
     #[test]
     fn test_parse_html_comment_from_lines() {
         let input_doc = "- item 1\n  <!-- multi\n  line\n  comment -->\n  Paragraph";

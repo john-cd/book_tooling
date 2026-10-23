@@ -65,7 +65,8 @@ enum Commands {
         #[command(flatten)]
         scope: ScopeArgs,
     },
-    /// Audit reference-definition provenance and uses, then optionally delete proven-unused entries.
+    /// Audit reference-definition provenance and uses, then optionally delete proven-unused
+    /// entries.
     RefdefsAudit {
         /// Directories to analyze.
         #[arg(required = true)]
@@ -76,7 +77,8 @@ enum Commands {
         /// Remove only definitions proven unused in every include scope.
         #[arg(long)]
         delete: bool,
-        /// Also report and preserve uses found in these Markdown roots, without resolving includes.
+        /// Also report and preserve uses found in these Markdown roots, without resolving
+        /// includes.
         #[arg(long = "also-scan-uses-in", value_name = "DIR")]
         additional_use_directories: Vec<PathBuf>,
         /// Protect generated or otherwise maintained definition files from cleanup.

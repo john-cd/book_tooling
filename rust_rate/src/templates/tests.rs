@@ -42,7 +42,8 @@ mod shared_template_fixtures {
     use crate::templates::render_badge;
     use crate::templates::render_link;
 
-    /// Verifies `rust_rate` renders the same destinations as the shared `book_tool` fixture contract.
+    /// Verifies `rust_rate` renders the same destinations as the shared `book_tool` fixture
+    /// contract.
     #[test]
     fn template_outputs_match_shared_destination_fixtures() -> Result<(), Box<dyn std::error::Error>>
     {

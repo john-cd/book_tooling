@@ -1,14 +1,11 @@
 //! Parse link destinations.
 //!
 //! A link destination consists of either
-//! - a sequence of zero or more characters between an opening < and a closing >
-//!   that contains no line endings or unescaped < or > characters,
-//!   (implemented in `angle_brackets.rs`), or
-//! - a nonempty sequence of characters that does not start with <,
-//!   does not include ASCII control characters or space character, and
-//!   includes parentheses only if
-//!   (a) they are backslash-escaped or
-//!   (b) they are part of a balanced pair of unescaped parentheses.
+//! - a sequence of zero or more characters between an opening < and a closing > that contains no
+//!   line endings or unescaped < or > characters, (implemented in `angle_brackets.rs`), or
+//! - a nonempty sequence of characters that does not start with <, does not include ASCII control
+//!   characters or space character, and includes parentheses only if (a) they are backslash-escaped
+//!   or (b) they are part of a balanced pair of unescaped parentheses.
 //!
 //! (Implementations may impose limits on parentheses nesting to avoid performance issues,
 //! but at least three levels of nesting should be supported.)
