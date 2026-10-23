@@ -1,33 +1,32 @@
-# EditorConfig is awesome: https://EditorConfig.org
-
-# top-most EditorConfig file
+# https://editorconfig.org/
 root = true
 
 [*]
-end_of_line = lf
 charset = utf-8
-trim_trailing_whitespace = true
+end_of_line = lf
 insert_final_newline = true
+trim_trailing_whitespace = true
 indent_style = space
 indent_size = 4
-max_line_length = 120
+
+[*.{json,jsonc,toml,yaml,yml}]
+indent_size = 2
 
 [*.md]
-# double whitespace at end of line
-# denotes a line break in Markdown
 indent_size = 2
+max_line_length = 100
+# Markdown hard line breaks use trailing spaces intentionally.
 trim_trailing_whitespace = false
 
-[*.yml]
-indent_size = 2
-
-[*.yaml]
-indent_size = 2
-
 [*.rs]
+indent_size = 4
 max_line_length = 100
+
+[*.{sh,bash}]
+indent_size = 2
+
+[*.{bat,cmd}]
+end_of_line = crlf
 
 [Makefile]
 indent_style = tab
-
-# See also: Google's style guide: https://github.com/google/styleguide/blob/gh-pages/docguide/style.md

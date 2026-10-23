@@ -8,11 +8,17 @@ repo = "builtin"
 hooks = [
   { id = "check-added-large-files" },
   { id = "check-case-conflict" },
+  { id = "check-illegal-windows-names" },
   { id = "check-merge-conflict" },
   { id = "check-toml" },
+  { id = "check-vcs-permalinks" },
   { id = "check-yaml" },
-  { id = "end-of-file-fixer" },
-  { id = "trailing-whitespace", args = ["--markdown-linebreak-ext=md"] },
+  { id = "end-of-file-fixer", exclude = "^test_fixtures/markdown/crlf\\.md$" },
+  { id = "fix-byte-order-marker" },
+  { id = "mixed-line-ending", args = ["--fix=lf"], exclude = "^test_fixtures/markdown/crlf\\.md$" },
+  { id = "trailing-whitespace", args = [
+    "--markdown-linebreak-ext=md",
+  ], exclude = "^test_fixtures/markdown/crlf\\.md$" },
 ]
 
 [[repos]]
@@ -32,5 +38,13 @@ hooks = [
     language = "system",
     pass_filenames = false,
     types = ["rust"],
+  },
+  {
+    id = "cargo-deny",
+    name = "cargo deny --locked check",
+    entry = "cargo deny --locked check",
+    language = "system",
+    pass_filenames = false,
+    always_run = true,
   },
 ]

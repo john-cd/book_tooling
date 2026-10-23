@@ -621,8 +621,10 @@ unsafe_derive_deserialize = "warn"
 
 # Checks for functions that are declared async but have no .awaits inside of them.
 unused_async = "warn"
+
 # Checks for trait method implementations that are declared async but have no .awaits inside of
 # them.
+unused_async_trait_impl = "warn"
 
 # Checks methods that contain a self argument but don’t use it
 unused_self = "warn"
@@ -638,7 +640,9 @@ verbose_bit_mask = "warn"
 
 # Checks for wildcard imports use _::*.
 wildcard_imports = "warn"
+
 # Checks for calls to with_capacity(0) on standard library collections and types.
+with_capacity_zero = "warn"
 
 # Checks for maps with zero-sized value types anywhere in the code.
 zero_sized_map_values = "warn"

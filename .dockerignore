@@ -1,10 +1,31 @@
-# Include any files or directories that you don't want to be copied to the (CI)
-# container here (e.g., local build artifacts, temporary files, etc.).
-#
-# For more help, visit the .dockerignore file reference guide at
-# https://docs.docker.com/go/build-context-dockerignore/
+# Git metadata and local worktree state
 .git/
-.github/
+.worktrees/
+WORKTREES.md
+
+# Rust outputs and tool caches
+**/target/
+**/build/
+**/debug/
+.dprint-cache/
+.sccache/
+*.profraw
+*.profdata
+lcov.info
+lcov-*.info
+
+# Local editor state
 .vscode/
-target/
+.idea/
+
+# CI metadata is not needed to build the workspace
+.github/
+
+# Local credentials, environment files, and logs
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.key
+*.pem
 *.log

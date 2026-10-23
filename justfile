@@ -5,7 +5,7 @@ set shell := ["bash", "-uc"]
 # Set shell for Windows OSs:
 # PowerShell Core has some of the Unix shell skills we need, such as || and &&
 
-set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
+set windows-shell := ["pwsh.exe", "-NoLogo", "-NoProfile", "-Command"]
 
 root := source_directory()
 worktree_name := env("BOOK_TOOLING_WORKTREE_NAME", "main")
@@ -22,6 +22,7 @@ export CARGO_BUILD_BUILD_DIR := build_dir
 export RUSTC_WRAPPER := env("RUSTC_WRAPPER", "sccache")
 export CARGO_INCREMENTAL := env("CARGO_INCREMENTAL", "0")
 export SCCACHE_DIR := env("SCCACHE_DIR", join(cache_home, "sccache"))
+export DPRINT_CACHE_DIR := env("DPRINT_CACHE_DIR", join(cache_home, "dprint"))
 
 [no-exit-message]
 _default:
@@ -63,6 +64,13 @@ alias ca := clippyall
 @clippyall:
     echo "Scan all code for common mistakes (all packages, all features) in $(pwd)"
     cargo clippy --workspace --all-targets --locked --all-features -- -D warnings
+
+alias da := deny
+
+# Check dependency advisories, licenses, duplicate versions, and registry sources.
+@deny:
+    echo "Check dependency policy in $(pwd)"
+    cargo deny --locked check
 
 alias nta := nextestall
 

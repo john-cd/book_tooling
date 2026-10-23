@@ -43,7 +43,7 @@ jobs:
       - name: Set up Rust (1.99.1 + pinned nightly rustfmt)
         uses: ./.github/actions/setup-rust
 
-      - name: Install workspace tools (cargo-nextest, prek, dprint)
+      - name: Install workspace tools (cargo-nextest, prek, dprint, cargo-deny)
         # taiki-e/install-action v2.87.30
         uses: taiki-e/install-action@a4d3f3f761dcd95cce1b72cb61cb6d1963438177
         with:
@@ -51,6 +51,7 @@ jobs:
             cargo-nextest@0.9.145
             prek@0.5.6
             dprint@0.64.1
+            cargo-deny@0.20.2
           fallback: none
 
       - name: Run repository hooks

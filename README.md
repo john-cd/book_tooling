@@ -193,15 +193,17 @@ The binaries will be available in `target/release/book_tool` and `target/release
 ## Documentation
 
 - [Workspace documentation](./documentation/README.md)
+- [Contributing](./CONTRIBUTING.md)
 - [TODO](./TODO.md)
 
 ## Development checks
 
 - `just fa` formats Rust code with the pinned nightly toolchain.
 - `just ca` runs Clippy across all targets and features.
+- `just deny` checks dependency advisories, licenses, duplicate versions, and registry sources.
 - `just nta` runs the workspace tests with cargo-nextest and includes doctests.
 - `dprint fmt` formats Markdown, JSON, YAML, and TOML files.
-- `prek run --all-files` runs repository hooks, including the format checks.
+- `prek run --all-files` runs repository hooks, including formatting and dependency policy checks.
 
 ## License
 
