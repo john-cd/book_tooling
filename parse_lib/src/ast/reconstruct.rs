@@ -19,20 +19,20 @@ mod tests {
     use super::*;
     use crate::ast::*;
 
-    /// Covers reconstruct empty.
+    /// An empty element list reconstructs to an empty string.
     #[test]
     fn test_reconstruct_empty() {
         assert_eq!(reconstruct_markdown(&[]), "");
     }
 
-    /// Covers reconstruct text only.
+    /// A single text element reconstructs to its own text.
     #[test]
     fn test_reconstruct_text_only() {
         let elements = vec![Element::Text(TextData { content: "hello" })];
         assert_eq!(reconstruct_markdown(&elements), "hello");
     }
 
-    /// Covers reconstruct multiple elements.
+    /// A heading, text and an autolink reconstruct in order, with a newline after the heading.
     #[test]
     fn test_reconstruct_multiple_elements() {
         let elements = vec![
@@ -53,7 +53,7 @@ mod tests {
         );
     }
 
-    /// Covers reconstruct task items.
+    /// Unchecked and checked task items reconstruct as `- [ ]` and `- [x]` lines.
     #[test]
     fn test_reconstruct_task_items() {
         let elements = vec![
@@ -73,7 +73,7 @@ mod tests {
         );
     }
 
-    /// Covers reconstruct various elements.
+    /// A heading with an explicit id, an inline link with a title and a reference-style link reconstruct to the original syntax.
     #[test]
     fn test_reconstruct_various_elements() {
         let elements = vec![

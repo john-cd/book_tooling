@@ -30,18 +30,22 @@ impl<'a> LinkExtractor<'a> {
 }
 
 impl<'a> Visitor<'a> for LinkExtractor<'a> {
+    /// Collects the destination of an inline link.
     fn visit_inline_link(&mut self, data: &InlineLinkData<'a>) {
         self.add_link(data.url);
     }
 
+    /// Collects the URL of an autolink.
     fn visit_autolink(&mut self, data: &AutolinkData<'a>) {
         self.add_link(data.url);
     }
 
+    /// Collects the source of an inline image.
     fn visit_inline_image(&mut self, data: &InlineImageData<'a>) {
         self.add_link(data.url);
     }
 
+    /// Collects the destination of a reference definition.
     fn visit_reference_definition(&mut self, data: &ReferenceDefinitionData<'a>) {
         self.add_link(data.url);
     }

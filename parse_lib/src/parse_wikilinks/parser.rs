@@ -138,51 +138,51 @@ mod tests {
         }
     }
 
-    /// Covers parse wikilink inner simple.
+    /// The inner parser reads a target up to the closing `]]` and reports no display text.
     #[test]
     fn test_parse_wikilink_inner_simple() {
         assert_parse_wikilink_inner_ok("Target]]", "Target", None);
     }
 
-    /// Covers parse wikilink inner simple with spaces.
+    /// Whitespace around the target is trimmed.
     #[test]
     fn test_parse_wikilink_inner_simple_with_spaces() {
         assert_parse_wikilink_inner_ok("  Target ]]", "Target", None);
     }
 
-    /// Covers parse wikilink inner piped.
+    /// `target|display` splits into a target and a display text.
     #[test]
     fn test_parse_wikilink_inner_piped() {
         assert_parse_wikilink_inner_ok("Target|Display]]", "Target", Some("Display"));
     }
 
-    /// Covers parse wikilink inner piped with spaces.
+    /// Whitespace around both the target and the display text is trimmed.
     #[test]
     fn test_parse_wikilink_inner_piped_with_spaces() {
         assert_parse_wikilink_inner_ok("  Target |  Display ]]", "Target", Some("Display"));
     }
 
-    /// Covers parse wikilink inner piped empty display.
+    /// A pipe followed by nothing, or only spaces, counts as no display text.
     #[test]
     fn test_parse_wikilink_inner_piped_empty_display() {
         assert_parse_wikilink_inner_ok("Target| ]]", "Target", None);
         assert_parse_wikilink_inner_ok("Target|]]", "Target", None);
     }
 
-    /// Covers parse wikilink inner empty target piped.
+    /// A pipe with an empty or blank target is rejected.
     #[test]
     fn test_parse_wikilink_inner_empty_target_piped() {
         assert_parse_wikilink_inner_err("|Display]]");
         assert_parse_wikilink_inner_err(" | Display]]");
     }
 
-    /// Covers parse wikilink inner empty target simple.
+    /// Closing brackets with no target at all are rejected.
     #[test]
     fn test_parse_wikilink_inner_empty_target_simple() {
         assert_parse_wikilink_inner_err("]]");
     }
 
-    /// Covers parse wikilink inner no closing brackets.
+    /// Input that ends before `]]`, with or without a display text, is rejected.
     #[test]
     fn test_parse_wikilink_inner_no_closing_brackets() {
         // The parser expects ']]' so it should fail if not present.
@@ -190,7 +190,7 @@ mod tests {
         assert_parse_wikilink_inner_err("Target|Display");
     }
 
-    /// Covers parse wikilink inner just target and pipe.
+    /// A target and a pipe without closing brackets is rejected.
     #[test]
     fn test_parse_wikilink_inner_just_target_and_pipe() {
         // Missing the closing brackets should result in an error.
@@ -199,7 +199,7 @@ mod tests {
 
     // Test `parse_wikilink` -----------------
     // [[file]]
-    /// Covers simple wikilink.
+    /// `[[file]]` yields the target and leaves the following text unconsumed.
     #[test]
     fn test_simple_wikilink() {
         assert_eq!(
@@ -216,7 +216,7 @@ mod tests {
     }
 
     // [[ file ]]
-    /// Covers simple wikilink with spaces.
+    /// Spaces inside the brackets are trimmed from the target.
     #[test]
     fn test_simple_wikilink_with_spaces() {
         assert_eq!(
@@ -233,7 +233,7 @@ mod tests {
     }
 
     // [[file|title]]
-    /// Covers piped wikilink with display text.
+    /// `[[file|display text]]` yields both the target and the display text.
     #[test]
     fn test_piped_wikilink_with_display_text() {
         assert_eq!(
@@ -254,7 +254,7 @@ mod tests {
     // [[file |title4]]
     // [[file| title5]]
     // [[file|title6 ]]
-    /// Covers piped wikilink with spaces.
+    /// Extra whitespace around the target and display text is trimmed.
     #[test]
     fn test_piped_wikilink_with_spaces() {
         assert_eq!(
@@ -274,7 +274,7 @@ mod tests {
     // [[ file |  ]]
     // Wikipedia allows empty `display`:
     // <https://en.wikipedia.org/wiki/Help:Pipe_trick>
-    /// Covers piped wikilink without display.
+    /// A pipe followed only by whitespace gives a link with no display text.
     #[test]
     fn test_piped_wikilink_without_display() {
         assert_eq!(
@@ -300,7 +300,7 @@ mod tests {
     }
 
     // [[]]
-    /// Covers fails on empty brackets.
+    /// `[[]]` is not a wikilink.
     #[test]
     fn test_fails_on_empty_brackets() {
         let input = "[[]]";
@@ -333,7 +333,7 @@ mod tests {
 
     // Test "immediately after" text:
     // [[file]]s
-    /// Covers simple wikilink with text after.
+    /// Letters directly after `]]` are captured as the link's trailing text (`[[file]]s`).
     #[test]
     fn test_simple_wikilink_with_text_after() {
         assert_eq!(
@@ -350,7 +350,7 @@ mod tests {
     }
 
     // [[file | display text]]s
-    /// Covers piped wikilink with text after.
+    /// Trailing letters are captured for a piped link as well (`[[file | display text]]s`).
     #[test]
     fn test_piped_wikilink_with_text_after() {
         assert_eq!(

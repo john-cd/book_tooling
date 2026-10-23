@@ -8,7 +8,7 @@ mod template_tests {
     use crate::templates::render_badge;
     use crate::templates::render_link;
 
-    /// Covers render badge crate.
+    /// A crate badge links the crate page and carries the index-entry directive.
     #[test]
     fn test_render_badge_crate() {
         let name = "clap";
@@ -16,7 +16,7 @@ mod template_tests {
         assert_eq!(render_badge(DestinationKind::Crate, name), expected);
     }
 
-    /// Covers render badge docs.
+    /// A docs badge uses the docs reference labels.
     #[test]
     fn test_render_badge_docs() {
         let name = "clap";
@@ -24,7 +24,7 @@ mod template_tests {
         assert_eq!(render_badge(DestinationKind::Docs, name), expected);
     }
 
-    /// Covers render link category.
+    /// A category link renders the label, the arrow glyph and the index-entry directive.
     #[test]
     fn test_render_link_category() {
         let name = "accessibility";

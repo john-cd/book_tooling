@@ -27,11 +27,13 @@ impl Default for Debugger {
 }
 
 impl<'a> Visitor<'a> for Debugger {
+    /// Prints the autolink URL.
     fn visit_autolink(&mut self, autolink: &AutolinkData<'a>) {
         let url = &autolink.url;
         println!("Autolink: <{url}>");
     }
 
+    /// Prints the link text and URL, and the title when present.
     fn visit_inline_link(&mut self, link: &InlineLinkData<'a>) {
         if let Some(title) = link.title {
             println!("Inline link: [{}]({} \"{title}\")", link.text, link.url);
@@ -40,10 +42,12 @@ impl<'a> Visitor<'a> for Debugger {
         }
     }
 
+    /// Prints the link text and its reference label.
     fn visit_reference_style_link(&mut self, link: &ReferenceStyleLinkData<'a>) {
         println!("Reference style link: [{}][{}]", link.text, link.label);
     }
 
+    /// Prints the image description and URL, and the title when present.
     fn visit_inline_image(&mut self, img: &InlineImageData<'a>) {
         if let Some(title) = img.title {
             println!(
@@ -55,6 +59,7 @@ impl<'a> Visitor<'a> for Debugger {
         }
     }
 
+    /// Prints the image description and its reference label.
     fn visit_reference_style_image(&mut self, img: &ReferenceStyleImageData<'a>) {
         println!(
             "Reference style image: ![{}][{}]",
@@ -62,6 +67,7 @@ impl<'a> Visitor<'a> for Debugger {
         );
     }
 
+    /// Prints the definition label and URL, and the title when present.
     fn visit_reference_definition(&mut self, refdef: &ReferenceDefinitionData<'a>) {
         if let Some(title) = refdef.title {
             println!(
@@ -73,6 +79,7 @@ impl<'a> Visitor<'a> for Debugger {
         }
     }
 
+    /// Prints the wikilink display text and any text attached after it.
     fn visit_wikilink(&mut self, link: &WikiLinkData<'a>) {
         let display_text = link.display.unwrap_or(link.target);
         let after_text = link.immediately_after.unwrap_or("");
@@ -82,10 +89,12 @@ impl<'a> Visitor<'a> for Debugger {
         );
     }
 
+    /// Prints the code span content.
     fn visit_code_span(&mut self, code_span: &CodeSpanData<'a>) {
         println!("Code span: `{}`", code_span.content);
     }
 
+    /// Prints the number of lines in the code block.
     fn visit_fenced_code_block(&mut self, fenced_code_block: &FencedCodeBlockData<'a>) {
         println!(
             "Fenced code block with {} lines.",
@@ -93,6 +102,7 @@ impl<'a> Visitor<'a> for Debugger {
         );
     }
 
+    /// Prints the content of the hidden HTML div.
     fn visit_hidden_html_div(&mut self, div: &HiddenHtmlDivData<'a>) {
         println!(
             "Hidden HTML div: <div class=\"hidden\">{}</div>",
@@ -100,6 +110,7 @@ impl<'a> Visitor<'a> for Debugger {
         );
     }
 
+    /// Prints the heading level, text and explicit id when present.
     fn visit_heading(&mut self, heading: &HeadingData<'a>) {
         let id_text = heading.id.map_or(String::new(), |id| format!(" {{#{id}}}"));
         if let Some(content) = heading.content {
@@ -109,10 +120,12 @@ impl<'a> Visitor<'a> for Debugger {
         }
     }
 
+    /// Prints the text content.
     fn visit_text(&mut self, text: &TextData<'a>) {
         println!("Text: {}", text.content);
     }
 
+    /// Prints the directive in `Debug` form.
     fn visit_custom_directive(&mut self, directive: &DirectiveData<'a>) {
         println!("Custom directive: {directive:?}");
     }

@@ -99,7 +99,7 @@ pub(crate) fn parse_non_empty_sequence<'s>(input: &mut &'s str) -> ModalResult<&
 mod tests_parse_non_empty_sequence {
     use super::*;
 
-    /// Covers valid sequences.
+    /// Plain text, escaped and balanced parentheses are consumed; the run stops at an unmatched `)`, a space or a control character.
     #[test]
     fn test_valid_sequences() {
         assert_eq!(
@@ -151,7 +151,7 @@ mod tests_parse_non_empty_sequence {
         );
     }
 
-    /// Covers invalid sequences.
+    /// Empty input, a leading `<`, space or `)`, and unbalanced parentheses are rejected.
     #[test]
     fn test_invalid_sequences() {
         // Empty string.
@@ -173,7 +173,7 @@ mod tests_parse_non_empty_sequence {
 mod text_with_escapes_tests {
     use super::*;
 
-    /// Covers text with escapes basic.
+    /// Plain text and backslash-escaped parentheses or backslashes are consumed, wherever they appear in the run.
     #[test]
     fn test_text_with_escapes_basic() {
         // Simple allowed chars.
@@ -211,7 +211,7 @@ mod text_with_escapes_tests {
         );
     }
 
-    /// Covers text with escapes partial.
+    /// The run stops at the first unescaped parenthesis, also when escapes precede it.
     #[test]
     fn test_text_with_escapes_partial() {
         // Stops at unescaped parenthesis.
@@ -231,7 +231,7 @@ mod text_with_escapes_tests {
         );
     }
 
-    /// Covers text with escapes invalid.
+    /// Input starting with a parenthesis, `<`, a space or a control character, or ending in a lone backslash, is rejected.
     #[test]
     fn test_text_with_escapes_invalid() {
         // Starts with forbidden char.
@@ -240,9 +240,7 @@ mod text_with_escapes_tests {
         parse_text_with_escapes(&mut "<").expect_err("input should be rejected");
         parse_text_with_escapes(&mut " ").expect_err("input should be rejected");
         parse_text_with_escapes(&mut "\0").expect_err("input should be rejected");
-        // Lone backslash at end is matched by ('\\', any) if not at end.
-        // If at end, it will fail.
-        // Actually, ('\\', any) will fail if `any` fails (EOF).
-        // Let's verify that.
+        // A lone backslash at the end of the input has nothing to escape.
+        parse_text_with_escapes(&mut "\\").expect_err("input should be rejected");
     }
 }

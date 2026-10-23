@@ -69,7 +69,7 @@ mod tests {
 
     // --- Tests for parse_code_span ---
 
-    /// Covers parse code span basic.
+    /// A backtick-delimited span yields its content and consumes all input.
     #[test]
     fn test_parse_code_span_basic() {
         assert_eq!(
@@ -83,7 +83,7 @@ mod tests {
         );
     }
 
-    /// Covers parse code span empty content.
+    /// Two adjacent backticks form an empty code span.
     #[test]
     fn test_parse_code_span_empty_content() {
         assert_eq!(
@@ -92,7 +92,7 @@ mod tests {
         );
     }
 
-    /// Covers parse code span with trailing text.
+    /// Text after the closing backtick is left unconsumed for the next parser.
     #[test]
     fn test_parse_code_span_with_trailing_text() {
         assert_eq!(
@@ -106,25 +106,25 @@ mod tests {
         );
     }
 
-    /// Covers parse code span no closing backtick.
+    /// A span without a closing backtick is rejected rather than swallowing the rest of the input.
     #[test]
     fn test_parse_code_span_no_closing_backtick() {
         parse_code_span(&mut "`unclosed span").expect_err("input should be rejected");
     }
 
-    /// Covers parse code span no opening backtick.
+    /// Input that does not start with a backtick is not a code span.
     #[test]
     fn test_parse_code_span_no_opening_backtick() {
         parse_code_span(&mut "no opening backtick`").expect_err("input should be rejected");
     }
 
-    /// Covers parse code span only backticks.
+    /// A lone backtick is rejected: there is no span to close.
     #[test]
     fn test_parse_code_span_only_backticks() {
         parse_code_span(&mut "`").expect_err("input should be rejected");
     }
 
-    /// Covers parse code span not a code span.
+    /// Plain text without backticks is rejected.
     #[test]
     fn test_parse_code_span_not_a_code_span() {
         parse_code_span(&mut "just plain text").expect_err("input should be rejected");
@@ -132,7 +132,7 @@ mod tests {
 
     // --- Tests for parse_fenced_code_block ---
 
-    /// Covers parse fenced code block basic.
+    /// A fenced block with a language tag yields the language and every body line, indentation preserved.
     #[test]
     fn test_parse_fenced_code_block_basic() {
         let input = "```rust\nfn main() {\n    println!(\"Hello\");\n}\n```";
@@ -146,7 +146,7 @@ mod tests {
         );
     }
 
-    /// Covers parse fenced code block empty content.
+    /// Back-to-back fences give a block with no language and no lines.
     #[test]
     fn test_parse_fenced_code_block_empty_content() {
         assert_eq!(
@@ -161,7 +161,7 @@ mod tests {
         );
     }
 
-    /// Covers parse fenced code block with trailing text.
+    /// A language tag containing a comma (as in `rust,editable`) is kept whole, and text after the closing fence is left unconsumed.
     #[test]
     fn test_parse_fenced_code_block_with_trailing_text() {
         let input = "```rust,editable\nprintln!(\"hi\");\n``` more text";
@@ -175,19 +175,19 @@ mod tests {
         );
     }
 
-    /// Covers parse fenced code block no closing delimiter.
+    /// An unterminated fence is rejected instead of consuming the rest of the document.
     #[test]
     fn test_parse_fenced_code_block_no_closing_delimiter() {
         parse_fenced_code_block(&mut "```unclosed block").expect_err("input should be rejected");
     }
 
-    /// Covers parse fenced code block no opening delimiter.
+    /// Input that does not start with a fence is not a fenced block.
     #[test]
     fn test_parse_fenced_code_block_no_opening_delimiter() {
         parse_fenced_code_block(&mut "unopened block```").expect_err("input should be rejected");
     }
 
-    /// Covers parse fenced code block inner triple backticks.
+    /// The block ends at the first closing fence, so a later triple backtick stays in the unconsumed remainder.
     #[test]
     fn test_parse_fenced_code_block_inner_triple_backticks() {
         // `take_until` stops at the *first* closing delimiter.
@@ -203,19 +203,19 @@ mod tests {
         );
     }
 
-    /// Covers parse fenced code block only delimiters.
+    /// A bare opening fence with nothing after it is rejected.
     #[test]
     fn test_parse_fenced_code_block_only_delimiters() {
         parse_fenced_code_block(&mut "```").expect_err("input should be rejected");
     }
 
-    /// Covers parse fenced code block not a code block.
+    /// Plain text is not a fenced block.
     #[test]
     fn test_parse_fenced_code_block_not_a_code_block() {
         parse_fenced_code_block(&mut "plain text").expect_err("input should be rejected");
     }
 
-    /// Covers parse fenced code block contains single backticks.
+    /// Single backticks inside the body are ordinary content and do not close the fence.
     #[test]
     fn test_parse_fenced_code_block_contains_single_backticks() {
         let input = "```\ncode with `single` backticks\n```";

@@ -74,7 +74,7 @@ mod tests {
 
     // parse_escaped_chars -----------
 
-    /// Covers parse escaped char.
+    /// A backslash and the character after it are consumed together and returned with the backslash.
     #[test]
     fn test_parse_escaped_char() {
         assert_eq!(
@@ -85,25 +85,25 @@ mod tests {
 
     // parse_content_chars ------------
 
-    /// Covers parse content chars basic.
+    /// Ordinary characters are consumed up to the end of the input.
     #[test]
     fn test_parse_content_chars_basic() {
         assert_eq!(parse_content_chars.parse_peek("abc123"), Ok(("", "abc123")));
     }
 
-    /// Covers parse content chars with escaped lt.
+    /// An escaped `<` is content, not a stop character.
     #[test]
     fn test_parse_content_chars_with_escaped_lt() {
         assert_eq!(parse_content_chars.parse_peek(r"\<foo"), Ok(("", r"\<foo")));
     }
 
-    /// Covers parse content chars with escaped gt.
+    /// An escaped `>` is content, not a stop character.
     #[test]
     fn test_parse_content_chars_with_escaped_gt() {
         assert_eq!(parse_content_chars.parse_peek(r"\>bar"), Ok(("", r"\>bar")));
     }
 
-    /// Covers parse content chars mixed escaped and normal.
+    /// Plain text, escaped angle brackets and an escaped backslash can appear together in one run.
     #[test]
     fn test_parse_content_chars_mixed_escaped_and_normal() {
         assert_eq!(
@@ -112,13 +112,13 @@ mod tests {
         );
     }
 
-    /// Covers parse content chars empty.
+    /// Empty input yields empty content without failing.
     #[test]
     fn test_parse_content_chars_empty() {
         assert_eq!(parse_content_chars.parse_peek(""), Ok(("", "")));
     }
 
-    /// Covers parse content chars stops at special char.
+    /// An unescaped `<` ends the content run and stays in the remainder.
     #[test]
     fn test_parse_content_chars_stops_at_special_char() {
         // Should stop before the '<'.
@@ -128,7 +128,7 @@ mod tests {
         );
     }
 
-    /// Covers parse content chars stops at newline.
+    /// A newline ends the content run, because link destinations cannot span lines.
     #[test]
     fn test_parse_content_chars_stops_at_newline() {
         // Should stop before the newline.
@@ -138,7 +138,7 @@ mod tests {
         );
     }
 
-    /// Covers parse content chars only special char.
+    /// Input starting with an unescaped `<` yields empty content and consumes nothing.
     #[test]
     fn test_parse_content_chars_only_special_char() {
         // Should fail to parse any content.
@@ -147,7 +147,7 @@ mod tests {
 
     // parse_angle_brackets -----------
 
-    /// Covers basic parse.
+    /// `<hello world>` yields its contents, spaces included, without the brackets.
     #[test]
     fn test_basic_parse() {
         assert_eq!(
@@ -156,7 +156,7 @@ mod tests {
         );
     }
 
-    /// Covers with escaped chars.
+    /// An escaped `<` inside the brackets stays in the destination text.
     #[test]
     fn test_with_escaped_chars() {
         assert_eq!(
@@ -165,20 +165,20 @@ mod tests {
         );
     }
 
-    /// Covers empty content.
+    /// `<>` is a valid, empty destination.
     #[test]
     fn test_empty_content() {
         assert_eq!(parse_angle_brackets.parse_peek("<>"), Ok(("", "")));
     }
 
-    /// Covers contains newline error.
+    /// A newline between the brackets makes the destination invalid.
     #[test]
     fn test_contains_newline_error() {
         // This should fail because of the newline.
         parse_angle_brackets(&mut "<no\nnewlines>").expect_err("input should be rejected");
     }
 
-    /// Covers starts with invalid char error.
+    /// Input that does not start with `<` is rejected.
     #[test]
     fn test_starts_with_invalid_char_error() {
         // This should fail because it doesn't start with '<'.

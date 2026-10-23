@@ -25,6 +25,7 @@ impl DirectiveExtractor {
 }
 
 impl<'a> Visitor<'a> for DirectiveExtractor {
+    /// Counts every custom directive found outside code.
     fn visit_custom_directive(&mut self, _data: &'a DirectiveData<'a>) {
         self.directives_found += 1;
 
@@ -38,7 +39,7 @@ mod tests {
     use super::*;
     use crate::parse_document;
 
-    /// Covers directive extractor skips code blocks.
+    /// Directives inside code spans and fenced code blocks are not counted; only those in normal text are.
     #[test]
     fn test_directive_extractor_skips_code_blocks() {
         let input = "\

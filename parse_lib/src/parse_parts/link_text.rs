@@ -50,7 +50,7 @@ mod tests {
 
     use super::*;
 
-    /// Covers parse link text simple.
+    /// Bracketed text yields its contents and consumes the closing bracket.
     #[test]
     fn test_parse_link_text_simple() {
         let mut input = "[my text]";
@@ -58,7 +58,7 @@ mod tests {
         assert_eq!(input, "");
     }
 
-    /// Covers parse link text with escaped brackets.
+    /// Escaped brackets inside the text do not end it and are kept with their backslashes.
     #[test]
     fn test_parse_link_text_with_escaped_brackets() {
         let mut input = r"[my \[esc\] text]";
@@ -68,21 +68,21 @@ mod tests {
         );
     }
 
-    /// Covers parse link text with arbitrary escapes.
+    /// A backslash before an ordinary character is kept literally.
     #[test]
     fn test_parse_link_text_with_arbitrary_escapes() {
         let mut input = r"[my \ text \*]";
         assert_eq!(parse_link_text.parse_next(&mut input), Ok(r"my \ text \*"));
     }
 
-    /// Covers parse link text empty.
+    /// `[]` is valid link text and yields an empty string.
     #[test]
     fn test_parse_link_text_empty() {
         let mut input = "[]";
         assert_eq!(parse_link_text.parse_next(&mut input), Ok(""));
     }
 
-    /// Covers parse link text fails on unbalanced bracket.
+    /// An unclosed nested `[` leaves the brackets unbalanced and the text is rejected.
     #[test]
     fn test_parse_link_text_fails_on_unbalanced_bracket() {
         let mut input = "[my [unbalanced text]";
@@ -91,7 +91,7 @@ mod tests {
             .expect_err("input should be rejected");
     }
 
-    /// Covers parse link text with balanced brackets.
+    /// Nested, balanced brackets are part of the text.
     #[test]
     fn test_parse_link_text_with_balanced_brackets() {
         let mut input = "[my [nested [and] balanced] text]";

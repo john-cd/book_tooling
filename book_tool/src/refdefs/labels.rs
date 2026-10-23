@@ -24,14 +24,17 @@ struct LabelSets {
 }
 
 impl<'a> Visitor<'a> for LabelSets {
+    /// Marks the normalized label of a reference-style link as used.
     fn visit_reference_style_link(&mut self, link: &'a ReferenceStyleLinkData<'a>) {
         self.used.insert(normalize_reference_label(link.label));
     }
 
+    /// Marks the normalized label of a reference-style image as used.
     fn visit_reference_style_image(&mut self, image: &'a ReferenceStyleImageData<'a>) {
         self.used.insert(normalize_reference_label(image.label));
     }
 
+    /// Records a definition label together with its normalized form.
     fn visit_reference_definition(&mut self, definition: &'a ReferenceDefinitionData<'a>) {
         self.definitions.push((
             definition.label.to_owned(),

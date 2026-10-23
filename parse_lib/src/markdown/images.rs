@@ -68,7 +68,7 @@ pub fn parse_reference_style_image<'s>(input: &mut &'s str) -> ModalResult<Eleme
 mod tests {
     use super::*;
 
-    /// Covers parse inline image.
+    /// `![alt](url "title")` yields the description, URL and title.
     #[test]
     fn test_parse_inline_image() {
         let input = r#"![img](http://example.com/image.png "An example image")"#;
@@ -109,7 +109,7 @@ mod tests {
         );
     }
 
-    /// Covers parse reference style image.
+    /// `![alt][label]` yields the description and the reference label.
     #[test]
     fn test_parse_reference_style_image() {
         let input = "![img][label]";
@@ -148,7 +148,7 @@ mod tests {
         );
     }
 
-    /// Covers parse inline image with invalid input.
+    /// An unterminated title or a missing closing parenthesis is rejected.
     #[test]
     fn test_parse_inline_image_with_invalid_input() {
         let invalid_input = r#"![img](http://example.com/image.png "An example image"#;

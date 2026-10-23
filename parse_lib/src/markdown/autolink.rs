@@ -35,13 +35,21 @@ pub fn parse_autolink<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
 mod tests {
     use super::*;
 
-    /// Covers parse autolink naked http.
+    /// A naked `http://` URL is returned as an autolink.
     #[test]
     fn test_parse_autolink_naked_http() {
-        // We expect parse_naked_url to work here.
+        assert_eq!(
+            parse_autolink.parse_peek("http://example.com"),
+            Ok((
+                "",
+                Element::Autolink(AutolinkData {
+                    url: "http://example.com"
+                })
+            ))
+        );
     }
 
-    /// Covers parse autolink delimited http.
+    /// `<http://...>` yields the URL without the angle brackets.
     #[test]
     fn test_parse_autolink_delimited_http() {
         assert_eq!(
@@ -55,7 +63,7 @@ mod tests {
         );
     }
 
-    /// Covers parse autolink delimited https.
+    /// `<https://...>` with a path yields the full URL.
     #[test]
     fn test_parse_autolink_delimited_https() {
         assert_eq!(
@@ -69,7 +77,7 @@ mod tests {
         );
     }
 
-    /// Covers parse autolink delimited with extra text after.
+    /// Text after the closing `>` is left unconsumed.
     #[test]
     fn test_parse_autolink_delimited_with_extra_text_after() {
         assert_eq!(
@@ -83,7 +91,7 @@ mod tests {
         );
     }
 
-    /// Covers parse autolink invalid delimited missing closing tag.
+    /// `<http://...` without a closing `>` is rejected.
     #[test]
     fn test_parse_autolink_invalid_delimited_missing_closing_tag() {
         parse_autolink
@@ -91,20 +99,28 @@ mod tests {
             .expect_err("input should be rejected");
     }
 
-    /// Covers parse autolink invalid delimited missing opening tag.
+    /// Without a leading `<` the naked-URL parser takes over and stops before the stray `>`.
     #[test]
     fn test_parse_autolink_invalid_delimited_missing_opening_tag() {
-        // If it doesn't start with '<', it might try parse_naked_url.
-        // "http://example.com>" -> parse_naked_url might match "http://example.com" and leave ">".
+        // Without a leading `<` the naked-URL parser takes over and stops before the stray `>`.
+        assert_eq!(
+            parse_autolink.parse_peek("http://example.com>"),
+            Ok((
+                ">",
+                Element::Autolink(AutolinkData {
+                    url: "http://example.com"
+                })
+            ))
+        );
     }
 
-    /// Covers parse autolink invalid naked no protocol.
+    /// A bare domain without `http://` or `https://` is not an autolink.
     #[test]
     fn test_parse_autolink_invalid_naked_no_protocol() {
         parse_autolink(&mut "example.com").expect_err("input should be rejected");
     }
 
-    /// Covers parse autolink empty string.
+    /// Empty input is rejected.
     #[test]
     fn test_parse_autolink_empty_string() {
         parse_autolink(&mut "").expect_err("input should be rejected");

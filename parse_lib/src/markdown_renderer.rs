@@ -274,6 +274,7 @@ impl<'a, F> Visitor<'a> for MarkdownRenderer<F>
 where
     F: FnMut(&DirectiveData<'a>) -> String,
 {
+    /// Renders the whole document, remembering its source so resolver replacements can be applied to it byte for byte.
     fn visit_document(&mut self, doc: &'a Document<'a>) {
         self.markdown.clear();
         self.source_edits.clear();
@@ -294,10 +295,12 @@ where
         self.source_edit_fallback = false;
     }
 
+    /// Emits the text unchanged.
     fn visit_text(&mut self, data: &TextData<'a>) {
         self.markdown.push_str(data.content);
     }
 
+    /// Emits the inline link, or the inline-link resolver's replacement when one is set.
     fn visit_inline_link(&mut self, data: &InlineLinkData<'a>) {
         if let Some(resolver) = &mut self.inline_link_resolver {
             let replacement = resolver(data);
@@ -310,6 +313,7 @@ where
         }
     }
 
+    /// Emits the opening fence with its language tag, each body line, and the closing fence.
     fn visit_fenced_code_block(&mut self, data: &FencedCodeBlockData<'a>) {
         let lang = data.language.unwrap_or("");
         self.emit(format_args!("```{lang}\n"));
@@ -320,6 +324,7 @@ where
         self.markdown.push_str("```\n");
     }
 
+    /// Emits the wikilink, or the wikilink resolver's replacement when one is set.
     fn visit_wikilink(&mut self, data: &WikiLinkData<'a>) {
         if let Some(resolver) = &mut self.wikilink_resolver {
             let replacement = resolver(data);
@@ -345,6 +350,7 @@ where
         }
     }
 
+    /// Emits the autolink, or the autolink resolver's replacement when one is set.
     fn visit_autolink(&mut self, data: &AutolinkData<'a>) {
         if let Some(resolver) = &mut self.autolink_resolver {
             let replacement = resolver(data);
@@ -358,6 +364,7 @@ where
         }
     }
 
+    /// Emits `[text][label]`, or the shortcut form `[text]` when the text equals the label.
     fn visit_reference_style_link(&mut self, data: &ReferenceStyleLinkData<'a>) {
         if data.text == data.label {
             self.emit(format_args!("[{}]", data.text));
@@ -366,6 +373,7 @@ where
         }
     }
 
+    /// Emits `![description][label]`.
     fn visit_reference_style_image(&mut self, data: &ReferenceStyleImageData<'a>) {
         self.emit(format_args!(
             "![{}][{}]",
@@ -373,6 +381,7 @@ where
         ));
     }
 
+    /// Emits `[label]: url`, followed by the title in quotes when present.
     fn visit_reference_definition(&mut self, data: &ReferenceDefinitionData<'a>) {
         self.emit(format_args!("[{}]: {}", data.label, data.url));
         if let Some(title) = data.title {
@@ -381,6 +390,7 @@ where
         self.markdown.push('\n');
     }
 
+    /// Emits `![description](url)`, with the title in quotes when present.
     fn visit_inline_image(&mut self, data: &InlineImageData<'a>) {
         if let Some(title) = data.title {
             self.emit(format_args!(
@@ -392,6 +402,7 @@ where
         }
     }
 
+    /// Emits the heading with its `#` markers and its `{#id}` when present.
     fn visit_heading(&mut self, data: &HeadingData<'a>) {
         for _ in 0..data.level {
             self.markdown.push('#');
@@ -406,11 +417,13 @@ where
         self.markdown.push('\n');
     }
 
+    /// Emits `- [x]` or `- [ ]` followed by the task text.
     fn visit_task_item(&mut self, data: &TaskItemData<'a>) {
         let check = if data.completed { "x" } else { " " };
         self.emit(format_args!("- [{}] {}\n", check, data.content));
     }
 
+    /// Emits the table with its columns padded to the widest cell.
     fn visit_table(&mut self, data: &'a TableData<'a>) {
         let start_len = self.markdown.len();
         self.visit_table_cells(data);
@@ -458,6 +471,7 @@ where
         }
     }
 
+    /// Emits the paragraph children followed by a blank line.
     fn visit_paragraph(&mut self, data: &'a ParagraphData<'a>) {
         for element in &data.elements {
             self.visit_element(element);
@@ -465,6 +479,7 @@ where
         self.markdown.push_str("\n\n");
     }
 
+    /// Emits the children with every line prefixed by `>`.
     fn visit_blockquote(&mut self, data: &'a BlockquoteData<'a>) {
         let start_len = self.markdown.len();
         for element in &data.elements {
@@ -484,6 +499,7 @@ where
         self.markdown.push('\n');
     }
 
+    /// Emits each item with its bullet or number marker.
     fn visit_list(&mut self, data: &'a ListData<'a>) {
         for (i, item) in data.items.iter().enumerate() {
             let start_len = self.markdown.len();
@@ -514,12 +530,14 @@ where
         self.markdown.push('\n');
     }
 
+    /// Emits the item children.
     fn visit_list_item(&mut self, data: &'a ListItemData<'a>) {
         for element in &data.elements {
             self.visit_element(element);
         }
     }
 
+    /// Emits the children between `**` markers.
     fn visit_strong(&mut self, data: &'a StrongData<'a>) {
         self.markdown.push_str("**");
         for element in &data.elements {
@@ -528,6 +546,7 @@ where
         self.markdown.push_str("**");
     }
 
+    /// Emits the children between `*` markers.
     fn visit_emphasis(&mut self, data: &'a EmphasisData<'a>) {
         self.markdown.push('*');
         for element in &data.elements {
@@ -536,6 +555,7 @@ where
         self.markdown.push('*');
     }
 
+    /// Emits the children between `~~` markers.
     fn visit_strikethrough(&mut self, data: &'a StrikethroughData<'a>) {
         self.markdown.push_str("~~");
         for element in &data.elements {
@@ -544,10 +564,12 @@ where
         self.markdown.push_str("~~");
     }
 
+    /// Emits `---` surrounded by blank lines.
     fn visit_horizontal_rule(&mut self) {
         self.markdown.push_str("\n---\n\n");
     }
 
+    /// Emits the comment with its delimiters, one source line per line.
     fn visit_html_comment(&mut self, data: &HtmlCommentData<'a>) {
         self.markdown.push_str("<!--");
         for (i, line) in data.lines.iter().enumerate() {
@@ -559,6 +581,7 @@ where
         self.markdown.push_str("-->");
     }
 
+    /// Emits the directive resolver's replacement, recording the edit against the directive's source range.
     fn visit_custom_directive(&mut self, data: &DirectiveData<'a>) {
         // Call the resolver to generate the replacement Markdown
         let replacement = (self.directive_resolver)(data);
@@ -574,7 +597,7 @@ mod tests {
     use crate::ast::Element;
     use crate::parse_document;
 
-    /// Covers markdown renderer text.
+    /// Text is emitted verbatim.
     #[test]
     fn test_markdown_renderer_text() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -624,7 +647,7 @@ mod tests {
         );
     }
 
-    /// Covers markdown renderer inline link.
+    /// An untitled inline link renders as `[text](url)`.
     #[test]
     fn test_markdown_renderer_inline_link() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -636,7 +659,7 @@ mod tests {
         assert_eq!(renderer.markdown, "[Rust](https://rust-lang.org)");
     }
 
-    /// Covers markdown renderer wikilink default.
+    /// Without a resolver a wikilink renders back as `[[target | display]]` followed by its trailing text.
     #[test]
     fn test_markdown_renderer_wikilink_default() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -648,7 +671,7 @@ mod tests {
         assert_eq!(renderer.markdown, "[[page | display]]s");
     }
 
-    /// Covers markdown renderer wikilink resolver.
+    /// A custom wikilink resolver replaces the default rendering, for example to emit reference-style links.
     #[test]
     fn test_markdown_renderer_wikilink_resolver() {
         let mut renderer =
@@ -666,7 +689,7 @@ mod tests {
         assert_eq!(renderer.markdown, "[My Page][my-page]");
     }
 
-    /// Covers markdown renderer table aligned.
+    /// Table columns are padded to the widest cell so the pipes line up.
     #[test]
     fn test_markdown_renderer_table_aligned() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -684,7 +707,7 @@ mod tests {
         assert_eq!(renderer.markdown.trim(), expected.trim());
     }
 
-    /// Covers markdown renderer fenced code block.
+    /// A fenced block renders with its language tag and each body line on its own line.
     #[test]
     fn test_markdown_renderer_fenced_code_block() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -698,7 +721,7 @@ mod tests {
         );
     }
 
-    /// Covers markdown renderer heading.
+    /// A heading renders with the right number of `#` and keeps its explicit `{#id}`.
     #[test]
     fn test_markdown_renderer_heading() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -718,7 +741,7 @@ mod tests {
         assert_eq!(renderer_no_id.markdown, "# Top Level\n");
     }
 
-    /// Covers markdown renderer task item.
+    /// A completed task item renders as `- [x] text`.
     #[test]
     fn test_markdown_renderer_task_item() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -736,7 +759,7 @@ mod tests {
         assert_eq!(renderer_uncompleted.markdown, "- [ ] Todo task\n");
     }
 
-    /// Covers markdown renderer table.
+    /// A table renders a header row, a delimiter row sized to the cells, and the data rows.
     #[test]
     fn test_markdown_renderer_table() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -749,7 +772,7 @@ mod tests {
         assert_eq!(renderer.markdown, expected);
     }
 
-    /// Covers markdown renderer paragraph.
+    /// A paragraph renders its text followed by a blank line.
     #[test]
     fn test_markdown_renderer_paragraph() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -759,7 +782,7 @@ mod tests {
         assert_eq!(renderer.markdown, "Para 1\n\n");
     }
 
-    /// Covers markdown renderer blockquote.
+    /// Each paragraph in a blockquote gets a `> ` prefix, with a `>` line preserving the gap between paragraphs.
     #[test]
     fn test_markdown_renderer_blockquote() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -778,7 +801,7 @@ mod tests {
         assert_eq!(renderer.markdown, "> Line 1\n>\n> Line 2\n\n");
     }
 
-    /// Covers markdown renderer strong and emphasis.
+    /// Strong text containing emphasis renders with nested `**` and `*` markers.
     #[test]
     fn test_markdown_renderer_strong_and_emphasis() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -795,7 +818,7 @@ mod tests {
         assert_eq!(renderer.markdown, "**bold and *italic***");
     }
 
-    /// Covers markdown renderer strikethrough.
+    /// Strikethrough text renders between `~~` markers.
     #[test]
     fn test_markdown_renderer_strikethrough() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
@@ -805,7 +828,7 @@ mod tests {
         assert_eq!(renderer.markdown, "~~deleted~~");
     }
 
-    /// Covers markdown renderer horizontal rule.
+    /// A horizontal rule renders as `---` surrounded by blank lines.
     #[test]
     fn test_markdown_renderer_horizontal_rule() {
         let mut renderer = MarkdownRenderer::new(|_| String::new());
