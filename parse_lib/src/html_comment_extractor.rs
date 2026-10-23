@@ -21,6 +21,7 @@ impl HtmlCommentExtractor {
 }
 
 impl<'a> Visitor<'a> for HtmlCommentExtractor {
+    /// Stores the comment text, with its lines rejoined by newlines.
     fn visit_html_comment(&mut self, data: &HtmlCommentData<'a>) {
         self.comments.push(data.lines.join("\n"));
     }
@@ -31,7 +32,7 @@ mod tests {
     use super::*;
     use crate::parse_document;
 
-    /// Covers html comment extraction.
+    /// A comment in the middle of a paragraph is extracted with its inner spacing, without the delimiters.
     #[test]
     fn test_html_comment_extraction() {
         let input = "Hello <!-- TODO: fix this section --> world!";

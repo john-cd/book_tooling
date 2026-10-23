@@ -53,10 +53,12 @@ impl<W: fmt::Write> PrettyPrinter<W> {
 }
 
 impl<'a, W: fmt::Write + 'a> Visitor<'a> for PrettyPrinter<W> {
+    /// Prints `<url>`.
     fn visit_autolink(&mut self, link: &AutolinkData<'a>) {
         self.emit(format_args!("<{}>", link.url));
     }
 
+    /// Prints `[text](url)`, with the title in quotes when present.
     fn visit_inline_link(&mut self, link: &InlineLinkData<'a>) {
         if let Some(title) = link.title {
             self.emit(format_args!("[{}]({} \"{title}\")", link.text, link.url));
@@ -65,10 +67,12 @@ impl<'a, W: fmt::Write + 'a> Visitor<'a> for PrettyPrinter<W> {
         }
     }
 
+    /// Prints `[text][label]`.
     fn visit_reference_style_link(&mut self, link: &ReferenceStyleLinkData<'a>) {
         self.emit(format_args!("[{}][{}]", link.text, link.label));
     }
 
+    /// Prints `![description](url)`, with the title in quotes when present.
     fn visit_inline_image(&mut self, img: &InlineImageData<'a>) {
         if let Some(title) = img.title {
             self.emit(format_args!(
@@ -80,10 +84,12 @@ impl<'a, W: fmt::Write + 'a> Visitor<'a> for PrettyPrinter<W> {
         }
     }
 
+    /// Prints `![description][label]`.
     fn visit_reference_style_image(&mut self, img: &ReferenceStyleImageData<'a>) {
         self.emit(format_args!("![{}][{}]", img.image_description, img.label));
     }
 
+    /// Prints `[label]: url` on its own line, with the title in quotes when present.
     fn visit_reference_definition(&mut self, refdef: &'a ReferenceDefinitionData<'a>) {
         if let Some(title) = refdef.title {
             self.emit_line(format_args!(
@@ -95,6 +101,7 @@ impl<'a, W: fmt::Write + 'a> Visitor<'a> for PrettyPrinter<W> {
         }
     }
 
+    /// Prints `[[target]]` or `[[target|display]]` followed by any text attached after it.
     fn visit_wikilink(&mut self, link: &WikiLinkData<'a>) {
         let immediately_after = link.immediately_after.unwrap_or("");
         if let Some(display) = link.display {
@@ -107,10 +114,12 @@ impl<'a, W: fmt::Write + 'a> Visitor<'a> for PrettyPrinter<W> {
         }
     }
 
+    /// Prints the content between backticks.
     fn visit_code_span(&mut self, code_span: &CodeSpanData<'a>) {
         self.emit(format_args!("`{}`", code_span.content));
     }
 
+    /// Prints the lines between a fence carrying the language tag and a closing fence.
     fn visit_fenced_code_block(&mut self, fenced_code_block: &FencedCodeBlockData<'a>) {
         let lang = fenced_code_block.language.unwrap_or("");
         self.emit_line(format_args!("```{lang}"));
@@ -120,12 +129,14 @@ impl<'a, W: fmt::Write + 'a> Visitor<'a> for PrettyPrinter<W> {
         self.emit_line(format_args!("```"));
     }
 
+    /// Prints the content inside a `<div class="hidden">` element, one line each for the tags and the content.
     fn visit_hidden_html_div(&mut self, div: &HiddenHtmlDivData<'a>) {
         self.emit_line(format_args!("<div class=\"hidden\">"));
         self.emit_line(format_args!("{}", div.content));
         self.emit_line(format_args!("</div>"));
     }
 
+    /// Prints the heading with its `#` markers and its `{#id}` when present.
     fn visit_heading(&mut self, heading: &HeadingData<'a>) {
         let hashes = "#".repeat(usize::from(heading.level));
         let content = heading
@@ -138,19 +149,23 @@ impl<'a, W: fmt::Write + 'a> Visitor<'a> for PrettyPrinter<W> {
         }
     }
 
+    /// Prints the text unchanged.
     fn visit_text(&mut self, text: &TextData<'a>) {
         self.emit(format_args!("{}", text.content));
     }
 
+    /// Prints the directive in its source form.
     fn visit_custom_directive(&mut self, directive: &DirectiveData<'a>) {
         self.emit(format_args!("{directive}"));
     }
 
+    /// Prints `- [x]` or `- [ ]` followed by the task text, on its own line.
     fn visit_task_item(&mut self, task: &TaskItemData<'a>) {
         let check = if task.completed { 'x' } else { ' ' };
         self.emit_line(format_args!("- [{check}] {}", task.content));
     }
 
+    /// Prints a pipe table; a table without columns prints nothing.
     fn visit_table(&mut self, data: &TableData<'a>) {
         let num_columns = data.header.len();
         if num_columns == 0 {
@@ -190,6 +205,7 @@ impl<'a, W: fmt::Write + 'a> Visitor<'a> for PrettyPrinter<W> {
         }
     }
 
+    /// Prints `---` on its own line.
     fn visit_horizontal_rule(&mut self) {
         self.emit_line(format_args!("---"));
     }

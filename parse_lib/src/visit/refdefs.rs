@@ -16,6 +16,7 @@ impl RefDefVisitor<'_> {
 }
 
 impl<'a> super::Visitor<'a> for RefDefVisitor<'a> {
+    /// Gathers the definition for later lookup.
     fn visit_reference_definition(&mut self, refdef: &'a ReferenceDefinitionData<'a>) {
         self.0.refdefs.push(refdef);
     }

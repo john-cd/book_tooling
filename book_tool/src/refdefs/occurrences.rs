@@ -117,14 +117,17 @@ impl OccurrenceCollector<'_> {
 }
 
 impl<'a> Visitor<'a> for OccurrenceCollector<'_> {
+    /// Records a use of the link's label, with its source position.
     fn visit_reference_style_link(&mut self, link: &'a ReferenceStyleLinkData<'a>) {
         self.record_use(link.label, ReferenceUseKind::Link);
     }
 
+    /// Records a use of the image's label, with its source position.
     fn visit_reference_style_image(&mut self, image: &'a ReferenceStyleImageData<'a>) {
         self.record_use(image.label, ReferenceUseKind::Image);
     }
 
+    /// Records the definition's label with its source position.
     fn visit_reference_definition(&mut self, definition: &'a ReferenceDefinitionData<'a>) {
         self.record_definition(definition.label);
     }

@@ -782,7 +782,7 @@ mod tests {
     use super::*;
     use crate::ast::DirectiveData;
 
-    /// Covers parser.
+    /// A heading, a paragraph with an inline link and a reference definition parse into several top-level elements.
     #[test]
     fn test_parser() {
         let text_input = "# Title
@@ -895,7 +895,7 @@ Hello [link](url)
         );
     }
 
-    /// Covers parse task item.
+    /// A `- [x]` list line parses as a completed task item.
     #[test]
     fn test_parse_task_item() {
         let input = "- [x] task 1";
@@ -911,7 +911,7 @@ Hello [link](url)
         }
     }
 
-    /// Covers parse task item incomplete.
+    /// A `- [ ]` list line parses as an unchecked task item.
     #[test]
     fn test_parse_task_item_incomplete() {
         let input = "- [ ] todo item";
@@ -927,7 +927,7 @@ Hello [link](url)
         }
     }
 
-    /// Covers parse task item invalid.
+    /// A marker other than space or `x` inside the brackets is not a task item.
     #[test]
     fn test_parse_task_item_invalid() {
         let input = "- [y] invalid";
@@ -937,7 +937,7 @@ Hello [link](url)
             .expect_err("input should be rejected");
     }
 
-    /// Covers parse table.
+    /// A pipe table with a delimiter row yields its header cells and one data row.
     #[test]
     fn test_parse_table() {
         let input = "| h1 | h2 |\n|---|---|\n| r1c1 | r1c2 |";
@@ -953,7 +953,7 @@ Hello [link](url)
         }
     }
 
-    /// Covers parse table no outer pipes.
+    /// Leading and trailing pipes are optional: a table written without them parses the same.
     #[test]
     fn test_parse_table_no_outer_pipes() {
         let input = "h1 | h2\n---|---\nr1c1 | r1c2";
@@ -969,7 +969,7 @@ Hello [link](url)
         }
     }
 
-    /// Covers parse table multiple rows.
+    /// Every row after the delimiter row becomes a data row, in order.
     #[test]
     fn test_parse_table_multiple_rows() {
         let input = "| a | b |\n| --- | --- |\n| 1 | 2 |\n| 3 | 4 |";
@@ -985,7 +985,7 @@ Hello [link](url)
         }
     }
 
-    /// Covers parse table inline directives in cells.
+    /// Directives such as `{{#crate ..}}` inside table cells are kept intact in the cell text.
     #[test]
     fn test_parse_table_inline_directives_in_cells() {
         let input = concat!(
@@ -1016,7 +1016,7 @@ Hello [link](url)
         ));
     }
 
-    /// Covers simple list in blockquote.
+    /// An unordered list inside a blockquote becomes a list element nested in the blockquote.
     #[test]
     fn test_simple_list_in_blockquote() {
         let input = "> - one
@@ -1055,7 +1055,7 @@ Hello [link](url)
         }
     }
 
-    /// Covers nested list in blockquote.
+    /// A blockquote holding a paragraph and a nested list parses into the matching element tree.
     #[test]
     #[expect(
         clippy::excessive_nesting,
@@ -1118,7 +1118,7 @@ Hello [link](url)
         }
     }
 
-    /// Covers list with fenced code block.
+    /// A fenced code block indented under a list item stays part of that item and does not end the list.
     #[test]
     fn test_list_with_fenced_code_block() {
         let input = "- item 1\n  ```rust\n  let x = 1;\n  ```\n- item 2\n";
@@ -1141,7 +1141,7 @@ Hello [link](url)
         }
     }
 
-    /// Covers parse indented code block.
+    /// Lines indented by four spaces form a code block that ends at the first blank line followed by unindented text.
     #[test]
     fn test_parse_indented_code_block() {
         let input = "    let x = 1;\n    let y = 2;\n\nParagraph";
@@ -1159,7 +1159,7 @@ Hello [link](url)
         assert_eq!(input_ref, "\nParagraph");
     }
 
-    /// Covers parse strong and emphasis.
+    /// `**bold *italic***` parses as strong text containing emphasized text.
     #[test]
     fn test_parse_strong_and_emphasis() {
         let input = "**bold *italic***";
@@ -1188,7 +1188,7 @@ Hello [link](url)
         }
     }
 
-    /// Covers parse strikethrough.
+    /// `~~text~~` parses as strikethrough.
     #[test]
     fn test_parse_strikethrough() {
         let input = "~~deleted~~";
@@ -1205,7 +1205,7 @@ Hello [link](url)
         }
     }
 
-    /// Covers parse horizontal rule.
+    /// A `---` line, even with trailing space, is a horizontal rule and is fully consumed.
     #[test]
     fn test_parse_horizontal_rule() {
         let mut input = "--- \n";
@@ -1223,7 +1223,7 @@ Hello [link](url)
         assert_eq!(rule_input, "next line");
     }
 
-    /// Covers parse html comment.
+    /// A multi-line HTML comment keeps each line separately, without the comment delimiters.
     #[test]
     fn test_parse_html_comment() {
         let mut input = "<!-- hidden \n text -->\n";
@@ -1238,7 +1238,7 @@ Hello [link](url)
         assert_eq!(input, "\n");
     }
 
-    /// Covers parse html comment from lines.
+    /// An indented multi-line HTML comment inside a list item is recognised and sits between the item paragraphs.
     #[test]
     fn test_parse_html_comment_from_lines() {
         let input_doc = "- item 1\n  <!-- multi\n  line\n  comment -->\n  Paragraph";

@@ -130,7 +130,7 @@ pub fn parse_autolink<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
 mod tests {
     use super::*;
 
-    /// Covers parse autolink.
+    /// An angle-bracket autolink parsed through the URL module yields the URL without the brackets.
     #[test]
     fn test_parse_autolink() {
         let mut input = "<https://example.com/foo>";
@@ -145,7 +145,7 @@ mod tests {
         );
     }
 
-    /// Covers parse url chars basic.
+    /// Letters and digits are URL characters; the run stops at `|` or a space.
     #[test]
     fn test_parse_url_chars_basic() {
         // Stops at `|`, which is not a reserved char. Otherwise we would get an `Incomplete`.
@@ -163,7 +163,7 @@ mod tests {
             .expect_err("input should be rejected");
     }
 
-    /// Covers parse url chars reserved.
+    /// RFC 3986 reserved characters (`:/?#[]@!$&'()*+,;=`) and `%` are accepted inside a URL run.
     #[test]
     fn test_parse_url_chars_reserved() {
         assert_eq!(
@@ -178,7 +178,7 @@ mod tests {
         );
     }
 
-    /// Covers parse url chars url like.
+    /// Realistic relative and absolute URLs with paths, queries and fragments are consumed up to the trailing space.
     #[test]
     fn test_parse_url_chars_url_like() {
         assert_eq!(
@@ -195,7 +195,7 @@ mod tests {
         );
     }
 
-    /// Covers parse url chars invalid.
+    /// `<` and newlines end the URL run and stay in the remainder.
     #[test]
     fn test_parse_url_chars_invalid() {
         assert_eq!(

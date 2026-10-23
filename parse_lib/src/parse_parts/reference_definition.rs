@@ -48,7 +48,7 @@ pub fn parse_link_reference_definition<'s>(input: &mut &'s str) -> ModalResult<E
 mod tests {
     use super::*;
 
-    /// Covers parse reference definition simple.
+    /// `[label]: url` yields the label and URL with no title.
     #[test]
     fn test_parse_reference_definition_simple() {
         let mut input = "[my-label]: https://example.com";
@@ -63,7 +63,7 @@ mod tests {
         assert_eq!(input, "");
     }
 
-    /// Covers parse reference definition with title and newlines.
+    /// The URL may be in angle brackets and the destination and title may sit on following indented lines.
     #[test]
     fn test_parse_reference_definition_with_title_and_newlines() {
         let mut input = "[my-label]: \n  <https://example.com> \n  \"A Title\"";
@@ -77,7 +77,7 @@ mod tests {
         );
     }
 
-    /// Covers parse reference definition fails missing colon.
+    /// A bracketed label followed by a URL without the colon is not a definition.
     #[test]
     fn test_parse_reference_definition_fails_missing_colon() {
         let mut input = "[my-label] https://example.com";

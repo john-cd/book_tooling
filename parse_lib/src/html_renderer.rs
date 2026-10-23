@@ -51,10 +51,12 @@ impl HtmlRenderer {
 }
 
 impl<'a> Visitor<'a> for HtmlRenderer {
+    /// Emits the text, HTML-escaped.
     fn visit_text(&mut self, data: &TextData<'a>) {
         escape_html_to_string(data.content, &mut self.html);
     }
 
+    /// Emits an `<a>` element with an escaped `href` and escaped link text.
     fn visit_inline_link(&mut self, data: &InlineLinkData<'a>) {
         self.html.push_str("<a href=\"");
         escape_html_to_string(data.url, &mut self.html);
@@ -63,6 +65,7 @@ impl<'a> Visitor<'a> for HtmlRenderer {
         self.html.push_str("</a>");
     }
 
+    /// Emits a `<p>` element around the rendered children.
     fn visit_paragraph(&mut self, data: &ParagraphData<'a>) {
         self.html.push_str("<p>");
         for element in &data.elements {
@@ -71,6 +74,7 @@ impl<'a> Visitor<'a> for HtmlRenderer {
         self.html.push_str("</p>\n");
     }
 
+    /// Emits a `<blockquote>` element around the rendered children.
     fn visit_blockquote(&mut self, data: &BlockquoteData<'a>) {
         self.html.push_str("<blockquote>\n");
         for element in &data.elements {
@@ -79,6 +83,7 @@ impl<'a> Visitor<'a> for HtmlRenderer {
         self.html.push_str("</blockquote>\n");
     }
 
+    /// Emits `<ol>` for an ordered list and `<ul>` otherwise, around the rendered items.
     fn visit_list(&mut self, data: &ListData<'a>) {
         if data.ordered {
             self.html.push_str("<ol>\n");
@@ -95,6 +100,7 @@ impl<'a> Visitor<'a> for HtmlRenderer {
         }
     }
 
+    /// Emits an `<li>` element around the rendered children.
     fn visit_list_item(&mut self, data: &ListItemData<'a>) {
         self.html.push_str("<li>");
         for element in &data.elements {
@@ -103,6 +109,7 @@ impl<'a> Visitor<'a> for HtmlRenderer {
         self.html.push_str("</li>\n");
     }
 
+    /// Emits a `<strong>` element around the rendered children.
     fn visit_strong(&mut self, data: &StrongData<'a>) {
         self.html.push_str("<strong>");
         for element in &data.elements {
@@ -111,6 +118,7 @@ impl<'a> Visitor<'a> for HtmlRenderer {
         self.html.push_str("</strong>");
     }
 
+    /// Emits an `<em>` element around the rendered children.
     fn visit_emphasis(&mut self, data: &EmphasisData<'a>) {
         self.html.push_str("<em>");
         for element in &data.elements {
@@ -119,6 +127,7 @@ impl<'a> Visitor<'a> for HtmlRenderer {
         self.html.push_str("</em>");
     }
 
+    /// Emits a `<del>` element around the rendered children.
     fn visit_strikethrough(&mut self, data: &StrikethroughData<'a>) {
         self.html.push_str("<del>");
         for element in &data.elements {
@@ -127,10 +136,12 @@ impl<'a> Visitor<'a> for HtmlRenderer {
         self.html.push_str("</del>");
     }
 
+    /// Emits an `<hr>` element.
     fn visit_horizontal_rule(&mut self) {
         self.html.push_str("<hr>\n");
     }
 
+    /// Emits the comment back as an HTML comment, one source line per line.
     fn visit_html_comment(&mut self, data: &HtmlCommentData<'a>) {
         self.html.push_str("<!--");
         for (i, line) in data.lines.iter().enumerate() {
@@ -142,6 +153,7 @@ impl<'a> Visitor<'a> for HtmlRenderer {
         self.html.push_str("-->");
     }
 
+    /// Emits a `<pre><code>` block, with a `language-` class when a language is given and escaped body lines.
     fn visit_fenced_code_block(&mut self, data: &FencedCodeBlockData<'a>) {
         if let Some(lang) = data.language {
             self.html.push_str("<pre><code class=\"language-");
@@ -157,6 +169,7 @@ impl<'a> Visitor<'a> for HtmlRenderer {
         self.html.push_str("</code></pre>\n");
     }
 
+    /// Emits a `<table>` with a `<thead>` for the header and a `<tbody>` for the rows, escaping cell text.
     fn visit_table(&mut self, data: &TableData<'a>) {
         self.html.push_str("<table>\n  <thead>\n    <tr>\n");
         for &cell in &data.header {
@@ -183,7 +196,7 @@ mod tests {
     use super::*;
     use crate::ast::Element;
 
-    /// Covers escape html to string.
+    /// `&`, `<`, `>` and both kinds of quote are escaped, and plain text passes through unchanged.
     #[test]
     fn test_escape_html_to_string() {
         let mut dest = String::new();
@@ -211,7 +224,7 @@ mod tests {
         );
     }
 
-    /// Covers html renderer escaping.
+    /// Text nodes, link text and link URLs are HTML-escaped when rendered.
     #[test]
     fn test_html_renderer_escaping() {
         let mut renderer = HtmlRenderer::new();
@@ -235,7 +248,7 @@ mod tests {
         );
     }
 
-    /// Covers html renderer paragraph.
+    /// A paragraph renders as a `<p>` element.
     #[test]
     fn test_html_renderer_paragraph() {
         let mut renderer = HtmlRenderer::new();
@@ -245,7 +258,7 @@ mod tests {
         assert_eq!(renderer.html, "<p>Para 1</p>\n");
     }
 
-    /// Covers html renderer blockquote.
+    /// A blockquote renders as a `<blockquote>` element wrapping its children.
     #[test]
     fn test_html_renderer_blockquote() {
         let mut renderer = HtmlRenderer::new();
@@ -255,7 +268,7 @@ mod tests {
         assert_eq!(renderer.html, "<blockquote>\nQuote</blockquote>\n");
     }
 
-    /// Covers html renderer list.
+    /// Unordered lists render as `<ul>` and ordered lists as `<ol>`, with each item in `<li>`.
     #[test]
     fn test_html_renderer_list() {
         let mut renderer = HtmlRenderer::new();
@@ -277,7 +290,7 @@ mod tests {
         assert_eq!(renderer2.html, "<ol>\n<li>Item</li>\n</ol>\n");
     }
 
-    /// Covers html renderer inline formatting.
+    /// Strong, emphasis and strikethrough render as `<strong>`, `<em>` and `<del>`.
     #[test]
     fn test_html_renderer_inline_formatting() {
         let mut renderer = HtmlRenderer::new();
@@ -299,7 +312,7 @@ mod tests {
         assert_eq!(renderer.html, "<del>strike</del>");
     }
 
-    /// Covers html renderer horizontal rule.
+    /// A horizontal rule renders as `<hr>`.
     #[test]
     fn test_html_renderer_horizontal_rule() {
         let mut renderer = HtmlRenderer::new();
@@ -307,7 +320,7 @@ mod tests {
         assert_eq!(renderer.html, "<hr>\n");
     }
 
-    /// Covers html renderer html comment.
+    /// An HTML comment renders with its lines intact between the comment delimiters.
     #[test]
     fn test_html_renderer_html_comment() {
         let mut renderer = HtmlRenderer::new();
@@ -317,7 +330,7 @@ mod tests {
         assert_eq!(renderer.html, "<!-- comment line 1 \n comment line 2 -->");
     }
 
-    /// Covers html renderer fenced code block.
+    /// A fenced block renders as `<pre><code class="language-..">` with its body HTML-escaped.
     #[test]
     fn test_html_renderer_fenced_code_block() {
         let mut renderer = HtmlRenderer::new();
@@ -338,7 +351,7 @@ mod tests {
         assert_eq!(renderer.html, "<pre><code>plain text\n</code></pre>\n");
     }
 
-    /// Covers html renderer table.
+    /// A table renders `<thead>` and `<tbody>` sections with escaped cell text.
     #[test]
     fn test_html_renderer_table() {
         let mut renderer = HtmlRenderer::new();

@@ -188,18 +188,21 @@ pub trait Visitable<'a> {
 }
 
 impl<'a> Visitable<'a> for Element<'a> {
+    /// Hands this element to [`Visitor::visit_element`].
     fn accept(&'a self, visitor: &mut dyn Visitor<'a>) {
         visitor.visit_element(self);
     }
 }
 
 impl<'a> Visitable<'a> for Document<'a> {
+    /// Hands this document to [`Visitor::visit_document`].
     fn accept(&'a self, visitor: &mut dyn Visitor<'a>) {
         visitor.visit_document(self);
     }
 }
 
 impl<'a> Visitable<'a> for Documents<'a> {
+    /// Hands this document collection to [`Visitor::visit_documents`].
     fn accept(&'a self, visitor: &mut dyn Visitor<'a>) {
         visitor.visit_documents(self);
     }

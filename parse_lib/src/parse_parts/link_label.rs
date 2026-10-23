@@ -52,7 +52,7 @@ mod tests {
 
     use super::*;
 
-    /// Covers parse link label simple.
+    /// A bracketed label yields its text and consumes the closing bracket.
     #[test]
     fn test_parse_link_label_simple() {
         let mut input = "[my label]";
@@ -60,7 +60,7 @@ mod tests {
         assert_eq!(input, "");
     }
 
-    /// Covers parse link label with arbitrary escapes.
+    /// A backslash before a non-bracket character is kept literally in the label.
     #[test]
     fn test_parse_link_label_with_arbitrary_escapes() {
         let mut input = r"[my \ label \*]";
@@ -70,7 +70,7 @@ mod tests {
         );
     }
 
-    /// Covers parse link label with escaped brackets.
+    /// Escaped brackets inside the label do not end it and are kept with their backslashes.
     #[test]
     fn test_parse_link_label_with_escaped_brackets() {
         let mut input = r"[my \[esc\] label]";
@@ -80,14 +80,14 @@ mod tests {
         );
     }
 
-    /// Covers parse link label with escaped backslash.
+    /// An escaped backslash is kept as written and does not escape the closing bracket.
     #[test]
     fn test_parse_link_label_with_escaped_backslash() {
         let mut input = r"[my \\ label]";
         assert_eq!(parse_link_label.parse_next(&mut input), Ok(r"my \\ label"));
     }
 
-    /// Covers parse link label fails on empty.
+    /// `[]` is rejected: a label needs at least one character.
     #[test]
     fn test_parse_link_label_fails_on_empty() {
         let mut input = "[]";
@@ -96,7 +96,7 @@ mod tests {
             .expect_err("input should be rejected");
     }
 
-    /// Covers parse link label fails on whitespace only.
+    /// A label of only spaces is rejected, as `CommonMark` requires a non-blank label.
     #[test]
     fn test_parse_link_label_fails_on_whitespace_only() {
         let mut input = "[   ]";
@@ -105,7 +105,7 @@ mod tests {
             .expect_err("input should be rejected");
     }
 
-    /// Covers parse link label fails on unescaped bracket.
+    /// An unescaped `[` inside the label is rejected, since labels cannot nest.
     #[test]
     fn test_parse_link_label_fails_on_unescaped_bracket() {
         let mut input = "[my [unescaped] label]";
@@ -114,7 +114,7 @@ mod tests {
             .expect_err("input should be rejected");
     }
 
-    /// Covers parse link label fails on too long.
+    /// A label of 1000 characters exceeds the 999-character `CommonMark` limit and is rejected.
     #[test]
     fn test_parse_link_label_fails_on_too_long() {
         let long_string = "a".repeat(1000);
@@ -125,7 +125,7 @@ mod tests {
             .expect_err("input should be rejected");
     }
 
-    /// Covers parse link label exact max length.
+    /// A label of exactly 999 characters is accepted.
     #[test]
     fn test_parse_link_label_exact_max_length() {
         let max_string = "a".repeat(999);

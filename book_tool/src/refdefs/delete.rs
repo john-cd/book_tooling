@@ -68,6 +68,7 @@ pub fn delete_unused_refdefs<S: BuildHasher>(
     }
 
     impl<'a, S: BuildHasher> Visitor<'a> for RemovalCollector<'_, S> {
+        /// Records the whole-line source range of every definition whose label is in the unused set.
         fn visit_reference_definition(&mut self, definition: &'a ReferenceDefinitionData<'a>) {
             if !self.unused.iter().any(|label| {
                 normalize_reference_label(label) == normalize_reference_label(definition.label)
