@@ -19,8 +19,9 @@ The workflow pins `cargo-nextest` 0.9.145, `prek` 0.5.6, and `dprint` 0.64.1. Ke
 - **Toolchain bumps.** Change `toolchain` / `nightly` defaults in `setup-rust/action.yml`, the `+nightly-...`
   in `rust-ci.yml` and the `justfile` together.
 - **Shell.** All `run` steps use `bash`, including on Windows, so there is one command line per step.
-- **Paths.** `.cargo/config.toml` points at developer drives (`D:/target/...`) and `sccache`. The workflow
-  overrides these with `CARGO_TARGET_DIR`, `CARGO_BUILD_BUILD_DIR` and an empty `RUSTC_WRAPPER`.
+- **Paths.** `.cargo/config.toml` uses Cargo's portable checkout-local output defaults and `sccache`. Local
+  `just` recipes use platform cache directories; the workflow overrides the output paths with
+  `CARGO_TARGET_DIR` and `CARGO_BUILD_BUILD_DIR`, and disables the wrapper with an empty `RUSTC_WRAPPER`.
 - **Permissions.** Workflows default to `contents: read`.
 
 ## Checking workflows locally

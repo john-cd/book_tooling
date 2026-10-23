@@ -22,8 +22,7 @@ defaults:
 
 env:
   CARGO_TERM_COLOR: always
-  ## `.cargo/config.toml` holds developer-machine paths (`D:/target/...`) and enables `sccache`;
-  ## CI uses runner-local paths and no compiler wrapper instead.
+  ## Cargo config uses portable defaults and enables `sccache`; CI uses runner-local paths and no wrapper.
   CARGO_TARGET_DIR: ${{ github.workspace }}/target
   CARGO_BUILD_BUILD_DIR: ${{ github.workspace }}/target/build
   RUSTC_WRAPPER: ""

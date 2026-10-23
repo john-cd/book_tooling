@@ -4,72 +4,81 @@ set shell := ["bash", "-uc"]
 
 # Set shell for Windows OSs:
 # PowerShell Core has some of the Unix shell skills we need, such as || and &&
+
 set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
 
 root := source_directory()
 worktree_name := env("BOOK_TOOLING_WORKTREE_NAME", "main")
-cache_home := env("XDG_CACHE_HOME", join(home_directory(), ".cache"))
-export CARGO_TARGET_DIR := join("D:/target/book_tooling", worktree_name)
-export CARGO_BUILD_BUILD_DIR := join("C:/code_build/book_tooling", worktree_name)
-export RUSTC_WRAPPER := "sccache"
-export CARGO_INCREMENTAL := "0"
-export SCCACHE_DIR := env("SCCACHE_DIR", if os_family() == "windows" { "D:/sccache" } else { join(cache_home, "sccache") })
+windows_cache_home := env("LOCALAPPDATA", join(home_directory(), ".cache"))
+macos_cache_home := env("XDG_CACHE_HOME", join(join(home_directory(), "Library"), "Caches"))
+unix_cache_home := env("XDG_CACHE_HOME", join(home_directory(), ".cache"))
+default_cache_home := if os() == "windows" { windows_cache_home } else if os() == "macos" { macos_cache_home } else { unix_cache_home }
+cache_home := env("BOOK_TOOLING_CACHE_HOME", default_cache_home)
+build_root := join(cache_home, "book_tooling")
+target_dir := env("CARGO_TARGET_DIR", join(join(build_root, "target"), worktree_name))
+build_dir := env("CARGO_BUILD_BUILD_DIR", join(join(build_root, "build"), worktree_name))
+export CARGO_TARGET_DIR := target_dir
+export CARGO_BUILD_BUILD_DIR := build_dir
+export RUSTC_WRAPPER := env("RUSTC_WRAPPER", "sccache")
+export CARGO_INCREMENTAL := env("CARGO_INCREMENTAL", "0")
+export SCCACHE_DIR := env("SCCACHE_DIR", join(cache_home, "sccache"))
 
 [no-exit-message]
 _default:
-  @just --list --unsorted --justfile {{source_file()}}
+    @just --list --unsorted --justfile {{ source_file() }}
 
 alias fa := fmtall
 
 # Format all packages and their local path-based dependencies
 @fmtall:
-  echo "Formatting all packages and their local path-based dependencies in $(pwd)"
-  cargo +nightly-2026-10-22 fmt --all
+    echo "Formatting all packages and their local path-based dependencies in $(pwd)"
+    cargo +nightly-2026-10-22 fmt --all
 
 alias cka := checkall
 
 # Check all code (all packages, all features)
 @checkall:
-  echo "Check all code (all packages, all features) in $(pwd)"
-  cargo check --workspace --all-targets --locked --all-features
+    echo "Check all code (all packages, all features) in $(pwd)"
+    cargo check --workspace --all-targets --locked --all-features
+
 # `--all-targets` is equivalent to specifying `--lib --bins --tests --benches --examples`.
 
 alias osa := orphansources
 
 # Check that every Rust source file under src/ belongs to a compiled module tree.
 @orphansources:
-  echo "Check for orphan Rust source files in $(pwd)"
-  python3 scripts/check_orphan_sources.py || python scripts/check_orphan_sources.py
+    echo "Check for orphan Rust source files in $(pwd)"
+    python3 scripts/check_orphan_sources.py || python scripts/check_orphan_sources.py
 
 alias ba := buildall
 
 # Build all packages (all features)
 @buildall:
-  echo "Build all packages, all features in $(pwd)"
-  cargo build --workspace --all-targets --locked --all-features --timings
+    echo "Build all packages, all features in $(pwd)"
+    cargo build --workspace --all-targets --locked --all-features --timings
 
 alias ca := clippyall
 
 # Scan all code for common mistakes (all packages, all features)
 @clippyall:
-  echo "Scan all code for common mistakes (all packages, all features) in $(pwd)"
-  cargo clippy --workspace --all-targets --locked --all-features -- -D warnings
+    echo "Scan all code for common mistakes (all packages, all features) in $(pwd)"
+    cargo clippy --workspace --all-targets --locked --all-features -- -D warnings
 
 alias nta := nextestall
 
 # Test all code in the workspace (incl. doctests) (all features)
 @nextestall:
-  echo "Test all code in the workspace in $(pwd) (incl. doctests) (all features)"
-  -cargo test --doc --workspace --quiet # nextest does not handle doctests
-  cargo nextest run --workspace --all-targets --locked --no-fail-fast --status-level all --all-features --failure-output final
+    echo "Test all code in the workspace in $(pwd) (incl. doctests) (all features)"
+    -cargo test --doc --workspace --quiet # nextest does not handle doctests
+    cargo nextest run --workspace --all-targets --locked --no-fail-fast --status-level all --all-features --failure-output final
 
 # Build and display the `cargo doc` documentation
 @docall:
-  echo "Build and display the `cargo doc` documentation for $(pwd)"
-  cargo clean --doc
-  cargo doc --no-deps --workspace --locked --document-private-items
-  cd ../target/tools/doc/ ; python3 -m http.server 9000
+    echo "Build and display the `cargo doc` documentation for $(pwd)"
+    cargo clean --doc
+    cargo doc --no-deps --workspace --locked --document-private-items
+    cd "{{ target_dir }}/doc/" ; python3 -m http.server 9000
 
 @release:
-  echo "Build the tools in $(pwd) in release mode and copy to {{root}}/../bin"
-  cargo +nightly-2026-10-22 build --bins --locked --all-features --release -Z unstable-options --artifact-dir "{{root}}/../bin"
+    echo "Build the tools in $(pwd) in release mode and copy to {{ root }}/../bin"
+    cargo +nightly-2026-10-22 build --bins --locked --all-features --release -Z unstable-options --artifact-dir "{{ root }}/../bin"

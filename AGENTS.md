@@ -31,11 +31,11 @@
 
 ## Build outputs
 
-Cargo artifacts are stored outside the checkout in `D:\target\book_tooling\<worktree name>`. Cargo intermediate build artifacts are stored in `C:\code_build\book_tooling\<worktree name>`.
+Direct Cargo commands use Cargo's portable `target` directory in the current checkout unless `CARGO_TARGET_DIR` or `CARGO_BUILD_BUILD_DIR` overrides it. The root `justfile` instead stores outputs outside the checkout in per-worktree `<cache home>/book_tooling/target/<worktree name>` and `<cache home>/book_tooling/build/<worktree name>` directories. Its cache home defaults to `%LOCALAPPDATA%` on Windows, `~/Library/Caches` on macOS, and `${XDG_CACHE_HOME:-$HOME/.cache}` on Linux.
 
-The root `justfile` exports `CARGO_TARGET_DIR` and `CARGO_BUILD_BUILD_DIR`. The `.cargo\config.toml` values cover direct Cargo invocations. The default worktree name is `main`; set `BOOK_TOOLING_WORKTREE_NAME` before running `just` in another worktree to keep its outputs separate.
+Set `BOOK_TOOLING_CACHE_HOME` to change the cache root. `CARGO_TARGET_DIR` and `CARGO_BUILD_BUILD_DIR` can override the justfile's per-worktree output paths. The default worktree name is `main`; set `BOOK_TOOLING_WORKTREE_NAME` before running `just` in another worktree to keep its outputs separate.
 
-Use `sccache` 0.18 or newer as the Rust compiler wrapper for Cargo builds. Local Windows builds default to `D:\sccache`; `just` defaults to `${XDG_CACHE_HOME:-$HOME/.cache}/sccache` on Linux. An existing `SCCACHE_DIR` environment variable takes precedence. CI sets its own runner-local cache location.
+Use `sccache` 0.18 or newer as the Rust compiler wrapper for Cargo builds. `just` defaults `SCCACHE_DIR` to `<cache root>/sccache`; set `SCCACHE_DIR` to override it. `RUSTC_WRAPPER` defaults to `sccache` in both Cargo and just, and can be set to an empty value to disable the wrapper. `CARGO_INCREMENTAL` defaults to `0` in just; set it to override that default. CI sets runner-local Cargo output paths and disables the wrapper.
 
 ## Build, lint, and test
 
