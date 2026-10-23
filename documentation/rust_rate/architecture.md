@@ -1,4 +1,5 @@
 <!-- TODO Reviewed ??-??-2026 -->
+
 # `rust_rate` Architecture
 
 ## Components

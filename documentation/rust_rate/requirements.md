@@ -1,4 +1,5 @@
 <!-- TODO Reviewed ??-??-2026 -->
+
 # `rust_rate` Requirements
 
 ## Overview
@@ -8,20 +9,20 @@
 ## Functional Requirements
 
 1. **Crate Crawling**:
-    - Search GitHub for `Cargo.toml` files.
-    - Parse `Cargo.toml` to extract dependencies and their versions.
+   - Search GitHub for `Cargo.toml` files.
+   - Parse `Cargo.toml` to extract dependencies and their versions.
 2. **Usage Statistics**:
-    - Compute usage statistics per crate (e.g., in how many projects it is found).
-    - Aggregate statistics per category (as defined in `crates.io` or `lib.rs`).
+   - Compute usage statistics per crate (e.g., in how many projects it is found).
+   - Aggregate statistics per category (as defined in `crates.io` or `lib.rs`).
 3. **Pattern Identification**:
-    - Inspect Rust source code (`.rs` files) in identified repositories.
-    - Identify commonly found code snippets or patterns for specific crates.
+   - Inspect Rust source code (`.rs` files) in identified repositories.
+   - Identify commonly found code snippets or patterns for specific crates.
 4. **Reporting**:
-    - Generate reports in Markdown or JSON format summarizing the findings.
+   - Generate reports in Markdown or JSON format summarizing the findings.
 5. **Integration**:
-    - Use `reqwest` for HTTP requests.
-    - Use `tokio` for asynchronous processing.
-    - Integrate with GitHub Search API.
+   - Use `reqwest` for HTTP requests.
+   - Use `tokio` for asynchronous processing.
+   - Integrate with GitHub Search API.
 
 ## Non-Functional Requirements
 

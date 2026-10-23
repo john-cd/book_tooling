@@ -1,4 +1,5 @@
 <!-- TODO Reviewed ??-??-2026 -->
+
 # `rust_rate`
 
 `rust_rate` is a tool for crawling and analyzing Rust crate usage patterns across public repositories.
@@ -38,5 +39,5 @@ cargo run -p rust_rate -- crates-io anyhow
 
 ## Documentation
 
-- [Requirements](../documentation/rust_rate_requirements.md)
-- [Architecture](../documentation/rust_rate_architecture.md)
+- [Requirements](../documentation/rust_rate/requirements.md)
+- [Architecture](../documentation/rust_rate/architecture.md)

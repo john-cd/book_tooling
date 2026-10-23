@@ -1,4 +1,5 @@
 <!-- TODO Reviewed ??-??-2026 -->
+
 # Architecture
 
 The project is organized as a Rust workspace optimized for high-performance Markdown processing and transformation.
