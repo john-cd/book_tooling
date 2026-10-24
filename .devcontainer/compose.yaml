@@ -1,0 +1,35 @@
+# TODO Reviewed ??-??-2026
+# Docker Compose reference: https://docs.docker.com/compose/
+services:
+  book-tooling:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        RUST_IMAGE_LABEL: ${RUST_IMAGE_LABEL:-1.99.1-trixie}
+        CARGO_NEXTEST_VERSION: ${CARGO_NEXTEST_VERSION:-0.9.145}
+        PREK_VERSION: ${PREK_VERSION:-0.5.6}
+        DPRINT_VERSION: ${DPRINT_VERSION:-0.64.1}
+        CARGO_DENY_VERSION: ${CARGO_DENY_VERSION:-0.20.2}
+        JUST_VERSION: ${JUST_VERSION:-1.59.0}
+    volumes:
+      - type: bind
+        source: ..
+        target: /code
+      - cargo_registry:/usr/local/cargo/registry
+      - cargo_git:/usr/local/cargo/git
+      - book_tooling_cache:/var/cache/book_tooling
+    environment:
+      BOOK_TOOLING_CACHE_HOME: /var/cache/book_tooling
+      CARGO_TARGET_DIR: /var/cache/book_tooling/target/main
+      CARGO_BUILD_BUILD_DIR: /var/cache/book_tooling/build/main
+      CARGO_TERM_COLOR: always
+      RUSTC_WRAPPER: ""
+    working_dir: /code
+    init: true
+    command: sleep infinity
+
+volumes:
+  cargo_registry:
+  cargo_git:
+  book_tooling_cache:

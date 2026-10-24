@@ -8,6 +8,8 @@ Thanks for helping improve the Rust tools and documentation workflows in this re
 2. Install cargo-binstall with `cargo install cargo-binstall`, then install cargo-nextest, prek, dprint, and cargo-deny at the versions listed in the CI workflow with `cargo binstall --no-confirm cargo-nextest@0.9.145 prek@0.5.6 dprint@0.64.1 cargo-deny@0.20.2`.
 3. Run prek install to enable the repository's pre-commit hooks.
 
+Alternatively, open this repository in VS Code and select `Reopen in Container`. The `.devcontainer/` setup uses Docker Compose, Debian Trixie, and the pinned workspace tools.
+
 The workspace uses portable cache paths. Set BOOK_TOOLING_CACHE_HOME to choose a cache root, BOOK_TOOLING_WORKTREE_NAME to give another checkout a separate cache, DPRINT_CACHE_DIR to choose dprint's plugin cache, or CARGO_TARGET_DIR and CARGO_BUILD_BUILD_DIR to override Cargo output paths. just selects a platform-appropriate cache default on Windows, macOS, and Linux.
 
 ## Checks

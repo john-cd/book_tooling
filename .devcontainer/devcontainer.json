@@ -1,0 +1,20 @@
+// Dev Container setup using Docker Compose.
+// For format details, see https://containers.dev/guide/dockerfile.
+{
+  "name": "book_tooling - Rust on Debian Trixie",
+  "dockerComposeFile": "compose.yaml",
+  "service": "book-tooling",
+  "workspaceFolder": "/code",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "EditorConfig.EditorConfig",
+        "ms-azuretools.vscode-docker",
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "vadimcn.vscode-lldb"
+      ]
+    }
+  },
+  "remoteUser": "root"
+}
