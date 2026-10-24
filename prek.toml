@@ -34,7 +34,7 @@ hooks = [
   {
     id = "cargo-fmt",
     name = "cargo fmt --check",
-    entry = "cargo +nightly-2026-10-22 fmt --all -- --check",
+    entry = "just fmtcheck",
     language = "system",
     pass_filenames = false,
     types = ["rust"],

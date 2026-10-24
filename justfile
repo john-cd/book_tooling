@@ -8,6 +8,9 @@ set shell := ["bash", "-uc"]
 set windows-shell := ["pwsh.exe", "-NoLogo", "-NoProfile", "-Command"]
 
 root := source_directory()
+rustfmt_toolchain_default := trim(read(join(root, "rustfmt-toolchain")))
+rustfmt_toolchain_override := env("RUSTFMT_TOOLCHAIN", "")
+rustfmt_toolchain := if rustfmt_toolchain_override == "" { rustfmt_toolchain_default } else { rustfmt_toolchain_override }
 worktree_name := env("BOOK_TOOLING_WORKTREE_NAME", "main")
 windows_cache_home := env("LOCALAPPDATA", join(home_directory(), ".cache"))
 macos_cache_home := env("XDG_CACHE_HOME", join(join(home_directory(), "Library"), "Caches"))
@@ -30,10 +33,13 @@ _default:
 
 alias fa := fmtall
 
+@fmtcheck:
+    cargo +{{ rustfmt_toolchain }} fmt --all -- --check
+
 # Format all packages and their local path-based dependencies
 @fmtall:
     echo "Formatting all packages and their local path-based dependencies in $(pwd)"
-    cargo +nightly-2026-10-22 fmt --all
+    cargo +{{ rustfmt_toolchain }} fmt --all
 
 alias cka := checkall
 
@@ -89,4 +95,4 @@ alias nta := nextestall
 
 @release:
     echo "Build the tools in $(pwd) in release mode and copy to {{ root }}/../bin"
-    cargo +nightly-2026-10-22 build --bins --locked --all-features --release -Z unstable-options --artifact-dir "{{ root }}/../bin"
+    cargo +{{ rustfmt_toolchain }} build --bins --locked --all-features --release -Z unstable-options --artifact-dir "{{ root }}/../bin"
