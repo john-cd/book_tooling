@@ -16,9 +16,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 ARG RUSTFMT_TOOLCHAIN
-COPY rustfmt-toolchain /usr/local/share/rustfmt-toolchain
+COPY rustfmt-toolchain.toml /usr/local/share/rustfmt-toolchain.toml
 RUN rustup component add clippy rustfmt \
-    && RUSTFMT_TOOLCHAIN="${RUSTFMT_TOOLCHAIN:-$(cat /usr/local/share/rustfmt-toolchain)}" \
+    && RUSTFMT_TOOLCHAIN="${RUSTFMT_TOOLCHAIN:-$(sed -n 's/^channel *= *"\([^"]*\)".*/\1/p' /usr/local/share/rustfmt-toolchain.toml)}" \
     && rustup toolchain install "$RUSTFMT_TOOLCHAIN" --profile minimal --component rustfmt
 ENV RUSTFMT_TOOLCHAIN=${RUSTFMT_TOOLCHAIN}
 
