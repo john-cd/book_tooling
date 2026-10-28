@@ -2,12 +2,10 @@
 
 set shell := ["bash", "-uc"]
 
-# Set shell for Windows OSs:
-# PowerShell Core has some of the Unix shell skills we need, such as || and &&
+# Recipes run in Bash on every OS: Git Bash on Windows.
+set windows-shell := ["C:/Program Files/Git/bin/bash.exe", "-uc"]
 
-set windows-shell := ["pwsh.exe", "-NoLogo", "-NoProfile", "-Command"]
-
-root := source_directory()
+root := replace(source_directory(), "\\", "/")
 rustfmt_toolchain_default := trim(replace_regex(read(join(root, "rustfmt-toolchain.toml")), '(?s).*channel\s*=\s*"([^"]+)".*', "$1"))
 rustfmt_toolchain_override := env("RUSTFMT_TOOLCHAIN", "")
 rustfmt_toolchain := if rustfmt_toolchain_override == "" { rustfmt_toolchain_default } else { rustfmt_toolchain_override }
@@ -91,7 +89,7 @@ alias nta := nextestall
     echo "Build and display the `cargo doc` documentation for $(pwd)"
     cargo clean --doc
     cargo doc --no-deps --workspace --locked --document-private-items
-    cd "{{ target_dir }}/doc/" ; python3 -m http.server 9000
+    cd "{{ target_dir }}/doc/" ; (python3 -m http.server 9000 || python -m http.server 9000)
 
 @release:
     echo "Build the tools in $(pwd) in release mode and copy to {{ root }}/../bin"
