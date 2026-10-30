@@ -31,6 +31,7 @@ pub fn parse_directive_element<'a>(input: &mut &'a str) -> ModalResult<Element<'
         parse_link_directive,
         parse_badge_directive,
         parse_crate_block_directive,
+        parse_badge_set_directive,
         parse_category_block_directive,
         parse_example_block_directive,
     ))
@@ -114,6 +115,34 @@ fn parse_crate_block_directive<'a>(input: &mut &'a str) -> ModalResult<Directive
         )
             .map(
                 |(_, _, name, cats): (_, _, &str, Vec<&str>)| DirectiveData::CrateBlock {
+                    crate_name: name.trim(),
+                    additional_categories: cats
+                        .into_iter()
+                        .flat_map(split_category_arguments)
+                        .collect(),
+                },
+            ),
+        "}}",
+    )
+    .parse_next(input)
+}
+
+/// Parses a `{{#badges ...}}` block directive.
+fn parse_badge_set_directive<'a>(input: &mut &'a str) -> ModalResult<DirectiveData<'a>> {
+    // {{#badges: crt cat1 cat-2}}
+    delimited(
+        "{{#badges",
+        (
+            opt(":"),
+            space0,
+            take_while(1.., |c: char| c != ' ' && c != '}'),
+            repeat(
+                0..,
+                preceded(" ", take_while(1.., |c: char| c != ' ' && c != '}')),
+            ),
+        )
+            .map(
+                |(_, _, name, cats): (_, _, &str, Vec<&str>)| DirectiveData::BadgeSet {
                     crate_name: name.trim(),
                     additional_categories: cats
                         .into_iter()
@@ -218,6 +247,20 @@ mod tests {
         assert!(input.is_empty());
     }
 
+    /// Badge set directive keeps additional categories separate.
+    #[test]
+    fn badge_set_directive_keeps_additional_categories_separate() {
+        let mut input = "{{#badges ndarray data-structures science=\"Science\"}}";
+        assert_eq!(
+            parse_directive_element(&mut input).expect("valid badge set directive"),
+            Element::CustomDirective(DirectiveData::BadgeSet {
+                crate_name: "ndarray",
+                additional_categories: vec!["data-structures", "science=\"Science\""],
+            })
+        );
+        assert!(input.is_empty());
+    }
+
     /// Verifies category destinations require a name and preserve punctuation and URL escapes.
     #[test]
     fn category_links_and_badges_parse_encoded_names_and_reject_empty_names() {
@@ -251,6 +294,8 @@ mod tests {
             "{{cat accessibility}}",
             "{{!crates.io serde}}",
             "{{#crate serde filesystem api-bindings}}",
+            "{{#badges serde}}",
+            "{{#badges serde filesystem api-bindings}}",
             "{{#categories filesystem=Filesystem,api-bindings=\"API bindings\"}}",
             "{{#example ../../crates/language/examples/constants_and_statics/constants.rs:example}}",
         ];
@@ -278,6 +323,7 @@ mod tests {
             "{{cat }}",
             "{{!docs }}",
             "{{#crate }}",
+            "{{#badges }}",
             "{{#categories }}",
             "{{#example }}",
             "{{#include refs.incl.md}}",

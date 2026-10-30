@@ -3,6 +3,7 @@
 //! TODO Reviewed ??-??-2026
 
 mod crate_blocks;
+use crate_blocks::render_badge_set;
 use crate_blocks::render_category_block;
 use crate_blocks::render_crate_block;
 
@@ -127,6 +128,9 @@ where
             DirectiveData::CrateBlock { .. } if conf.process_crate_block_directives => {
                 render_crate_block(directive)
             }
+            DirectiveData::BadgeSet { .. } if conf.process_crate_block_directives => {
+                render_badge_set(directive)
+            }
             DirectiveData::CategoryBlock { .. } if conf.process_crate_block_directives => {
                 render_category_block(directive)
             }
@@ -147,6 +151,7 @@ where
             DirectiveData::Link { .. }
             | DirectiveData::Badge { .. }
             | DirectiveData::CrateBlock { .. }
+            | DirectiveData::BadgeSet { .. }
             | DirectiveData::CategoryBlock { .. }
             | DirectiveData::ExampleBlock { .. } => directive.to_string(),
         });
@@ -465,6 +470,30 @@ mod tests {
             process_markdown(&rendered, &config).expect("second processing succeeds"),
             expected
         );
+    }
+
+    /// A badge set expands to the four crate badges, one index entry and the category badges.
+    #[test]
+    fn badge_set_renders_crate_badges_then_categories() {
+        let rendered = process_markdown(
+            "{{#badges ndarray data-structures science=Science}}\n",
+            &Config::default(),
+        )
+        .expect("render badge set");
+
+        assert_eq!(
+            rendered,
+            concat!(
+                "[![ndarray][c~ndarray~docs~badge]][c~ndarray~docs] ",
+                "[![ndarray~crates.io][c~ndarray~crates.io~badge]][c~ndarray~crates.io] ",
+                "[![ndarray~repo][c~ndarray~repo~badge]][c~ndarray~repo] ",
+                "[![ndarray~lib.rs][c~ndarray~lib.rs~badge]][c~ndarray~lib.rs]{{hi:ndarray}} ",
+                "[![cat~data-structures][cat~data-structures~badge]][cat~data-structures]",
+                "{{hi:data-structures}} ",
+                "[![cat~science][cat~science~badge]][cat~science]{{hi:Science}}\n"
+            )
+        );
+        validate_no_unexpanded_directives(&rendered).expect("badge set is fully expanded");
     }
 
     /// The unresolved-directive check skips code and native mdBook helpers.

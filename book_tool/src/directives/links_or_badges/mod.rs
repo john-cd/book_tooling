@@ -15,6 +15,7 @@ pub(super) fn render_link_or_badge(directive: &DirectiveData<'_>) -> String {
         DirectiveData::Link { kind, name } => (false, kind, name),
         DirectiveData::Badge { kind, name } => (true, kind, name),
         DirectiveData::CrateBlock { .. }
+        | DirectiveData::BadgeSet { .. }
         | DirectiveData::CategoryBlock { .. }
         | DirectiveData::ExampleBlock { .. } => return String::new(),
     };
