@@ -140,7 +140,8 @@ impl<F> MarkdownRenderer<F> {
             DirectiveData::Link { name, .. }
             | DirectiveData::Badge { name, .. }
             | DirectiveData::ExampleBlock { name } => *name,
-            DirectiveData::CrateBlock { crate_name, .. } => *crate_name,
+            DirectiveData::CrateBlock { crate_name, .. }
+            | DirectiveData::BadgeSet { crate_name, .. } => *crate_name,
             DirectiveData::CategoryBlock { categories } => categories.first().copied()?,
         };
         let payload_range = self.source_range(payload)?;
@@ -656,6 +657,7 @@ mod tests {
             DirectiveData::Link { .. }
             | DirectiveData::Badge { .. }
             | DirectiveData::CrateBlock { .. }
+            | DirectiveData::BadgeSet { .. }
             | DirectiveData::CategoryBlock { .. } => directive.to_string(),
         });
 

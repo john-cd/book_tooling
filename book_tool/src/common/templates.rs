@@ -84,6 +84,17 @@ pub fn render_badge_with_text(
     )
 }
 
+/// Renders a Markdown badge without the trailing index entry, so several badges can share one.
+///
+/// Example: `render_badge_without_index(DestinationKind::CratesIo, "anyhow", "anyhow~crates.io")`
+/// produces: `[![anyhow~crates.io][p~anyhow~crates.io~badge]][p~anyhow~crates.io]`.
+#[must_use]
+pub fn render_badge_without_index(kind: DestinationKind, name: &str, alt_text: &str) -> String {
+    let prefix = kind.prefix();
+    let label = kind.label();
+    format!("[![{alt_text}][{prefix}~{name}~{label}~badge]][{prefix}~{name}~{label}]")
+}
+
 /// Renders a Markdown link for a given destination.
 ///
 /// Example: `render_link(DestinationKind::Docs, "anyhow")`

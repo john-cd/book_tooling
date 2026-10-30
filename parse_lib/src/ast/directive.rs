@@ -52,6 +52,16 @@ pub enum DirectiveData<'a> {
         additional_categories: Vec<&'a str>,
     },
 
+    /// Insert the full badge set for a crate: `docs.rs`, `crates.io`, GitHub repository and
+    /// `lib.rs` badges, one shared index entry, then optional category badges, for example
+    /// `{{#badges crt cat1 cat-2=Title}}`.
+    BadgeSet {
+        /// Crate displayed by the badge set.
+        crate_name: &'a str,
+        /// Additional category badges to include in the set.
+        additional_categories: Vec<&'a str>,
+    },
+
     /// Insert badges for one or more categories.
     ///
     /// A category may use `slug=Title` to preserve its displayed title, for
@@ -86,6 +96,17 @@ impl Display for DirectiveData<'_> {
                 } else {
                     let categories = &additional_categories.join(" ");
                     write!(f, "{{{{#crate {crate_name} {categories}}}}}")
+                }
+            }
+            DirectiveData::BadgeSet {
+                crate_name,
+                additional_categories,
+            } => {
+                if additional_categories.is_empty() {
+                    write!(f, "{{{{#badges {crate_name}}}}}")
+                } else {
+                    let categories = &additional_categories.join(" ");
+                    write!(f, "{{{{#badges {crate_name} {categories}}}}}")
                 }
             }
             DirectiveData::CategoryBlock { categories } => {
