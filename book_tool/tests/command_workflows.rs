@@ -1,6 +1,6 @@
-// TODO Reviewed ??-??-2026
-
 //! End-to-end tests of the `book_tool` subcommands.
+//!
+//! TODO Reviewed ??-??-2026
 
 #![expect(
     clippy::expect_used,
