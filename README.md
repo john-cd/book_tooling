@@ -173,7 +173,7 @@ book_tool search "some query" ./src --extension md --extension markdown --exclud
 - `{{github repo}}`: Link to a GitHub repository.
 - `{{!docs name}}`: A linked docs.rs badge; the other link kinds also support `!` badges.
 - `{{#crate name cat1 cat2}}`: A crate badge followed by badges for its categories.
-- `{{#badges name cat1 cat2}}`: The full badge set for a crate (`docs.rs`, `crates.io`, repository and `lib.rs`, sharing one index entry), followed by badges for its categories.
+- `{{#badges name cat1 cat2}}`: The full badge set for a crate (`docs.rs`, `crates.io`, repository and `lib.rs`, sharing one index entry), followed by badges for its categories (use `slug=Title`, quoting titles with spaces, as for `{{#categories}}`).
 - `{{#categories filesystem,api-bindings}}`: Badges for categories. Use `slug=Title` to keep a display title, including spaces in quotes, such as `{{#categories filesystem=Filesystem,api-bindings="API bindings"}}`.
 - `{{#example name}}`: Inserts the legacy `examples/name.md` include when processed by the file-oriented command. In an mdBook adapter, the example resolver can instead map a chapter-relative include such as `{{#example ../../../crates/cats/filesystem/examples/read_write/read_file.rs:example}}`.
 

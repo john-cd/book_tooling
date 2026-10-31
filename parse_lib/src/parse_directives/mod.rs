@@ -129,27 +129,19 @@ fn parse_crate_block_directive<'a>(input: &mut &'a str) -> ModalResult<Directive
 
 /// Parses a `{{#badges ...}}` block directive.
 fn parse_badge_set_directive<'a>(input: &mut &'a str) -> ModalResult<DirectiveData<'a>> {
-    // {{#badges: crt cat1 cat-2}}
+    // {{#badges: crt cat1 cat-2="Title with spaces"}}
     delimited(
         "{{#badges",
-        (
-            opt(":"),
-            space0,
-            take_while(1.., |c: char| c != ' ' && c != '}'),
-            repeat(
-                0..,
-                preceded(" ", take_while(1.., |c: char| c != ' ' && c != '}')),
-            ),
-        )
-            .map(
-                |(_, _, name, cats): (_, _, &str, Vec<&str>)| DirectiveData::BadgeSet {
-                    crate_name: name.trim(),
-                    additional_categories: cats
-                        .into_iter()
-                        .flat_map(split_category_arguments)
-                        .collect(),
-                },
-            ),
+        (opt(":"), space0, take_until(1.., "}}")).verify_map(|(_, _, args): (_, _, &str)| {
+            let (name, categories) = args
+                .trim()
+                .split_once([' ', '\t'])
+                .unwrap_or_else(|| (args.trim(), ""));
+            (!name.is_empty()).then(|| DirectiveData::BadgeSet {
+                crate_name: name,
+                additional_categories: split_category_arguments(categories),
+            })
+        }),
         "}}",
     )
     .parse_next(input)
@@ -242,6 +234,20 @@ mod tests {
             Element::CustomDirective(DirectiveData::CrateBlock {
                 crate_name: "same-file",
                 additional_categories: vec!["filesystem=Filesystem", "api-bindings=API"],
+            })
+        );
+        assert!(input.is_empty());
+    }
+
+    /// Badge set directive keeps quoted category titles with spaces together.
+    #[test]
+    fn badge_set_directive_keeps_quoted_titles_together() {
+        let mut input = "{{#badges ndarray data-structures=\"Data structures\" science}}";
+        assert_eq!(
+            parse_directive_element(&mut input).expect("valid badge set directive"),
+            Element::CustomDirective(DirectiveData::BadgeSet {
+                crate_name: "ndarray",
+                additional_categories: vec!["data-structures=\"Data structures\"", "science"],
             })
         );
         assert!(input.is_empty());
