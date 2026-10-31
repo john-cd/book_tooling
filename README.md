@@ -173,8 +173,8 @@ book_tool search "some query" ./src --extension md --extension markdown --exclud
 - `{{github repo}}`: Link to a GitHub repository.
 - `{{!docs name}}`: A linked docs.rs badge; the other link kinds also support `!` badges.
 - `{{#crate name cat1 cat2}}`: A crate badge followed by badges for its categories.
-- `{{#badges name cat1 cat2}}`: The full badge set for a crate (`docs.rs`, `crates.io`, repository and `lib.rs`, sharing one index entry), followed by badges for its categories (use `slug=Title`, quoting titles with spaces, as for `{{#categories}}`).
-- `{{#categories filesystem,api-bindings}}`: Badges for categories. Use `slug=Title` to keep a display title, including spaces in quotes, such as `{{#categories filesystem=Filesystem,api-bindings="API bindings"}}`.
+- `{{#badges name cat1 cat2}}`: The full badge set for a crate (`docs.rs`, `crates.io`, repository and `lib.rs`, sharing one index entry), followed by badges for its categories. Use `slug=Title` to add a category index term or `slug=` to omit it; quote titles with spaces, as for `{{#categories}}`.
+- `{{#categories filesystem,api-bindings}}`: Badges for categories. Use `slug=Title` to keep a display title, including spaces in quotes, such as `{{#categories filesystem=Filesystem,api-bindings="API bindings"}}`; use `slug=` to omit the index term.
 - `{{#example name}}`: Inserts the legacy `examples/name.md` include when processed by the file-oriented command. In an mdBook adapter, the example resolver can instead map a chapter-relative include such as `{{#example ../../../crates/cats/filesystem/examples/read_write/read_file.rs:example}}`.
 
 The render-time API, `directives::process_markdown`, applies the same configured transformations to a string without touching files. `process_markdown_with_example_resolver` lets an adapter supply its own example mapping and returns an error if that resolution fails.

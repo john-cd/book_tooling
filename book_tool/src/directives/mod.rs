@@ -500,6 +500,35 @@ mod tests {
         validate_no_unexpanded_directives(&rendered).expect("badge set is fully expanded");
     }
 
+    /// A badge set omits a category index term when its title is empty.
+    #[test]
+    fn badge_set_omits_empty_category_title_index_entry() {
+        let rendered = process_markdown("{{#badges ndarray science=}}", &Config::default())
+            .expect("render badge set with an empty category title");
+
+        assert_eq!(
+            rendered,
+            concat!(
+                "[![ndarray][c~ndarray~docs~badge]][c~ndarray~docs] ",
+                "[![ndarray~crates.io][c~ndarray~crates.io~badge]][c~ndarray~crates.io] ",
+                "[![ndarray~repo][c~ndarray~repo~badge]][c~ndarray~repo] ",
+                "[![ndarray~lib.rs][c~ndarray~lib.rs~badge]][c~ndarray~lib.rs]",
+                "{{hi:ndarray}} ",
+                "[![cat~science][cat~science~badge]][cat~science]"
+            )
+        );
+    }
+
+    /// A category-only directive omits an index term when its title is empty.
+    #[test]
+    fn category_block_omits_empty_title_index_entry() {
+        assert_eq!(
+            process_markdown("{{#categories science=}}", &Config::default())
+                .expect("render category with an empty title"),
+            "[![cat~science][cat~science~badge]][cat~science]"
+        );
+    }
+
     /// The unresolved-directive check skips code and native mdBook helpers.
     #[test]
     fn unresolved_check_ignores_code_and_native_mdbook_helpers() {

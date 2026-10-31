@@ -84,12 +84,17 @@ pub fn render_badge_with_text(
     )
 }
 
-/// Renders a Markdown badge without the trailing index entry, so several badges can share one.
+/// Renders a Markdown badge without the trailing index entry, so several badges can share one or
+/// a category badge can omit its title index entry.
 ///
 /// Example: `render_badge_without_index(DestinationKind::CratesIo, "anyhow", "anyhow~crates.io")`
 /// produces: `[![anyhow~crates.io][p~anyhow~crates.io~badge]][p~anyhow~crates.io]`.
 #[must_use]
 pub fn render_badge_without_index(kind: DestinationKind, name: &str, alt_text: &str) -> String {
+    if kind == DestinationKind::Category {
+        return format!("[![{alt_text}][cat~{name}~badge]][cat~{name}]");
+    }
+
     let prefix = kind.prefix();
     let label = kind.label();
     format!("[![{alt_text}][{prefix}~{name}~{label}~badge]][{prefix}~{name}~{label}]")
@@ -185,6 +190,15 @@ mod tests {
         assert_eq!(
             render_link(DestinationKind::Category, ""),
             "[][cat~]\u{2197}{{hi:}}"
+        );
+    }
+
+    /// Renders an unindexed category badge with its category reference definitions.
+    #[test]
+    fn category_badge_without_index_uses_category_reference_definitions() {
+        assert_eq!(
+            render_badge_without_index(DestinationKind::Category, "science", "cat~science"),
+            "[![cat~science][cat~science~badge]][cat~science]"
         );
     }
 }

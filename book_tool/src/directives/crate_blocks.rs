@@ -72,14 +72,14 @@ pub(super) fn render_category_block(directive: &DirectiveData<'_>) -> String {
     }
 }
 
-/// Renders one `name` or `name=Title` category entry as a badge.
+/// Renders one `name`, `name=Title`, or `name=` category entry as a badge.
 fn render_category_badge(category: &str) -> String {
     let (name, title) = category.split_once('=').unwrap_or((category, category));
     let title = title.trim_matches('"');
-    render_badge_with_text(
-        DestinationKind::Category,
-        name,
-        &format!("cat~{name}"),
-        title,
-    )
+    let alt_text = format!("cat~{name}");
+    if title.is_empty() {
+        render_badge_without_index(DestinationKind::Category, name, &alt_text)
+    } else {
+        render_badge_with_text(DestinationKind::Category, name, &alt_text, title)
+    }
 }
