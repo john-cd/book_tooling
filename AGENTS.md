@@ -31,11 +31,11 @@
 
 ## Build outputs
 
-Direct Cargo commands use Cargo's portable `target` directory in the current checkout unless `CARGO_TARGET_DIR` or `CARGO_BUILD_BUILD_DIR` overrides it. The root `justfile` instead stores outputs outside the checkout in per-worktree `<cache home>/book_tooling/target/<worktree name>` and `<cache home>/book_tooling/build/<worktree name>` directories. Its cache home defaults to `%LOCALAPPDATA%` on Windows, `~/Library/Caches` on macOS, and `${XDG_CACHE_HOME:-$HOME/.cache}` on Linux.
+Run ad hoc Cargo commands through the root justfile as just cargo <subcommand> [args...]. Every checkout selects its own central output slot automatically. Cargo-make tasks also receive centralized paths where configured.
 
-Set `BOOK_TOOLING_CACHE_HOME` to change the cache root. `CARGO_TARGET_DIR` and `CARGO_BUILD_BUILD_DIR` can override the justfile's per-worktree output paths. The default worktree name is `main`; set `BOOK_TOOLING_WORKTREE_NAME` before running `just` in another worktree to keep its outputs separate.
+On Windows, target artifacts go to D:/target/book_tooling/slot and intermediate build artifacts go to C:/code_build/book_tooling/slot. On Linux/macOS, use the XDG cache folder (or ~/.cache) under cargo-target/book_tooling/slot and cargo-build/book_tooling/slot.
 
-Use `sccache` 0.18 or newer as the Rust compiler wrapper for Cargo builds. `just` defaults `SCCACHE_DIR` to `<cache root>/sccache`; set `SCCACHE_DIR` to override it. `DPRINT_CACHE_DIR` defaults to `<cache root>/dprint` for dprint's plugin cache and can be overridden independently. `RUSTC_WRAPPER` defaults to `sccache` in both Cargo and just, and can be set to an empty value to disable the wrapper. `CARGO_INCREMENTAL` defaults to `0` in just; set it to override that default. CI sets runner-local Cargo output paths and disables the wrapper.
+These repositories use sccache with incremental compilation disabled. The shared cache is limited to 20G. SCCACHE_BASEDIRS resolves to the current checkout root for the main checkout and each auxiliary worktree.
 
 ## Build, lint, and test
 
@@ -98,3 +98,12 @@ Run commands from this repository root. See [CONTRIBUTING.md](CONTRIBUTING.md) f
 - Inspect running Cargo/rustc processes before starting expensive builds or cleaning artifacts. Do not stop another task's processes or restart the shared sccache server while builds are active.
 - Use `D:\temp` for Windows temporary files where an override is needed. Keep temporary files separate from persistent target, intermediate-build, Cargo, and sccache caches.
 - Finish with `git diff --check`. Report unavailable checks and pre-existing failures without attributing them to the current change.
+## Central build outputs and worktrees
+
+- Keep auxiliary Git worktrees under .worktrees/ and name them with one lowercase letter from a through j. A through j are reserved here.
+- Keep the main worktree on this repository’s configured integration branch (usually `develop`; use `main` or `master` when that is the configured integration branch). Keep topic branches in auxiliary worktrees.
+- Windows: target outputs go to D:/target/book_tooling/slot and intermediate build outputs go to C:/code_build/book_tooling/slot. C: is NTFS; D: is ReFS.
+- Linux/macOS: target outputs go to the XDG cache folder (or ~/.cache) under cargo-target/book_tooling/<slot>; intermediate outputs go under cargo-build/book_tooling/<slot>.
+- Run ad hoc commands as just cargo <subcommand> [args...]; existing cargo-make tasks also receive the configured paths.
+- sccache is enabled with incremental compilation disabled. Cache size is 20G; the Windows cache directory is D:/sccache and the Linux/macOS cache directory is under the user's XDG cache folder.
+- SCCACHE_BASEDIRS adds the common repository root, which covers the main checkout and every auxiliary worktree, while preserving inherited project bases.

@@ -209,3 +209,11 @@ The binaries will be available in `target/release/book_tool` and `target/release
 ## License
 
 This project is licensed under either the [Apache License, Version 2.0](LICENSE-APACHE) or the [MIT license](LICENSE-MIT) at your option.
+## Central build outputs and worktrees
+
+- Keep auxiliary Git worktrees under .worktrees/ and name them with one lowercase letter from a through j. A through j are reserved here.
+- Windows: target outputs go to D:/target/book_tooling/slot and intermediate build outputs go to C:/code_build/book_tooling/slot. C: is NTFS; D: is ReFS.
+- Linux/macOS: target outputs go to the XDG cache folder (or ~/.cache) under cargo-target/book_tooling/<slot>; intermediate outputs go under cargo-build/book_tooling/<slot>.
+- Run ad hoc commands as just cargo <subcommand> [args...]; existing cargo-make tasks also receive the configured paths.
+- sccache is enabled with incremental compilation disabled. Cache size is 20G; the Windows cache directory is D:/sccache and the Linux/macOS cache directory is under the user's XDG cache folder.
+- SCCACHE_BASEDIRS adds the common repository root, which covers the main checkout and every auxiliary worktree, while preserving inherited project bases.

@@ -9,21 +9,29 @@ root := replace(source_directory(), "\\", "/")
 rustfmt_toolchain_default := trim(replace_regex(read(join(root, "rustfmt-toolchain.toml")), '(?s).*channel\s*=\s*"([^"]+)".*', "$1"))
 rustfmt_toolchain_override := env("RUSTFMT_TOOLCHAIN", "")
 rustfmt_toolchain := if rustfmt_toolchain_override == "" { rustfmt_toolchain_default } else { rustfmt_toolchain_override }
-worktree_name := env("BOOK_TOOLING_WORKTREE_NAME", "main")
+checkout_name := file_name(root)
+worktree_name := if checkout_name == "book_tooling" { "main" } else { checkout_name }
+sccache_base := if file_name(parent_directory(root)) == ".worktrees" { parent_directory(parent_directory(root)) } else { root }
+inherited_sccache_bases := env("SCCACHE_BASEDIRS", "")
+sccache_base_separator := if os() == "windows" { ";" } else { ":" }
 windows_cache_home := env("LOCALAPPDATA", join(home_directory(), ".cache"))
-macos_cache_home := env("XDG_CACHE_HOME", join(join(home_directory(), "Library"), "Caches"))
 unix_cache_home := env("XDG_CACHE_HOME", join(home_directory(), ".cache"))
-default_cache_home := if os() == "windows" { windows_cache_home } else if os() == "macos" { macos_cache_home } else { unix_cache_home }
-cache_home := env("BOOK_TOOLING_CACHE_HOME", default_cache_home)
-build_root := join(cache_home, "book_tooling")
-target_dir := env("CARGO_TARGET_DIR", join(join(build_root, "target"), worktree_name))
-build_dir := env("CARGO_BUILD_BUILD_DIR", join(join(build_root, "build"), worktree_name))
+cache_home := if os() == "windows" { windows_cache_home } else { unix_cache_home }
+target_root := if os() == "windows" { "D:/target/book_tooling" } else { join(cache_home, "cargo-target/book_tooling") }
+build_root := if os() == "windows" { "C:/code_build/book_tooling" } else { join(cache_home, "cargo-build/book_tooling") }
+target_dir := join(target_root, worktree_name)
+build_dir := join(build_root, worktree_name)
 export CARGO_TARGET_DIR := target_dir
+export CARGO_BUILD_TARGET_DIR := target_dir
 export CARGO_BUILD_BUILD_DIR := build_dir
-export RUSTC_WRAPPER := env("RUSTC_WRAPPER", "sccache")
-export CARGO_INCREMENTAL := env("CARGO_INCREMENTAL", "0")
-export SCCACHE_DIR := env("SCCACHE_DIR", join(cache_home, "sccache"))
+export RUSTC_WRAPPER := "sccache"
+export CARGO_BUILD_RUSTC_WRAPPER := "sccache"
+export CARGO_INCREMENTAL := "0"
+export SCCACHE_DIR := if os() == "windows" { "D:/sccache" } else { join(cache_home, "sccache") }
+export SCCACHE_CACHE_SIZE := "20G"
+export SCCACHE_BASEDIRS := if inherited_sccache_bases == "" { sccache_base } else { inherited_sccache_bases + sccache_base_separator + sccache_base }
 export DPRINT_CACHE_DIR := env("DPRINT_CACHE_DIR", join(cache_home, "dprint"))
+
 
 [no-exit-message]
 _default:
@@ -93,4 +101,8 @@ alias nta := nextestall
 
 @release:
     echo "Build the tools in $(pwd) in release mode and copy to {{ root }}/../bin"
-    cargo +{{ rustfmt_toolchain }} build --bins --locked --all-features --release -Z unstable-options --artifact-dir "{{ root }}/../bin"
+    cargo +{{ rustfmt_toolchain }} build --bins --locked --all-features --release -Z unstable-options --artifact-dir "{{ build_dir }}/artifacts"
+
+[positional-arguments]
+cargo +args:
+    cargo "$@"

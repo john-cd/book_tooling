@@ -1,11 +1,12 @@
 # TODO Reviewed ??-??-2026
 
 [build]
-rustc-wrapper = "sccache"
-incremental = false
 
 ## "ci" is used by the Github Action CD/CI workflow -  no need to optimize heavily
 ## This profile is optimized for fast compilation and testing in CI.
+# Use just cargo or cargo-make for external per-checkout output roots.
+rustc-wrapper = "sccache"
+incremental = false
 [profile.ci]
 inherits = "dev"      # Inherit from dev for fast compilation (`opt-level = 0`, `codegen-units = 256`).
 opt-level = 1         # Use a little optimization so tests don't run too slowly.
@@ -169,3 +170,7 @@ lto = "off"           # Ensure LTO is off for faster linking.
 #progress.when = 'auto'           # whether cargo shows progress bar
 #progress.width = 80              # width of progress bar
 #progress.term-integration = true # whether cargo reports progress to terminal emulator
+
+[env]
+SCCACHE_BASEDIRS = { value = ".", relative = true }
+SCCACHE_CACHE_SIZE = { value = "20G", force = true }
