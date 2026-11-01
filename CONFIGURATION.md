@@ -73,7 +73,7 @@ and environment/command-line overrides take precedence over config values.
 | `dev` / `test`                         | `opt-level = 0`, line tables, LTO off, 256 codegen units | `opt-level = "s"`, no debug info, 16 units; selected hashing, collections, math, regex, parallelism, allocator and macro crates use level 3. |
 | `debugging`                            | Level 0 and full symbols                                 | Level 0 and full symbols, including build scripts/procedural macros; intentionally uses a separate cache variant.                            |
 | `ci`                                   | Inherits `dev`, incremental disabled                     | Same flags as `dev` for dependency cache reuse. Use release jobs for performance validation.                                                 |
-| `tools`                                | Level 2 for repeatedly executed repository tools         | Same dependency flags as `dev`; build overrides request level 3 with no debug info; named package overrides take precedence.                                              |
+| `tools`                                | Level 2 for repeatedly executed repository tools         | Same dependency flags as `dev`; build overrides request level 3 with no debug info; named package overrides take precedence.                 |
 | `release` / other specialized profiles | Preserve existing shipping/profiling choices             | Preserve existing shipping/profiling choices.                                                                                                |
 
 `test` inherits `dev`. Package overrides take precedence over build overrides; macro parsing

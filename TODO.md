@@ -1,38 +1,18 @@
 <!-- TODO Reviewed ??-??-2026 -->
 
-# Tasks
+# Task tracking
 
-## Validation prerequisites not ready
+Open work is tracked in [GitHub Issues](https://github.com/john-cd/book_tooling/issues).
+Keep one topic per issue, except epics, with a problem, task list, and acceptance criteria.
+Record status and validation evidence in the issue rather than duplicating checklists here.
 
-### Tools and infrastructure
+## Blocker tracking
 
-#### VALIDATE-INFRA-01 — Formatting, hooks and CI validation
+- [Human decisions, reviews, and host prerequisites](https://github.com/john-cd/book_tooling/issues/80).
 
-- [#71](https://github.com/john-cd/book_tooling/issues/71) — **P2** — Configure project formatting, hooks, and test runner — Owner: Unassigned — **PARTIAL**
+## Maintenance
 
-## Human review required
-
-### Tool implementation
-
-#### HUMAN-CODE-01 — Fuzzing and coverage evidence
-
-- [#68](https://github.com/john-cd/book_tooling/issues/68) — **P3** — Human check: run the fuzz target and record the coverage baseline (#49) — Owner: Unassigned — **PARTIAL; HUMAN REVIEW**
-
-### Tools and infrastructure
-
-#### HUMAN-INFRA-01 — Cross-repository feature ownership
-
-- [#67](https://github.com/john-cd/book_tooling/issues/67) — **P2** — Human decision: book_tooling and mdbook-utils feature ownership (mdbook-utils#223) — Owner: Unassigned — **HUMAN REVIEW**
-
-#### HUMAN-INFRA-02 — CI enablement and repository settings
-
-- [#62](https://github.com/john-cd/book_tooling/issues/62) — **P1** — Re-enable CI and verify the refactored workflows — Owner: Unassigned — **HUMAN REVIEW**
-## Configuration alignment (2026-11-01)
-
-The configuration-alignment work is integrated into `develop` in focused commits.
-
-Remaining work is tracked in GitHub:
-
-- [ ] [[P2] Finish shared formatting, lint, and hook policy validation](https://github.com/john-cd/book_tooling/issues/76)
-- [ ] [[P2] Validate and finalize Cargo profiles, output paths, and linker policy](https://github.com/john-cd/book_tooling/issues/77)
-- [ ] [[P2] Complete dependency-update coverage and consistent CI caching](https://github.com/john-cd/book_tooling/issues/78)
+- [Finish shared formatting, lint, and hook policy validation](https://github.com/john-cd/book_tooling/issues/76).
+- [Validate and finalize Cargo profiles, output paths, and linker policy](https://github.com/john-cd/book_tooling/issues/77).
+- [Complete dependency-update coverage and consistent CI caching](https://github.com/john-cd/book_tooling/issues/78).
+- [Review and reconcile repository branches and worktrees](https://github.com/john-cd/book_tooling/issues/79).
