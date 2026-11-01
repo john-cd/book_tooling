@@ -46,8 +46,8 @@ jobs:
         uses: ./.github/actions/setup-rust
 
       - name: Install workspace tools (sccache, cargo-nextest, prek, dprint, cargo-deny)
-        # taiki-e/install-action v2.87.30
-        uses: taiki-e/install-action@a4d3f3f761dcd95cce1b72cb61cb6d1963438177
+        # taiki-e/install-action v2.88.0
+        uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
         with:
           tool: |
             sccache@0.19.0
@@ -92,8 +92,8 @@ jobs:
           cache-key: coverage
 
       - name: Install cargo-llvm-cov and sccache
-        # taiki-e/install-action v2.87.30
-        uses: taiki-e/install-action@a4d3f3f761dcd95cce1b72cb61cb6d1963438177
+        # taiki-e/install-action v2.88.0
+        uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
         with:
           tool: cargo-llvm-cov,sccache@0.19.0
 
