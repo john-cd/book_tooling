@@ -1,6 +1,7 @@
 # TODO Reviewed ??-??-2026
 # Build configuration: see CONFIGURATION.md at the repository root.
-# Run the repository build-setup recipe to link target/build to the central checkout slot.
+# The Just runner supplies absolute per-checkout paths. Direct Cargo gets its absolute build-dir
+# fallback from CARGO_HOME/config.toml; do not set build-dir here, because this checkout is on ReFS.
 
 [build]
 
@@ -8,7 +9,6 @@
 rustc-wrapper = "sccache"
 incremental = false
 target-dir = "target"
-build-dir = "build"
 
 [env]
 SCCACHE_BASEDIRS = { value = ".", relative = true }
