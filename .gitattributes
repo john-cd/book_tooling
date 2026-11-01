@@ -1,93 +1,76 @@
-# Normalize text files to LF on every platform.
-*          text=auto eol=lf
+# Normalize text files to LF and use language-aware diffs.
+* text=auto eol=lf
 
-# Source and configuration diffs
-*.rs       text diff=rust
-*.toml     text diff=toml
-*.lock     text diff=toml
-*.md       text diff=markdown linguist-detectable
-*.mdx      text diff=markdown
-*.json     text diff=json
-*.jsonc    text diff=json
-*.yaml     text
-*.yml      text
-*.xml      text
-*.sql      text
-*.sh       text
-*.bash     text
-*.fish     text
-*.ksh      text
-*.zsh      text
-*.txt      text
-*.csv      text
-*.tab      text
-*.tsv      text
-*.patch    -text
-
-# Documents
-*.bibtex   text diff=bibtex
-*.doc      diff=astextplain
-*.docx     diff=astextplain
-*.dot      diff=astextplain
-*.pdf      diff=astextplain
-*.rtf      diff=astextplain
-*.tex      text diff=tex
-*.adoc     text
-*.textile  text
-*.mustache text
-*.epub     diff=astextplain
-
-# Binary assets
-*.7z       binary
-*.bz       binary
-*.bz2      binary
-*.bzip2    binary
-*.gz       binary
-*.lz       binary
-*.lzma     binary
-*.rar      binary
-*.tar      binary
-*.tgz      binary
-*.xz       binary
-*.zip      binary
-*.zst      binary
-*.png      binary
-*.jpg      binary
-*.jpeg     binary
-*.gif      binary
-*.tif      binary
-*.tiff     binary
-*.ico      binary
-*.webp     binary
-*.avif     binary
-*.eps      binary
-*.woff     binary
-*.woff2    binary
-*.ttf      binary
-*.otf      binary
-*.mp3      binary
-*.mp4      binary
-*.mov      binary
-*.wasm     binary
-
-# Files containing JSONC comments should be highlighted as JSONC on GitHub.
+# Source and structured text
+*.md text diff=markdown
+*.mdx text diff=markdown
+*.json text diff=json
+*.jsonc text diff=json
+*.toml text diff=toml
+*.lock text diff=toml
+*.yaml text
+*.yml text
+*.xml text
+*.sql text
+*.csv text
+*.sh text
+*.bash text
+*.ps1 text
+*.bat text
+*.cmd text
+*.proto text
+Dockerfile* text
 .devcontainer.json linguist-language=JSON-with-Comments
-devcontainer.json   linguist-language=JSON-with-Comments
-.vscode/*.json      linguist-language=JSON-with-Comments
+devcontainer.json linguist-language=JSON-with-Comments
+.vscode/*.json linguist-language=JSON-with-Comments
 
-# Windows command scripts keep their conventional line endings.
-*.bat      text eol=lf
-*.cmd      text eol=lf
+# Rust
+*.rs text diff=rust
+Cargo.lock text diff=toml
 
-# Exclude repository policy files from source archives.
+# Binary and generated assets
+*.7z binary
+*.avif binary
+*.bz binary
+*.bz2 binary
+*.bzip2 binary
+*.db binary
+*.eps binary
+*.gif binary
+*.gz binary
+*.ico binary
+*.jpeg binary
+*.jpg binary
+*.lz binary
+*.lzma binary
+*.mov binary
+*.mp3 binary
+*.mp4 binary
+*.onnx binary
+*.otf binary
+*.pdf binary
+*.pdb binary
+*.pkl binary
+*.pickle binary
+*.png binary
+*.rar binary
+*.tar binary
+*.tgz binary
+*.tif binary
+*.tiff binary
+*.ttf binary
+*.wasm binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.xz binary
+*.zip binary
+*.zst binary
+*.patch -text
+
+# Keep repository metadata out of source archives
 .gitattributes export-ignore
-.gitignore     export-ignore
-.gitkeep       export-ignore
+.gitignore export-ignore
+.gitkeep export-ignore
 
-# This fixture intentionally tests CRLF input.
 test_fixtures/markdown/crlf.md -text -eol
-
-# Python source and bytecode
-*.py text diff=python
-*.pyi text diff=python
-*.pyc binary

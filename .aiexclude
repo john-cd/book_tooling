@@ -36,11 +36,21 @@ Desktop.ini
 !.env.*.example
 *.key
 *.pem
+# Generated artifacts, caches, and local machine state
+**/debug/
+/.sccache/
+**/.sccache/
+**/*.rs.bk
 
-# Local outputs, caches, and linked worktrees
-/.sccache
+# Repository metadata and worktree state
 /.worktrees/
-**/__pycache__/
-**/.venv/
-**/.ruff_cache/
-**/.pytest_cache/
+**/.worktrees/
+
+# Editor and operating-system state
+.vscode/
+
+# CI runner output
+/.ci/
+**/.ci/
+
+# Local credentials and environment files

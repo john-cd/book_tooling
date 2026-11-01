@@ -85,10 +85,13 @@ Temporary Items
 .Trash-*
 .nfs*
 
-# Local outputs, caches, and linked worktrees
-/.sccache
+# Repository-local outputs and generated files
 /.worktrees/
-**/__pycache__/
-**/.venv/
-**/.ruff_cache/
-**/.pytest_cache/
+**/.worktrees/
+/.ci/
+**/.ci/
+**/debug/
+/.sccache/
+**/.sccache/
+
+# Local credentials and environment files
