@@ -9,6 +9,7 @@
 # The justfile/Makefile.toml reads CODE_*_ROOT overrides (with Windows and XDG defaults) and exports per-checkout Cargo output paths; use its cargo command for these roots.
 rustc-wrapper = "sccache"
 incremental = false
+
 [profile.ci]
 inherits = "dev"      # Inherit from dev for fast compilation (`opt-level = 0`, `codegen-units = 256`).
 opt-level = 1         # Use a little optimization so tests don't run too slowly.

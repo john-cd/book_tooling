@@ -1,3 +1,6 @@
+# Purpose: Build, validate, and maintain this Rust workspace with its configured tooling environment.
+# Usage: Run just --list from this directory to inspect the available recipes.
+
 # TODO Reviewed ??-??-2026
 
 set shell := ["bash", "-uc"]
@@ -60,12 +63,15 @@ export TMPDIR := if os() == "windows" { code_temp_root } else { env("TMPDIR", "/
 export DPRINT_CACHE_DIR := env("DPRINT_CACHE_DIR", join(cache_home, "dprint"))
 
 
+# List the available recipes and task modules.
 [no-exit-message]
 _default:
     @just --list --unsorted --justfile {{ source_file() }}
 
+# Format all Rust packages and their local path dependencies. Alias: fa.
 alias fa := fmtall
 
+# Check Rust formatting with the pinned formatter toolchain.
 @fmtcheck:
     cargo +{{ rustfmt_toolchain }} fmt --all -- --check
 
@@ -74,6 +80,7 @@ alias fa := fmtall
     echo "Formatting all packages and their local path-based dependencies in $(pwd)"
     cargo +{{ rustfmt_toolchain }} fmt --all
 
+# Check all Rust targets with every configured feature. Alias: cka.
 alias cka := checkall
 
 # Check all code (all packages, all features)
@@ -83,6 +90,7 @@ alias cka := checkall
 
 # `--all-targets` is equivalent to specifying `--lib --bins --tests --benches --examples`.
 
+# Run the orphansources recipe. Alias: osa.
 alias osa := orphansources
 
 # Check that every Rust source file under src/ belongs to a compiled module tree.
@@ -90,6 +98,7 @@ alias osa := orphansources
     echo "Check for orphan Rust source files in $(pwd)"
     python3 scripts/check_orphan_sources.py || python scripts/check_orphan_sources.py
 
+# Build all Rust targets with every configured feature. Alias: ba.
 alias ba := buildall
 
 # Build all packages (all features)
@@ -97,6 +106,7 @@ alias ba := buildall
     echo "Build all packages, all features in $(pwd)"
     cargo build --workspace --all-targets --locked --all-features --timings
 
+# Lint all Rust targets and features with Clippy. Alias: ca.
 alias ca := clippyall
 
 # Scan all code for common mistakes (all packages, all features)
@@ -104,6 +114,7 @@ alias ca := clippyall
     echo "Scan all code for common mistakes (all packages, all features) in $(pwd)"
     cargo clippy --workspace --all-targets --locked --all-features -- -D warnings
 
+# Run the deny recipe. Alias: da.
 alias da := deny
 
 # Check dependency advisories, licenses, duplicate versions, and registry sources.
@@ -111,6 +122,7 @@ alias da := deny
     echo "Check dependency policy in $(pwd)"
     cargo deny --locked check
 
+# Run the configured workspace tests and doctests. Alias: nta.
 alias nta := nextestall
 
 # Test all code in the workspace (incl. doctests) (all features)
@@ -126,10 +138,12 @@ alias nta := nextestall
     cargo doc --no-deps --workspace --locked --document-private-items
     cd "{{ target_dir }}/doc/" ; (python3 -m http.server 9000 || python -m http.server 9000)
 
+# Build release binaries into the configured external artifact directory.
 @release:
     echo "Build the tools in $(pwd) in release mode and copy to {{ root }}/../bin"
     cargo +{{ rustfmt_toolchain }} build --bins --locked --all-features --release -Z unstable-options --artifact-dir "{{ build_dir }}/artifacts"
 
+# Forward Cargo arguments with this checkout environment and central output paths.
 [positional-arguments]
 cargo +args:
     cargo "$@"
