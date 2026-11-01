@@ -11,5 +11,7 @@
   "rust-analyzer.imports.preferPrelude": true,
   "bookmarks.keepBookmarksOnLineDelete": false,
   "bookmarks.saveBookmarksInProject": true,
-  "telemetry.telemetryLevel": "off"
+  "telemetry.telemetryLevel": "off",
+  "files.eol": "\n",
+  "rust-analyzer.cargo.targetDir": null
 }

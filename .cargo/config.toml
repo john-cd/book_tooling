@@ -1,6 +1,6 @@
-# Run configure-cargo-host through this repo's runner once per host for direct Cargo defaults.
-# Use the runner's cargo command for isolated per-checkout outputs and cache base directories.
 # TODO Reviewed ??-??-2026
+# Build configuration: see CONFIGURATION.md at the repository root.
+# Run the repository build-setup recipe to link target/build to the central checkout slot.
 
 [build]
 
@@ -9,6 +9,7 @@
 # The justfile/Makefile.toml reads CODE_*_ROOT overrides (with Windows and XDG defaults) and exports per-checkout Cargo output paths; use its cargo command for these roots.
 rustc-wrapper = "sccache"
 incremental = false
+<<<<<<< HEAD
 
 [profile.ci]
 inherits = "dev"      # Inherit from dev for fast compilation (`opt-level = 0`, `codegen-units = 256`).
@@ -173,7 +174,81 @@ lto = "off"           # Ensure LTO is off for faster linking.
 #progress.when = 'auto'           # whether cargo shows progress bar
 #progress.width = 80              # width of progress bar
 #progress.term-integration = true # whether cargo reports progress to terminal emulator
+target-dir = "target"
+build-dir = "build"
 
 [env]
 SCCACHE_BASEDIRS = { value = ".", relative = true }
-SCCACHE_CACHE_SIZE = { value = "35G", force = true }
+
+[env.SCCACHE_CACHE_SIZE]
+value = "35G"
+force = true
+
+[target.x86_64-pc-windows-msvc]
+linker = "rust-lld.exe"
+
+[target.aarch64-pc-windows-msvc]
+linker = "rust-lld.exe"
+
+[profile.dev]
+# Unoptimized workspace code, small cached dependencies, and no link-time optimization.
+opt-level = 0
+debug = "line-tables-only"
+lto = "off"
+incremental = false
+codegen-units = 256
+build-override = {opt-level = 3, debug = 0, codegen-units = 16}
+
+[profile.dev.package]
+"*" = {opt-level = "s", debug = 0, codegen-units = 16}
+hashbrown = {opt-level = 3}
+indexmap = {opt-level = 3}
+memchr = {opt-level = 3}
+num-traits = {opt-level = 3}
+proc-macro2 = {opt-level = 3}
+quote = {opt-level = 3}
+rand = {opt-level = 3}
+rayon = {opt-level = 3}
+rayon-core = {opt-level = 3}
+regex = {opt-level = 3}
+regex-automata = {opt-level = 3}
+regex-syntax = {opt-level = 3}
+rustls = {opt-level = 3}
+smallvec = {opt-level = 3}
+syn = {opt-level = 3}
+# Package overrides take precedence over build-override; macro parsing crates stay optimized.
+
+[profile.test]
+incremental = false
+
+[profile.debugging]
+inherits = "dev"
+opt-level = 0
+debug = 2
+build-override = {opt-level = 0, debug = 2}
+
+[profile.debugging.package]
+"*" = {opt-level = 0, debug = 2}
+hashbrown = {opt-level = 0, debug = 2}
+indexmap = {opt-level = 0, debug = 2}
+memchr = {opt-level = 0, debug = 2}
+num-traits = {opt-level = 0, debug = 2}
+proc-macro2 = {opt-level = 0, debug = 2}
+quote = {opt-level = 0, debug = 2}
+rand = {opt-level = 0, debug = 2}
+rayon = {opt-level = 0, debug = 2}
+rayon-core = {opt-level = 0, debug = 2}
+regex = {opt-level = 0, debug = 2}
+regex-automata = {opt-level = 0, debug = 2}
+regex-syntax = {opt-level = 0, debug = 2}
+rustls = {opt-level = 0, debug = 2}
+smallvec = {opt-level = 0, debug = 2}
+syn = {opt-level = 0, debug = 2}
+
+[profile.ci]
+inherits = "dev"
+incremental = false
+
+[profile.tools]
+inherits = "dev"
+opt-level = 2

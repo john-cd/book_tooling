@@ -194,3 +194,8 @@ export npm_config_cache := env("npm_config_cache", join(code_packages_root, "npm
 # Configure the host fallback; regular recipes retain their separate checkout slots.
 configure-cargo-host:
     pwsh -NoLogo -NoProfile -File {{quote(join(root, "scripts/cargo-host.ps1"))}} -BuildRoot {{quote(code_build_root)}} -ConfigureHost
+
+
+# Link Cargo and rust-analyzer outputs without replacing existing directories.
+build-setup:
+    pwsh -NoLogo -NoProfile -File {{quote(join(source_directory(), "scripts/cargo-host.ps1"))}} -BuildRoot {{quote(code_build_root)}} -LinkOutputs
