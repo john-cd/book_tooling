@@ -1,10 +1,12 @@
+# Run configure-cargo-host through this repo's runner once per host for direct Cargo defaults.
+# Use the runner's cargo command for isolated per-checkout outputs and cache base directories.
 # TODO Reviewed ??-??-2026
 
 [build]
 
 ## "ci" is used by the Github Action CD/CI workflow -  no need to optimize heavily
 ## This profile is optimized for fast compilation and testing in CI.
-# Use just cargo or cargo-make for external per-checkout output roots.
+# The justfile/Makefile.toml reads CODE_*_ROOT overrides (with Windows and XDG defaults) and exports per-checkout Cargo output paths; use its cargo command for these roots.
 rustc-wrapper = "sccache"
 incremental = false
 [profile.ci]
@@ -173,4 +175,4 @@ lto = "off"           # Ensure LTO is off for faster linking.
 
 [env]
 SCCACHE_BASEDIRS = { value = ".", relative = true }
-SCCACHE_CACHE_SIZE = { value = "20G", force = true }
+SCCACHE_CACHE_SIZE = { value = "35G", force = true }

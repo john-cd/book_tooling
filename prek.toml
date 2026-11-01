@@ -1,7 +1,6 @@
 # TODO Reviewed ??-??-2026
 
 minimum_prek_version = "0.5.6"
-default_install_hook_types = ["pre-commit"]
 
 [[repos]]
 repo = "builtin"

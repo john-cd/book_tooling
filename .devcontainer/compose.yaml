@@ -23,10 +23,15 @@ services:
     environment:
       RUSTFMT_TOOLCHAIN: ${RUSTFMT_TOOLCHAIN:-}
       BOOK_TOOLING_CACHE_HOME: /var/cache/book_tooling
-      CARGO_TARGET_DIR: /var/cache/book_tooling/target/main
-      CARGO_BUILD_BUILD_DIR: /var/cache/book_tooling/build/main
+      CODE_TARGET_ROOT: /var/cache/book_tooling/target
+      CODE_BUILD_ROOT: /var/cache/book_tooling/build
+      CODE_SCCACHE_ROOT: /var/cache/book_tooling/sccache
+      CARGO_TARGET_DIR: /var/cache/book_tooling/target/book_tooling/main
+      CARGO_BUILD_BUILD_DIR: /var/cache/book_tooling/build/book_tooling/main
+      SCCACHE_DIR: /var/cache/book_tooling/sccache
       CARGO_TERM_COLOR: always
-      RUSTC_WRAPPER: ""
+      RUSTC_WRAPPER: sccache
+      CARGO_INCREMENTAL: "0"
     working_dir: /code
     init: true
     command: sleep infinity

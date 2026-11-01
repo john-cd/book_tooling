@@ -27,13 +27,15 @@ ARG PREK_VERSION
 ARG DPRINT_VERSION
 ARG CARGO_DENY_VERSION
 ARG JUST_VERSION
+ARG SCCACHE_VERSION=0.19.0
 
 RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash \
     && cargo binstall --no-confirm --secure --version "${CARGO_NEXTEST_VERSION}" cargo-nextest \
     && cargo binstall --no-confirm --secure --version "${PREK_VERSION}" prek \
     && cargo binstall --no-confirm --secure --version "${DPRINT_VERSION}" dprint \
     && cargo binstall --no-confirm --secure --version "${CARGO_DENY_VERSION}" cargo-deny \
-    && cargo binstall --no-confirm --secure --version "${JUST_VERSION}" just
+    && cargo binstall --no-confirm --secure --version "${JUST_VERSION}" just \
+    && cargo binstall --no-confirm --secure --version "${SCCACHE_VERSION}" sccache
 
 WORKDIR /code
 
