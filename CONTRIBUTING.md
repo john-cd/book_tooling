@@ -37,3 +37,8 @@ Use `priority:P1` through `priority:P4` labels; do not put `[P#]` prefixes in is
 Priority labels rank work. Milestones track release scope: reserve `URGENT` for current publication blockers; use `PUBLISHABLE` for work in the publication-ready batch. These axes are independent, so a P3 item can be in `PUBLISHABLE` when it belongs in that batch, and P1/P2 items can use another milestone when their release target differs. A P4 item normally belongs in `LATER PUBLICATION`.
 
 When a project board has a `Priority` field, mirror the issue's `priority:P#` label there for sorting. Use board status and scheduling fields to track workflow; the issue label remains the priority source of truth. Update the label and board field together when priority changes.
+
+## Configuration consistency
+
+See [CONFIGURATION.md](CONFIGURATION.md) for profile selection, checkout-local output setup,
+formatting and lint rules, CI caches, and dependency-update coverage.
