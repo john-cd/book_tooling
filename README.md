@@ -276,15 +276,20 @@ Rust builds also read `CODE_BUILD_ROOT`, `CODE_TARGET_ROOT`, and
 and `D:/sccache`. The runner rejects non-NTFS intermediate build roots.
 Run `just configure-cargo-host` once per host (PowerShell 7 is required for
 this setup command), and rerun it after changing roots. This preserves other Cargo
-settings and sets the host fallback in `CARGO_HOME/config.toml` for repositories
-without local output settings:
+settings and sets the host fallback in `CARGO_HOME/config.toml`:
 `CODE_TARGET_ROOT/direct-cargo` for targets and
-`CODE_BUILD_ROOT/direct-cargo/{workspace-path-hash}` for intermediates.
+`CODE_BUILD_ROOT/direct-cargo/{workspace-path-hash}` for intermediates. The local
+Cargo config uses the checkout's `target` link and intentionally leaves `build-dir`
+unset, so direct Cargo and rust-analyzer use the absolute, per-workspace host fallback
+for intermediates. This avoids writing through a junction from a ReFS checkout to
+NTFS. The Just runner instead uses the per-repo/worktree slot paths.
 Use `just cargo <arguments>` for isolated per-repo/worktree directories,
 the configured temp environment, and registered sccache base directories.
-Run the build-setup recipe per checkout so direct Cargo and rust-analyzer use
-that checkout's target/build links. Local config takes precedence over the host
-fallback. The runner uses sccache with incremental compilation disabled.
+Run the build-setup recipe per checkout to create its `target`, `build`, and
+`.sccache` links. Direct Cargo and rust-analyzer use the checkout's target link and
+host build fallback; the Just runner uses absolute per-repo/worktree paths. Local
+config takes precedence over host settings. The runner uses sccache with incremental
+compilation disabled.
 
 ## Repository configuration
 

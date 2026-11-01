@@ -89,11 +89,13 @@ uses native cache roots and symlinks. Existing Rust How-To setup recipes also pr
 shell setup. Do not copy platform-specific links between Windows and Linux checkouts.
 
 The existing `just cargo <subcommand> ...` runner sets absolute `CODE_TARGET_ROOT/<repo>/<slot>`
-and `CODE_BUILD_ROOT/<repo>/<slot>` paths. Direct Cargo and rust-analyzer inherit checkout-local
-`target`/`build` config paths, which resolve through those links. `cargo.targetDir = null` prevents
-rust-analyzer from allocating an additional target tree. Inherited `CARGO_*` environment variables
-can override these settings; launch the editor without another checkout's output variables.
-Multiple independent workspaces share a checkout's output slot and Cargo locking.
+and `CODE_BUILD_ROOT/<repo>/<slot>` paths. Direct Cargo and rust-analyzer use the checkout-local
+`target` link. The local config intentionally leaves `build-dir` unset, so direct Cargo uses the
+absolute per-workspace fallback from `CARGO_HOME/config.toml`; this avoids traversing a build link
+from a ReFS checkout to NTFS on Windows. `cargo.targetDir = null` prevents rust-analyzer from
+allocating another target tree. Inherited `CARGO_*` variables can override these settings; launch
+the editor without another checkout's output variables. Multiple independent workspaces share a
+checkout's target slot and Cargo locking.
 
 Build scripts/macros are optimized because they execute during compilation. Cargo gives
 package overrides precedence over build overrides, so unspecified external build dependencies
@@ -109,20 +111,42 @@ of nextest's test-runner `--profile ci`.
 
 ## Linkers
 
-| Platform         | Policy                                                                                                                                                                                           |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Windows MSVC     | Rust-bundled `rust-lld.exe` in the maintained repos; preserve stack flags. Rust How-To retains its measured default-linker exception. MSVC libraries/SDK are still required.                     |
-| x86-64 GNU/Linux | Rust 1.90+ already defaults to LLD. Existing mold users retain mold and its installation steps. For AArch64/other triples, explicitly install/configure the appropriate linker before switching. |
-| macOS            | Use the modern Apple linker shipped with Xcode 15+. sold's maintainer now recommends Apple's linker.                                                                                             |
-| Experiments      | Compare mold and Wild on representative native Linux binaries. Wild lists Linux/Wasm support and future Mach-O/Windows/incremental-linking work; do not assume universal drop-in support.        |
+| Platform         | Policy                                                                                                                                                                                                          |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Windows MSVC     | Rust-bundled `rust-lld.exe` in the maintained repos; preserve stack flags. Rust How-To retains its measured default-linker exception. MSVC libraries/SDK are still required.                                    |
+| x86-64 GNU/Linux | Rust 1.90+ already defaults to LLD. mold 3.0 is a Rust rewrite and remains an optional, measured Linux choice. For AArch64/other triples, explicitly install/configure the appropriate linker before switching. |
+| macOS            | Use the modern Apple linker shipped with Xcode 15+. The sold repository is archived and recommends Apple's linker.                                                                                              |
+| Experiments      | Compare mold and Wild on representative native Linux binaries. Wild supports Linux architectures and WebAssembly, with Mach-O/Windows support still on its roadmap; do not assume universal drop-in support.    |
 
 Changing linker flags invalidates compiler cache keys. Benchmark cold and warm links with native
 dependencies, debug symbols, and release/LTO settings before adopting a new default.
 
 ## Validation evidence
 
-Validation results and remaining prerequisites are recorded here before the topic is committed.
-No cross-platform performance improvement is claimed from configuration inspection alone.
+Windows x86_64-pc-windows-msvc, develop base `a639fc4` plus `37d6ef2` (2026-11-01):
+
+- `cargo check --workspace --all-targets --locked` and all-features Clippy passed with direct Cargo
+  after `37d6ef2`. The direct debugging-profile check passed using the host's absolute build fallback.
+- CI, tools, and debugging profile checks passed with verbose flags inspected and the runner's
+  absolute per-slot environment. `cargo test --workspace --locked --no-run` passed in 1m10s with
+  that environment; `rust-lld.exe` linked the Windows test executables. The warm dev check completed
+  in 0.64s. `sccache` reported 61.69% hits during the test-profile build (256 C/C++ hits; zero
+  Rust hits for that new profile).
+- `rustc` invocations confirmed dependencies use `opt-level=s`, no debug symbols, and `strip=debuginfo`
+  in regular profiles; named hash/collection/regex crates use `opt-level=3`; build scripts use
+  `opt-level=3`. The debugging profile used full symbols. Rust-bundled `rust-lld.exe` linked the
+  Windows test executables successfully.
+- `build-setup` created and then revalidated the checkout links at `D:/target/book_tooling/f`,
+  `C:/code_build/book_tooling/f`, and `D:/sccache`. C: is NTFS and D: is ReFS. A debug check through
+  the ReFS-to-NTFS `build` junction failed with Windows I/O errors; it passed when Cargo received
+  the absolute NTFS `CARGO_BUILD_BUILD_DIR`. The local config now leaves `build-dir` unset so direct
+  Cargo's host-configured absolute per-workspace fallback. A direct debug check and default dev
+  check passed after this change. An isolated setup probe passed root overrides, repeatability,
+  existing-directory refusal, and mismatched-link refusal.
+- The `just` wrapper could not start Git Bash in the managed shell, so setup and builds used the
+  equivalent PowerShell setup script and explicit runner environment. Linux/macOS CI, cold-versus-
+  warm dependency-size measurements, and comparative linker benchmarks remain unverified. Do not
+  claim cross-platform performance gains from these Windows checks.
 
 ## References
 
