@@ -39,9 +39,6 @@ It configures the host fallback in `CARGO_HOME/config.toml`. Run the repository'
 `build-setup` recipe per checkout; local Cargo output settings take precedence and
 rust-analyzer follows the same target/build links. See [README](README.md).
 
-## Configuration alignment checkout
+## Current state
 
-The `codex/config-homogeneity` branch uses `.worktrees/d` for this review.
-The primary checkout stays on `develop`; existing edits and detached work are preserved.
-See [CONFIGURATION.md](CONFIGURATION.md) for output setup and validation evidence.
-Use `git worktree list --porcelain` for current ownership and paths.
+The 2026-11-01 configuration alignment was integrated into develop; no dedicated alignment worktree remains. Use git worktree list --porcelain and git status --short for live ownership and cleanliness.
