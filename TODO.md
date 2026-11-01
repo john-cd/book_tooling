@@ -29,9 +29,7 @@
 - [#62](https://github.com/john-cd/book_tooling/issues/62) — **P1** — Re-enable CI and verify the refactored workflows — Owner: Unassigned — **HUMAN REVIEW**
 ## Configuration alignment (2026-11-01)
 
-Implementation is paused. Focused editor/ignore and applicable formatting commits are on
-`codex/config-homogeneity`; build/profile, CI, and documentation edits remain under review.
-See `WORKTREES.md` for the checkout slot. No branch has been pushed.
+The configuration-alignment work is integrated into `develop` in focused commits.
 
 Remaining work is tracked in GitHub:
 
