@@ -76,8 +76,8 @@ devcontainer.json   linguist-language=JSON-with-Comments
 .vscode/*.json      linguist-language=JSON-with-Comments
 
 # Windows command scripts keep their conventional line endings.
-*.bat      text eol=crlf
-*.cmd      text eol=crlf
+*.bat      text eol=lf
+*.cmd      text eol=lf
 
 # Exclude repository policy files from source archives.
 .gitattributes export-ignore
@@ -86,3 +86,8 @@ devcontainer.json   linguist-language=JSON-with-Comments
 
 # This fixture intentionally tests CRLF input.
 test_fixtures/markdown/crlf.md -text -eol
+
+# Python source and bytecode
+*.py text diff=python
+*.pyi text diff=python
+*.pyc binary

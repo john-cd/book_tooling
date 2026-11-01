@@ -13,10 +13,8 @@
 # Git metadata and local worktree state
 .git/
 .worktrees/
-WORKTREES.md
 
 # Editor and operating system state
-.vscode/
 .idea/
 .history/
 .ionide/
@@ -38,3 +36,11 @@ Desktop.ini
 !.env.*.example
 *.key
 *.pem
+
+# Local outputs, caches, and linked worktrees
+/.sccache
+/.worktrees/
+**/__pycache__/
+**/.venv/
+**/.ruff_cache/
+**/.pytest_cache/

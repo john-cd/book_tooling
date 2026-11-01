@@ -1,4 +1,4 @@
-# https://editorconfig.org/
+# Shared editing defaults; formatters own language-specific layout.
 root = true
 
 [*]
@@ -9,24 +9,16 @@ trim_trailing_whitespace = true
 indent_style = space
 indent_size = 4
 
-[*.{json,jsonc,toml,yaml,yml}]
+[*.{json,jsonc,json5,toml,yaml,yml,md,markdown,html,css,js,ts,tsx,sh,bash,ps1}]
 indent_size = 2
 
-[*.md]
-indent_size = 2
-max_line_length = 100
-# Markdown hard line breaks use trailing spaces intentionally.
-trim_trailing_whitespace = false
-
-[*.rs]
+[*.{rs,py,pyi}]
 indent_size = 4
 max_line_length = 100
 
-[*.{sh,bash}]
-indent_size = 2
-
-[*.{bat,cmd}]
-end_of_line = crlf
+[*.{md,markdown}]
+# Preserve intentional Markdown hard line breaks.
+trim_trailing_whitespace = false
 
 [Makefile]
 indent_style = tab

@@ -29,3 +29,13 @@ lcov-*.info
 *.key
 *.pem
 *.log
+
+# Local outputs, caches, and linked worktrees
+/build/
+/target/
+/.sccache
+/.worktrees/
+**/__pycache__/
+**/.venv/
+**/.ruff_cache/
+**/.pytest_cache/

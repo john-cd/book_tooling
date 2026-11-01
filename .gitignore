@@ -84,3 +84,11 @@ Temporary Items
 .directory
 .Trash-*
 .nfs*
+
+# Local outputs, caches, and linked worktrees
+/.sccache
+/.worktrees/
+**/__pycache__/
+**/.venv/
+**/.ruff_cache/
+**/.pytest_cache/
