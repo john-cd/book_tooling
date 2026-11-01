@@ -6,13 +6,14 @@ services:
       context: ..
       dockerfile: .devcontainer/Dockerfile
       args:
-        RUST_IMAGE_LABEL: ${RUST_IMAGE_LABEL:-1.99.1-trixie}
+        RUST_IMAGE_LABEL: ${RUST_IMAGE_LABEL:?Set RUST_IMAGE_LABEL in .devcontainer/.env}
         RUSTFMT_TOOLCHAIN: ${RUSTFMT_TOOLCHAIN:-}
-        CARGO_NEXTEST_VERSION: ${CARGO_NEXTEST_VERSION:-0.9.145}
-        PREK_VERSION: ${PREK_VERSION:-0.5.6}
-        DPRINT_VERSION: ${DPRINT_VERSION:-0.64.1}
-        CARGO_DENY_VERSION: ${CARGO_DENY_VERSION:-0.20.2}
-        JUST_VERSION: ${JUST_VERSION:-1.59.0}
+        CARGO_NEXTEST_VERSION: ${CARGO_NEXTEST_VERSION:?Set CARGO_NEXTEST_VERSION in .devcontainer/.env}
+        PREK_VERSION: ${PREK_VERSION:?Set PREK_VERSION in .devcontainer/.env}
+        DPRINT_VERSION: ${DPRINT_VERSION:?Set DPRINT_VERSION in .devcontainer/.env}
+        CARGO_DENY_VERSION: ${CARGO_DENY_VERSION:?Set CARGO_DENY_VERSION in .devcontainer/.env}
+        JUST_VERSION: ${JUST_VERSION:?Set JUST_VERSION in .devcontainer/.env}
+        SCCACHE_VERSION: ${SCCACHE_VERSION:?Set SCCACHE_VERSION in .devcontainer/.env}
     volumes:
       - type: bind
         source: ..

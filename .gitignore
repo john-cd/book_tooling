@@ -30,6 +30,7 @@ WORKTREES.md
 .env.*
 !.env.example
 !.env.*.example
+!.devcontainer/.env
 
 # Editor state
 .history/
