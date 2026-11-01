@@ -144,9 +144,20 @@ Windows x86_64-pc-windows-msvc, develop base `a639fc4` plus `37d6ef2` (2026-11-0
   check passed after this change. An isolated setup probe passed root overrides, repeatability,
   existing-directory refusal, and mismatched-link refusal.
 - The `just` wrapper could not start Git Bash in the managed shell, so setup and builds used the
-  equivalent PowerShell setup script and explicit runner environment. Linux/macOS CI, cold-versus-
-  warm dependency-size measurements, and comparative linker benchmarks remain unverified. Do not
+  equivalent PowerShell setup script and explicit runner environment. Linux/macOS CI, an isolated
+  cold-versus-warm rebuild comparison, and comparative linker benchmarks remain unverified. Do not
   claim cross-platform performance gains from these Windows checks.
+- On 2026-11-01 at `51aad9c`, a Windows x86_64-pc-windows-msvc build of
+  `cargo build --workspace --all-targets --locked --profile ci --quiet` completed in 348.166 s
+  with fresh target and intermediate directories under slot `f` and `CARGO_INCREMENTAL=0`. The
+  outputs contained 75,351,859 target bytes and 734,167,032 intermediate bytes. Repeating the same
+  command against those outputs completed as a Cargo no-op in 1.475 s; this is not a warm rebuild.
+  The shared sccache v0.19.0 daemon reported a 0% Rust hit rate at capture, but its counters and
+  cache were shared with other work, so this is not an isolated Rust-cache measurement. The
+  compiler-cache and cold-versus-warm rebuild comparison remains open.
+- The reusable CI workflow has Linux, macOS, and Windows runners, but no passing hosted Linux/macOS
+  or release-linker run is recorded for this revision. Those platform and release checks remain
+  open; the local Windows build does not establish their linker or SDK behavior.
 
 ## References
 
