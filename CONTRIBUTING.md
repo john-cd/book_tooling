@@ -10,7 +10,14 @@ Thanks for helping improve the Rust tools and documentation workflows in this re
 
 Alternatively, open this repository in VS Code and select `Reopen in Container`. The `.devcontainer/` setup uses Docker Compose, Debian Trixie, and the pinned workspace tools.
 
-The workspace uses portable cache paths. Set BOOK_TOOLING_CACHE_HOME to choose a cache root, BOOK_TOOLING_WORKTREE_NAME to give another checkout a separate cache, DPRINT_CACHE_DIR to choose dprint's plugin cache, or CARGO_TARGET_DIR and CARGO_BUILD_BUILD_DIR to override Cargo output paths. just selects a platform-appropriate cache default on Windows, macOS, and Linux.
+The root Justfile reads `CODE_*_ROOT` variables for repository storage, Cargo output, and compiler-cache
+paths. Run `just build-env` to see the effective values for a checkout. Set `CODE_REPOS_ROOT`,
+`CODE_PACKAGES_ROOT`, `CODE_TOOLS_ROOT`, and `CODE_TEMP_ROOT` for repository, package, tool, and temp
+roots. Use `CODE_TARGET_ROOT`, `CODE_BUILD_ROOT`, and `CODE_SCCACHE_ROOT` for Cargo outputs and the
+compiler cache. `CARGO_TARGET_DIR` and `CARGO_BUILD_BUILD_DIR` override direct Cargo output paths;
+`DPRINT_CACHE_DIR` selects the dprint plugin cache. On Windows, intermediate builds must use NTFS.
+Run `just configure-cargo-host` and `just build-setup` as described in [README](README.md). This
+repository has no tracked Python project, so no Ruff or Python dependency-sync hook is configured.
 
 ## Checks
 
