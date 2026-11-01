@@ -23,12 +23,15 @@ defaults:
 env:
   CARGO_TERM_COLOR: always
   ## Keep the local compiler-cache policy; CI uses runner-local output paths.
-  CARGO_TARGET_DIR: ${{ github.workspace }}/target
-  CARGO_BUILD_BUILD_DIR: ${{ github.workspace }}/target/build
+  CARGO_TARGET_DIR: ${{ github.workspace }}/.ci/target/book_tooling/main
+  CARGO_BUILD_BUILD_DIR: ${{ github.workspace }}/.ci/build/book_tooling/main
   RUSTC_WRAPPER: sccache
   CARGO_BUILD_RUSTC_WRAPPER: sccache
   CARGO_INCREMENTAL: "0"
 
+  CODE_TARGET_ROOT: ${{ github.workspace }}/.ci/target
+  CODE_BUILD_ROOT: ${{ github.workspace }}/.ci/build
+  CARGO_BUILD_TARGET_DIR: ${{ github.workspace }}/.ci/target/book_tooling/main
 jobs:
   validate:
     name: Validate (${{ matrix.os }})
@@ -45,6 +48,8 @@ jobs:
       - name: Set up Rust (1.99.1 + pinned nightly rustfmt)
         uses: ./.github/actions/setup-rust
 
+        with:
+          cache-workspaces: . -> ${{ github.workspace }}/.ci/target/book_tooling/main
       - name: Install workspace tools (sccache, cargo-nextest, prek, dprint, cargo-deny)
         # taiki-e/install-action v2.88.0
         uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
@@ -91,6 +96,7 @@ jobs:
           components: "clippy llvm-tools-preview"
           cache-key: coverage
 
+          cache-workspaces: . -> ${{ github.workspace }}/.ci/target/book_tooling/main
       - name: Install cargo-llvm-cov and sccache
         # taiki-e/install-action v2.88.0
         uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32

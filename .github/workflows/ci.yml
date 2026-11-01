@@ -19,3 +19,10 @@ concurrency:
 jobs:
   rust:
     uses: ./.github/workflows/rust-ci.yml
+env:
+  CODE_TARGET_ROOT: ${{ github.workspace }}/.ci/target
+  CODE_BUILD_ROOT: ${{ github.workspace }}/.ci/build
+  CARGO_TARGET_DIR: ${{ github.workspace }}/.ci/target/book_tooling/main
+  CARGO_BUILD_TARGET_DIR: ${{ github.workspace }}/.ci/target/book_tooling/main
+  CARGO_BUILD_BUILD_DIR: ${{ github.workspace }}/.ci/build/book_tooling/main
+  CARGO_INCREMENTAL: '0'
