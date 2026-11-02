@@ -1,3 +1,5 @@
+# TODO Reviewed ??-??-2026
+
 # Composite action: install the pinned Rust toolchains and restore the Cargo cache.
 #
 # Related Rust setup workflows are maintained in john-cd/rust_howto and

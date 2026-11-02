@@ -3,6 +3,13 @@
 
 # TODO Reviewed ??-??-2026
 
+# Storage-root overrides (existing environment values win over platform defaults):
+# CODE_REPOS_ROOT names the canonical checkout root for tools; CODE_TEMP_ROOT holds temporary files.
+# CODE_PACKAGES_ROOT holds package-manager data (including Cargo, npm, and NuGet caches);
+# CODE_TOOLS_ROOT holds portable tool installations.
+# CODE_TARGET_ROOT stores compiled Cargo target artifacts; CODE_BUILD_ROOT stores intermediate
+# Cargo build files (the Windows helper requires this root to be on NTFS).
+# CODE_SCCACHE_ROOT selects the compiler cache; SCCACHE_DIR is accepted as a legacy fallback.
 set shell := ["bash", "-uc"]
 
 # Recipes run in Bash on every OS: Git Bash on Windows.

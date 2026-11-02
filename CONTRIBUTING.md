@@ -1,3 +1,5 @@
+<!-- TODO Reviewed ??-??-2026 -->
+
 # Contributing to book_tooling
 
 Thanks for helping improve the Rust tools and documentation workflows in this repository. Keep changes focused, preserve existing behavior, and include the commands and results that support the change.
