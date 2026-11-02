@@ -14,6 +14,9 @@ set shell := ["bash", "-uc"]
 
 # Recipes run in Bash on every OS: Git Bash on Windows.
 set windows-shell := ["C:/Program Files/Git/bin/bash.exe", "-uc"]
+set quiet
+
+export CARGO_TERM_QUIET := env("CARGO_TERM_QUIET", "true")
 
 root := replace(source_directory(), "\\", "/")
 rustfmt_toolchain_default := trim(replace_regex(read(join(root, "rustfmt-toolchain.toml")), '(?s).*channel\s*=\s*"([^"]+)".*', "$1"))
