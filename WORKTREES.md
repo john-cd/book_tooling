@@ -43,4 +43,35 @@ override the host fallback. See [README](README.md).
 
 ## Current state
 
-The 2026-11-01 configuration alignment was integrated into develop; no dedicated alignment worktree remains. Use git worktree list --porcelain and git status --short for live ownership and cleanliness.
+Reviewed 2026-11-01. The primary checkout was clean on `develop` at `51aad9c`, matching
+`origin/develop`. GitHub's all-state pull-request listing had no open PRs. PRs #63 and #64
+were closed without merge; their `claude/project-thread-sf1c32` head is no longer a local or
+remote branch. No PR branch was eligible for cleanup.
+
+| Checkout        | Branch or revision               | Status and disposition                                                                                                                                         |
+| --------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Repository root | `develop` / `51aad9c`            | Clean integration checkout; retain.                                                                                                                            |
+| `.worktrees/a`  | detached / `29c339d`             | Clean snapshot at the independent `main` root; retain the checkout and `main` cache identity.                                                                  |
+| `.worktrees/b`  | detached / `3701b6c`             | Clean snapshot; its mirrored `backup/tooling-20261031/worktree-b` ref has two commits not in `develop`. Retain the snapshot and cache.                         |
+| `.worktrees/c`  | detached / `3be445c`             | Clean snapshot; its mirrored `backup/tooling-20261031/worktree-c` ref has seven commits not in `develop`. Retain the snapshot and cache.                       |
+| `.worktrees/e`  | `codex/cargo-update` / `142f1b4` | Clean; contains one local-only Cargo.lock update based on `a639fc4`. Keep pending dependency-build validation; no associated PR or remote topic ref was found. |
+| `.worktrees/f`  | `codex/issues-77-79-maintenance` | Active issue work; retain through review and integration.                                                                                                      |
+
+The mirrored recovery refs `backup/develop-before-sync-20261031-b73ade5a`,
+`backup/tooling-20261031/develop-before`, and `backup/tooling-20261031/working-state`
+retain 9, 4, and 5 commits respectively that are not in `develop`. They preserve broad,
+older configuration and source snapshots, so do not merge or delete them as cleanup.
+`backup/tooling-20261031/worktree-a` preserves the independent `main` root. The remote-only
+`origin/codex/rust-howto-pin-404e8fe` is 64 commits ahead of `develop` and has no open PR;
+retain it because its divergent history contains unmerged work.
+
+The unregistered `.worktrees/d` directory contained only three managed junctions to the shared
+`.sccache` and slot `d` build/target paths. After confirming there was no running Cargo or rustc
+process, the link-only wrapper was removed; the external slot `d` directories and shared sccache
+were preserved. Empty top-level `build` and `target` directories under the external target root
+remain because their owner is unclear. No untracked files were found in the registered historical
+checkouts, and no other temporary or generated file was confirmed safe to remove.
+
+The clean `codex/cargo-update` lockfile change was reviewed but not merged because it lacks a
+dependency build result. Keep `develop` linear and use `git worktree list --porcelain` plus
+`git status --short --untracked-files=all` to refresh this snapshot before further cleanup.
