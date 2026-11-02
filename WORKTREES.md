@@ -62,14 +62,12 @@ branch was eligible for cleanup.
 | `.worktrees/a`  | detached / `29c339d`     | Clean snapshot at the independent `main` root; retain the checkout and `main` cache identity.                                    |
 | `.worktrees/b`  | detached / `develop` tip | Clean after integrating the #2145 badge feature; retain the slot and warm cache.                                                 |
 | `.worktrees/c`  | detached / `3be445c`     | Clean snapshot; its mirrored `backup/tooling-20261031/worktree-c` ref has seven commits not in `develop`. Retain snapshot/cache. |
-| `.worktrees/e`  | detached / `develop` tip | Clean after integrating the validated Cargo.lock update; retain the slot and warm cache.                                         |
-| `.worktrees/f`  | detached / `develop` tip | Clean after integrating the #76/#77/#78/#79 commits; retain the slot and warm cache.                                             |
 
 The local topic refs `codex/cargo-update`, `codex/issues-77-79-maintenance`, and
 `codex/issue-2145-badges-no-index` were removed after confirming their commits are ancestors of
-`develop`; their clean worktrees and caches remain registered and detached at the integration
-tip. The #2145 implementation is commit `1e9cc34` after rebasing onto the integrated develop
-history.
+`develop`. The #2145 implementation is commit `1e9cc34` after rebasing onto the integrated
+develop history. The clean `.worktrees/e` and `.worktrees/f` checkouts were subsequently removed
+as requested; `.worktrees/b` remains detached at the current `develop` tip.
 
 The mirrored recovery refs `backup/develop-before-sync-20261031-b73ade5a`,
 `backup/tooling-20261031/develop-before`, and `backup/tooling-20261031/working-state`
@@ -81,13 +79,15 @@ checked out. The remote-only
 `origin/codex/rust-howto-pin-404e8fe` is 64 commits ahead of `develop` and has no open PR;
 retain it because its divergent history contains unmerged work.
 
-The unregistered `.worktrees/d` directory contained only three managed junctions to the shared
-`.sccache` and slot `d` build/target paths. After confirming there was no running Cargo or rustc
-process, the link-only wrapper was removed; the external slot `d` directories and shared sccache
-were preserved. Empty top-level `build` and `target` directories under the external target root
-remain because their owner is unclear. The dirty changes in `.worktrees/b` were reviewed and
-committed as the #2145 badge feature; no unrelated untracked, temporary, or generated file was
-confirmed safe to remove.
+The unregistered `.worktrees/d` directory contained only managed junctions and was removed.
+After confirming no Cargo, rustc, or rust-analyzer process was active, the `.worktrees/e` and
+`.worktrees/f` directories were removed. The external per-slot `d`, `e`, and `f` target and
+intermediate-build directories were also removed after verifying their resolved paths and that
+they contained no reparse points. The shared `D:/sccache`, primary `main` outputs, and the kept
+`b` outputs were preserved. Older `D:/target/book_tooling/build/b` and
+`D:/target/book_tooling/target/b` directories remain with the kept `b` slot. The dirty changes
+in `.worktrees/b` were reviewed and committed as the #2145 badge feature; no unrelated
+untracked, temporary, or generated file was confirmed safe to remove.
 
 Use `git worktree list --porcelain` plus `git status --short --untracked-files=all` to refresh
 this snapshot before further cleanup.
