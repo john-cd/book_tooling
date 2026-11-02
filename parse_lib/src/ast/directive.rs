@@ -53,11 +53,13 @@ pub enum DirectiveData<'a> {
     },
 
     /// Insert the full badge set for a crate: `docs.rs`, `crates.io`, GitHub repository and
-    /// `lib.rs` badges, one shared index entry, then optional category badges, for example
-    /// `{{#badges crt cat1 cat-2=Title}}`.
+    /// `lib.rs` badges, an optional shared index entry, then optional category badges, for
+    /// example `{{#badges crt cat1 cat-2=Title}}` or `{{#badges crt=}}`.
     BadgeSet {
         /// Crate displayed by the badge set.
         crate_name: &'a str,
+        /// Whether to add the crate name to the book index.
+        include_crate_index: bool,
         /// Additional category badges to include in the set.
         additional_categories: Vec<&'a str>,
     },
@@ -100,13 +102,15 @@ impl Display for DirectiveData<'_> {
             }
             DirectiveData::BadgeSet {
                 crate_name,
+                include_crate_index,
                 additional_categories,
             } => {
+                let crate_index = if *include_crate_index { "" } else { "=" };
                 if additional_categories.is_empty() {
-                    write!(f, "{{{{#badges {crate_name}}}}}")
+                    write!(f, "{{{{#badges {crate_name}{crate_index}}}}}")
                 } else {
                     let categories = &additional_categories.join(" ");
-                    write!(f, "{{{{#badges {crate_name} {categories}}}}}")
+                    write!(f, "{{{{#badges {crate_name}{crate_index} {categories}}}}}")
                 }
             }
             DirectiveData::CategoryBlock { categories } => {

@@ -500,6 +500,26 @@ mod tests {
         validate_no_unexpanded_directives(&rendered).expect("badge set is fully expanded");
     }
 
+    /// An unindexed badge set omits only the crate index term and keeps category titles.
+    #[test]
+    fn badge_set_can_omit_the_crate_index_entry() {
+        let rendered =
+            process_markdown("{{#badges ndarray= science=Science}}\n", &Config::default())
+                .expect("render unindexed badge set");
+
+        assert_eq!(
+            rendered,
+            concat!(
+                "[![ndarray][c~ndarray~docs~badge]][c~ndarray~docs] ",
+                "[![ndarray~crates.io][c~ndarray~crates.io~badge]][c~ndarray~crates.io] ",
+                "[![ndarray~repo][c~ndarray~repo~badge]][c~ndarray~repo] ",
+                "[![ndarray~lib.rs][c~ndarray~lib.rs~badge]][c~ndarray~lib.rs] ",
+                "[![cat~science][cat~science~badge]][cat~science]{{hi:Science}}\n"
+            )
+        );
+        validate_no_unexpanded_directives(&rendered).expect("badge set is fully expanded");
+    }
+
     /// A badge set omits a category index term when its title is empty.
     #[test]
     fn badge_set_omits_empty_category_title_index_entry() {

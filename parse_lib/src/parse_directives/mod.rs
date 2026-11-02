@@ -133,13 +133,18 @@ fn parse_badge_set_directive<'a>(input: &mut &'a str) -> ModalResult<DirectiveDa
     delimited(
         "{{#badges",
         (opt(":"), space0, take_until(1.., "}}")).verify_map(|(_, _, args): (_, _, &str)| {
-            let (name, categories) = args
-                .trim()
-                .split_once([' ', '\t'])
-                .unwrap_or_else(|| (args.trim(), ""));
-            (!name.is_empty()).then(|| DirectiveData::BadgeSet {
-                crate_name: name,
-                additional_categories: split_category_arguments(categories),
+            let mut arguments = split_category_arguments(args.trim()).into_iter();
+            let crate_argument = arguments.next()?;
+            let (crate_name, include_crate_index) = match crate_argument.strip_suffix('=') {
+                Some(crate_name) => (crate_name, false),
+                None if crate_argument.contains('=') => return None,
+                None => (crate_argument, true),
+            };
+
+            (!crate_name.is_empty()).then(|| DirectiveData::BadgeSet {
+                crate_name,
+                include_crate_index,
+                additional_categories: arguments.collect(),
             })
         }),
         "}}",
@@ -247,6 +252,7 @@ mod tests {
             parse_directive_element(&mut input).expect("valid badge set directive"),
             Element::CustomDirective(DirectiveData::BadgeSet {
                 crate_name: "ndarray",
+                include_crate_index: true,
                 additional_categories: vec!["data-structures=\"Data structures\"", "science"],
             })
         );
@@ -261,7 +267,23 @@ mod tests {
             parse_directive_element(&mut input).expect("valid badge set directive"),
             Element::CustomDirective(DirectiveData::BadgeSet {
                 crate_name: "ndarray",
+                include_crate_index: true,
                 additional_categories: vec!["data-structures", "science=\"Science\""],
+            })
+        );
+        assert!(input.is_empty());
+    }
+
+    /// Badge set directive can omit the crate title index term without omitting categories.
+    #[test]
+    fn badge_set_directive_omits_crate_index_term() {
+        let mut input = "{{#badges ndarray= data-structures=\"Data structures\"}}";
+        assert_eq!(
+            parse_directive_element(&mut input).expect("valid unindexed badge set directive"),
+            Element::CustomDirective(DirectiveData::BadgeSet {
+                crate_name: "ndarray",
+                include_crate_index: false,
+                additional_categories: vec!["data-structures=\"Data structures\""],
             })
         );
         assert!(input.is_empty());
@@ -301,6 +323,7 @@ mod tests {
             "{{!crates.io serde}}",
             "{{#crate serde filesystem api-bindings}}",
             "{{#badges serde}}",
+            "{{#badges serde=}}",
             "{{#badges serde filesystem api-bindings}}",
             "{{#categories filesystem=Filesystem,api-bindings=\"API bindings\"}}",
             "{{#example ../../crates/language/examples/constants_and_statics/constants.rs:example}}",
@@ -330,6 +353,7 @@ mod tests {
             "{{!docs }}",
             "{{#crate }}",
             "{{#badges }}",
+            "{{#badges =}}",
             "{{#categories }}",
             "{{#example }}",
             "{{#include refs.incl.md}}",

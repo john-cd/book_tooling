@@ -35,6 +35,7 @@ pub(super) fn render_crate_block(directive: &DirectiveData<'_>) -> String {
 pub(super) fn render_badge_set(directive: &DirectiveData<'_>) -> String {
     let DirectiveData::BadgeSet {
         crate_name,
+        include_crate_index,
         additional_categories,
     } = directive
     else {
@@ -50,7 +51,12 @@ pub(super) fn render_badge_set(directive: &DirectiveData<'_>) -> String {
     .map(|(kind, alt_text)| render_badge_without_index(kind, crate_name, &alt_text))
     .join(" ");
 
-    let mut parts = vec![format!("{crate_badges}{{{{hi:{crate_name}}}}}")];
+    let crate_badges = if *include_crate_index {
+        format!("{crate_badges}{{{{hi:{crate_name}}}}}")
+    } else {
+        crate_badges
+    };
+    let mut parts = vec![crate_badges];
     parts.extend(
         additional_categories
             .iter()
