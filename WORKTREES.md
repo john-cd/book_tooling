@@ -43,19 +43,20 @@ override the host fallback. See [README](README.md).
 
 ## Current state
 
-Reviewed 2026-11-01. The primary checkout was clean on `develop` at `51aad9c`, matching
-`origin/develop`. GitHub's all-state pull-request listing had no open PRs. PRs #63 and #64
+Reviewed 2026-11-01. At review start, the primary checkout was clean on `develop` at `51aad9c`,
+matching `origin/develop`. The issue branch was later fast-forwarded into local `develop`; the
+remote was not changed. GitHub's all-state pull-request listing had no open PRs. PRs #63 and #64
 were closed without merge; their `claude/project-thread-sf1c32` head is no longer a local or
 remote branch. No PR branch was eligible for cleanup.
 
 | Checkout        | Branch or revision               | Status and disposition                                                                                                                                         |
 | --------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Repository root | `develop` / `51aad9c`            | Clean integration checkout; retain.                                                                                                                            |
+| Repository root | `develop` / issue branch tip     | Clean after local fast-forward integration; `origin/develop` remains the prior base.                                                                           |
 | `.worktrees/a`  | detached / `29c339d`             | Clean snapshot at the independent `main` root; retain the checkout and `main` cache identity.                                                                  |
 | `.worktrees/b`  | detached / `3701b6c`             | Clean snapshot; its mirrored `backup/tooling-20261031/worktree-b` ref has two commits not in `develop`. Retain the snapshot and cache.                         |
 | `.worktrees/c`  | detached / `3be445c`             | Clean snapshot; its mirrored `backup/tooling-20261031/worktree-c` ref has seven commits not in `develop`. Retain the snapshot and cache.                       |
 | `.worktrees/e`  | `codex/cargo-update` / `142f1b4` | Clean; contains one local-only Cargo.lock update based on `a639fc4`. Keep pending dependency-build validation; no associated PR or remote topic ref was found. |
-| `.worktrees/f`  | `codex/issues-77-79-maintenance` | Active issue work; retain through review and integration.                                                                                                      |
+| `.worktrees/f`  | `codex/issues-77-79-maintenance` | Clean and at the integrated issue tip; retain while the related issues remain open.                                                                            |
 
 The mirrored recovery refs `backup/develop-before-sync-20261031-b73ade5a`,
 `backup/tooling-20261031/develop-before`, and `backup/tooling-20261031/working-state`
