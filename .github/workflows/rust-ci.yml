@@ -44,25 +44,31 @@ jobs:
       - name: Code checkout
         # actions/checkout v7.0.1
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
 
       - name: Set up Rust (1.99.1 + pinned nightly rustfmt)
-        uses: ./.github/actions/setup-rust
+        id: setup-rust
+        uses: $/.github/actions/setup-rust
 
         with:
-          cache-workspaces: . -> ${{ github.workspace }}/.ci/target/book_tooling/main
-      - name: Install workspace tools (sccache, cargo-nextest, prek, dprint, cargo-deny)
+          cache-key: ci-profile-ci-default-features
+          cache-workspaces: . -> .ci/target/book_tooling/main
+      - name: Install workspace tools (cargo-nextest, prek, dprint, cargo-deny, just)
         # taiki-e/install-action v2.88.0
         uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
         with:
           tool: |
-            sccache@0.19.0
-            cargo-nextest@0.9.145
-            prek@0.5.6
-            dprint@0.64.1
+            cargo-nextest@0.9.148
+            prek@0.5.7
+            dprint@0.64.3
             cargo-deny@0.20.2
+            just@1.59.0
           fallback: none
 
       - name: Run repository hooks
+        env:
+          RUSTFMT_TOOLCHAIN: ${{ steps.setup-rust.outputs.rustfmt_toolchain }}
         run: prek run --all-files
 
       - name: Fetch
@@ -75,7 +81,7 @@ jobs:
         run: cargo clippy --workspace --all-targets --locked --profile ci -- --deny warnings
 
       - name: Run tests
-        run: cargo nextest run --workspace --all-targets --locked --cargo-profile ci --hide-progress-bar
+        run: cargo nextest run --workspace --all-targets --locked --profile ci --cargo-profile ci --hide-progress-bar
 
       - name: Run doctests
         run: cargo test --workspace --doc --locked --profile ci -- --show-output
@@ -89,19 +95,22 @@ jobs:
       - name: Code checkout
         # actions/checkout v7.0.1
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
 
       - name: Set up Rust (1.99.1 + llvm-tools)
-        uses: ./.github/actions/setup-rust
+        id: setup-rust
+        uses: $/.github/actions/setup-rust
         with:
           components: "clippy llvm-tools-preview"
-          cache-key: coverage
+          cache-key: coverage-profile-dev-default-features
 
-          cache-workspaces: . -> ${{ github.workspace }}/.ci/target/book_tooling/main
-      - name: Install cargo-llvm-cov and sccache
+          cache-workspaces: . -> .ci/target/book_tooling/main
+      - name: Install cargo-llvm-cov
         # taiki-e/install-action v2.88.0
         uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
         with:
-          tool: cargo-llvm-cov,sccache@0.19.0
+          tool: cargo-llvm-cov
 
       - name: Measure coverage
         run: |

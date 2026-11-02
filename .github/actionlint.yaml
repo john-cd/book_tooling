@@ -1,0 +1,7 @@
+paths:
+  .github/workflows/ci.yml:
+    ignore:
+      - 'reusable workflow call "\$/.+" at "uses" is not following the format'
+  .github/workflows/rust-ci.yml:
+    ignore:
+      - 'specifying action "\$/.+" in invalid format because ref is missing'

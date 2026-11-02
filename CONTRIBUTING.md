@@ -5,7 +5,7 @@ Thanks for helping improve the Rust tools and documentation workflows in this re
 ## Development setup
 
 1. Install Rust with rustup. The repository's [rust-toolchain.toml](rust-toolchain.toml) selects the stable toolchain and components; the formatting recipe uses the pinned nightly rustfmt toolchain.
-2. Install cargo-binstall with `cargo install cargo-binstall`, then install cargo-nextest, prek, dprint, and cargo-deny at the versions listed in the CI workflow with `cargo binstall --no-confirm cargo-nextest@0.9.145 prek@0.5.6 dprint@0.64.1 cargo-deny@0.20.2`.
+2. Install cargo-binstall with `cargo install cargo-binstall`, then install the pinned workspace tools with `cargo binstall --no-confirm cargo-nextest@0.9.148 prek@0.5.7 dprint@0.64.3 cargo-deny@0.20.2 just@1.59.0 sccache@0.19.0`.
 3. Run `prek install` to enable the repository's Git hooks.
 
 Alternatively, open this repository in VS Code and select `Reopen in Container`. The `.devcontainer/` setup uses Docker Compose, Debian Trixie, and the pinned workspace tools.

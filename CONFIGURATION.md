@@ -20,7 +20,7 @@ Keep this file, README, contributor guidance, and configuration comments synchro
 | `.gitignore`, `.dockerignore`, `.aiexclude` | Exclude outputs, compiler caches, environments, and worktrees; keep maintained configuration and lockfiles reviewable. Ignore files are not a security boundary.             |
 | `AGENTS.md`, `CONTRIBUTING.md`, `README.md` | Keep repository-specific commands, ownership, and examples; link this reference.                                                                                             |
 | `Cargo.toml`, `clippy.toml`, `rustfmt.toml` | Workspace lint inheritance and a common baseline; preserve explicit exceptions and package compatibility requirements.                                                       |
-| `pyproject.toml`, `uv.lock`                 | Ruff uses 100 columns and LF; explicit default E4/E7/E9/F lint selection. Keep project Python pins and locked resolution.                                                    |
+| Python project files                        | No Python project is currently tracked. If one is added, use Ruff with 100 columns and LF plus a committed `uv.lock` and `.python-version`.                                  |
 | `prek.toml`                                 | Keep the existing repository hook set and pinned hook revisions. Run the configured formatter and linter rather than duplicating policy in hooks.                            |
 | `deny.toml`, `nextest.toml`                 | Keep dependency-license exceptions, test filters, and resource/time limits local. Nextest normally discovers `.config/nextest.toml`; a Cargo profile is selected separately. |
 | `.github/`, `.devcontainer/`, `Dockerfile*` | Preserve deployment/platform behavior; align package coverage and cache inputs. Keep compiler/Python pins compatible with manifests and lockfiles.                           |
@@ -31,7 +31,7 @@ Dependabot runs monthly on Monday at 6:00 a.m. Pacific with grouped minor/patch 
 the maintained roots; workspace members share their root manifest/lockfile. Immutable parser,
 test-book, and malformed-manifest fixtures are excluded intentionally. Revisit this table and
 `.github/dependabot.yml` whenever a manifest, Dockerfile, chart, or local action is added.
-Python uv workspace members share the root lock; they do not need overlapping update entries.
+There is no tracked Python project or uv workspace, so no Python dependency-update root is configured. If one is added, list its lockfile root here and in Dependabot.
 
 | Ecosystem        | Roots                              |
 | ---------------- | ---------------------------------- |
@@ -49,14 +49,14 @@ it does not update arbitrary version strings in shell scripts or custom formatte
 ## CI caches
 
 Rust-cache entries include toolchain/environment inputs plus workflow, job, architecture, and
-Cargo-config/lockfile hashes. Save Rust artifact caches only on pushes to the default branch;
-pull requests restore caches. CI sets matching `CODE_*` and `CARGO_*` paths under `.ci/target/<repo>/main` and
-`.ci/build/<repo>/main`. Rust-cache workspace maps use those same absolute paths,
-including intermediate artifacts, so direct Cargo and task runners reuse one output tree.
-Keep specialized coverage, target, feature, and release jobs isolated. sccache is pinned where
-installed, and incremental compilation stays disabled, including when using GitHub caches.
-An artifact cache does not make Rust incremental compilation compatible with sccache.
-Python workflows use setup-uv caching keyed by `uv.lock`, and commands retain `--locked`.
+Cargo manifest/config/lockfile hashes. The validate and coverage jobs add labels for their Cargo
+profiles and default feature sets. Save Rust artifact caches only on pushes to the default branch;
+pull requests restore caches. CI maps the Cargo workspace to `.ci/target/book_tooling/main` and
+caches `.ci/build/book_tooling/main` separately. Keep specialized target, feature, and release jobs
+isolated. sccache is installed by the shared setup action, and incremental compilation stays disabled,
+including when using GitHub caches. An artifact cache does not make Rust incremental compilation
+compatible with sccache. If a Python workflow is added, key its setup-uv cache by `uv.lock` and retain
+`--locked` for commands.
 Container builds retain their existing cargo-chef/BuildKit strategy; when cooking dependencies,
 use the same compiler, features, profile, target, flags, and build paths as the application build.
 

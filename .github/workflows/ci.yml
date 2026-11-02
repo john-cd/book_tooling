@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   rust:
-    uses: ./.github/workflows/rust-ci.yml
+    uses: $/.github/workflows/rust-ci.yml
 env:
   CODE_TARGET_ROOT: ${{ github.workspace }}/.ci/target
   CODE_BUILD_ROOT: ${{ github.workspace }}/.ci/build

@@ -8,9 +8,10 @@
 Shared building block: [`../actions/setup-rust`](../actions/setup-rust/action.yml) installs the pinned stable
 toolchain (1.99.1) and the nightly from [`../../rustfmt-toolchain.toml`](../../rustfmt-toolchain), used only for `rustfmt`,
 then restores the Cargo cache. Set `RUSTFMT_TOOLCHAIN` to override the pin for local commands and container builds.
-The same action and the same `rust-ci.yml` shape are used in `mdbook-utils` and `rust_howto`.
+Related Rust CI workflows are maintained in `mdbook-utils` and `rust_howto`; keep toolchain,
+cache, and validation changes aligned with each repository's configuration.
 
-The workflow pins sccache 0.19.0, cargo-nextest 0.9.145, prek 0.5.6, dprint 0.64.1, and cargo-deny 0.20.2. Keep these aligned with the nextest, prek, dprint, and cargo-deny configuration files when updating the tools.
+The setup action pins sccache 0.19.0. CI pins cargo-nextest 0.9.148, prek 0.5.7, dprint 0.64.3, cargo-deny 0.20.2, and Just 1.59.0; keep these aligned with `.devcontainer/.env` and `CONTRIBUTING.md`. `.config/nextest.toml` also pins the nextest version.
 
 ## Conventions
 
@@ -18,14 +19,19 @@ The workflow pins sccache 0.19.0, cargo-nextest 0.9.145, prek 0.5.6, dprint 0.64
   Dependabot (`github-actions` ecosystem) proposes updates. Do not use floating tags such as `@v4`.
 - **Toolchain bumps.** Change `rustfmt-toolchain.toml`; the action, Dockerfile, Just recipes, and CI hooks read that file.
 - **Shell.** All `run` steps use `bash`, including on Windows, so there is one command line per step.
-- **Paths.** `.cargo/config.toml` uses Cargo's portable checkout-local output defaults and `sccache`. Local
-  `just` recipes use platform cache directories; the workflow overrides the output paths with
-  `CARGO_TARGET_DIR` and `CARGO_BUILD_BUILD_DIR`. Both CI jobs install sccache and disable incremental compilation,
-  matching the local compiler-cache policy.
+- **Paths and caches.** `.cargo/config.toml` uses Cargo's portable checkout-local output defaults and `sccache`. Local
+  `just` recipes use platform cache directories; CI maps its workspace to `.ci/target/book_tooling/main` and caches
+  `.ci/build/book_tooling/main` separately. The reusable action installs sccache and disables incremental compilation.
+  Validate and coverage jobs have explicit cache labels for their Cargo profiles and feature sets.
 - **Permissions.** Workflows default to `contents: read`.
 
 ## Checking workflows locally
 
 ```sh
-pip install actionlint-py && actionlint
+actionlint
+zizmor --offline --strict-collection --collect all -- .github
 ```
+
+The pinned actionlint release predates GitHub's `$/` self-repository syntax. `.github/actionlint.yaml`
+ignores only its two unsupported-format diagnostics; all other workflow errors remain visible. Install
+the standalone `actionlint` binary and `zizmor` using the versions managed by your development environment.
