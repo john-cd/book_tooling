@@ -45,10 +45,12 @@ override the host fallback. See [README](README.md).
 
 Reviewed 2026-11-01. The primary checkout is clean on `develop`, synchronized with
 `origin/develop` after a fast-forward push. The integrated history is linear and includes the
-reviewed #76/#77/#78/#79 work plus the validated Cargo.lock update from `codex/cargo-update`.
-That lockfile change passed `just cargo check --workspace --all-targets --locked` on Windows
-after rebasing onto `origin/develop`; `just ca` also passed with warnings denied. Repository
-hooks passed with `prek run --all-files`.
+reviewed #76/#77/#78/#79 work, the validated Cargo.lock update, and the `{{#badges crate=}}`
+feature for [rust_howto#2145](https://github.com/john-cd/rust_howto/issues/2145). The lockfile
+change passed `just cargo check --workspace --all-targets --locked` on Windows after rebasing
+onto `origin/develop`. The badge feature passed focused `parse_lib`/`book_tool` tests and
+targeted all-feature Clippy with warnings denied. Repository hooks passed with
+`prek run --all-files`.
 
 GitHub's all-state pull-request listing had no open PRs. PRs #63 and #64 were closed without
 merge; their `claude/project-thread-sf1c32` head is no longer a local or remote branch. No PR
@@ -58,22 +60,24 @@ branch was eligible for cleanup.
 | --------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
 | Repository root | `develop`                | Clean; fast-forward integrated and synchronized with `origin/develop`.                                                           |
 | `.worktrees/a`  | detached / `29c339d`     | Clean snapshot at the independent `main` root; retain the checkout and `main` cache identity.                                    |
-| `.worktrees/b`  | detached / `3701b6c`     | Clean snapshot; its mirrored `backup/tooling-20261031/worktree-b` ref has two commits not in `develop`. Retain snapshot/cache.   |
+| `.worktrees/b`  | detached / `develop` tip | Clean after integrating the #2145 badge feature; retain the slot and warm cache.                                                 |
 | `.worktrees/c`  | detached / `3be445c`     | Clean snapshot; its mirrored `backup/tooling-20261031/worktree-c` ref has seven commits not in `develop`. Retain snapshot/cache. |
 | `.worktrees/e`  | detached / `develop` tip | Clean after integrating the validated Cargo.lock update; retain the slot and warm cache.                                         |
 | `.worktrees/f`  | detached / `develop` tip | Clean after integrating the #76/#77/#78/#79 commits; retain the slot and warm cache.                                             |
 
-The local topic refs `codex/cargo-update` and `codex/issues-77-79-maintenance` were removed
-after confirming their commits are ancestors of `develop`; their clean worktrees and caches
-remain registered and detached at the integration tip. The local
-`codex/issue-2145-badges-no-index` ref points at `619376b`, which is contained in `develop`; it
-has no linked worktree and was retained because its name indicates separate issue ownership.
+The local topic refs `codex/cargo-update`, `codex/issues-77-79-maintenance`, and
+`codex/issue-2145-badges-no-index` were removed after confirming their commits are ancestors of
+`develop`; their clean worktrees and caches remain registered and detached at the integration
+tip. The #2145 implementation is commit `1e9cc34` after rebasing onto the integrated develop
+history.
 
 The mirrored recovery refs `backup/develop-before-sync-20261031-b73ade5a`,
 `backup/tooling-20261031/develop-before`, and `backup/tooling-20261031/working-state`
 retain 9, 4, and 5 commits respectively that are not in `develop`. They preserve broad,
 older configuration and source snapshots, so do not merge or delete them as cleanup.
-`backup/tooling-20261031/worktree-a` preserves the independent `main` root. The remote-only
+`backup/tooling-20261031/worktree-a` preserves the independent `main` root, while
+`backup/tooling-20261031/worktree-b` preserves a two-commit historical snapshot no longer
+checked out. The remote-only
 `origin/codex/rust-howto-pin-404e8fe` is 64 commits ahead of `develop` and has no open PR;
 retain it because its divergent history contains unmerged work.
 
@@ -81,8 +85,9 @@ The unregistered `.worktrees/d` directory contained only three managed junctions
 `.sccache` and slot `d` build/target paths. After confirming there was no running Cargo or rustc
 process, the link-only wrapper was removed; the external slot `d` directories and shared sccache
 were preserved. Empty top-level `build` and `target` directories under the external target root
-remain because their owner is unclear. The registered checkouts were clean before this closeout;
-no unrelated untracked, temporary, or generated file was confirmed safe to remove.
+remain because their owner is unclear. The dirty changes in `.worktrees/b` were reviewed and
+committed as the #2145 badge feature; no unrelated untracked, temporary, or generated file was
+confirmed safe to remove.
 
 Use `git worktree list --porcelain` plus `git status --short --untracked-files=all` to refresh
 this snapshot before further cleanup.
