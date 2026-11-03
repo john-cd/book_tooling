@@ -209,3 +209,7 @@ configure-cargo-host:
 # Link Cargo and rust-analyzer outputs without replacing existing directories.
 build-setup:
     pwsh -NoLogo -NoProfile -File {{quote(join(source_directory(), "scripts/cargo-host.ps1"))}} -BuildRoot {{quote(code_build_root)}} -LinkOutputs
+
+# Lint repository Markdown with the pinned markdownlint-cli2.
+markdownlint *args='':
+    npx --yes markdownlint-cli2@0.24.0 {{ args }}
