@@ -8,6 +8,26 @@ A collection of Rust-based tools for processing Markdown files, particularly for
 
 This workspace provides a suite of tools to automate the management and enrichment of Markdown content. It includes a high-performance parser, a unified CLI for document processing, and a specialized tool for analyzing Rust crate metrics.
 
+## Choosing between `book_tooling` and `mdbook-utils`
+
+These are separate command-line tools with complementary responsibilities. Use `mdbook-utils` for
+mdBook-specific workflows such as sitemaps, include and code-example management, crate/category
+indexes, dependency reference definitions, badges, and read-only link reports. Use `book_tooling`
+for authoring-time operations such as rewriting inline links in place, checking external HTTP links,
+auditing unused reference definitions, searching Markdown, and extracting comments.
+
+| Task                                                                              | Tool                 |
+| --------------------------------------------------------------------------------- | -------------------- |
+| Build sitemaps, resolve `book.toml` paths, or manage mdBook includes and examples | `mdbook-utils`       |
+| Generate crate/category indexes, dependency references, or badges                 | `mdbook-utils`       |
+| Report links or duplicate/unresolved references without editing Markdown          | `mdbook-utils links` |
+| Rewrite inline links or audit reference definitions in place                      | `book_tool`          |
+| Check external HTTP links, search content, or extract comments                    | `book_tool`          |
+
+The command-line tools are separate. `mdbook-utils` uses pulldown-cmark for its read-only scans;
+`book_tooling` uses `parse_lib` for source-preserving Markdown edits and analysis. The two repositories
+currently keep their URL and badge rules in their own libraries.
+
 ## Workspace Structure
 
 ### Libraries
