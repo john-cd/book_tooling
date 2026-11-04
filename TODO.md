@@ -24,7 +24,6 @@ No clearly bounded quick win is currently open; start with the priority list bel
 ### Ready: priority order
 
 - [#78: Epic: Complete dependency-update coverage and consistent CI caching](https://github.com/john-cd/book_tooling/issues/78) — Start with updater/action/cache configuration; hosted acceptance waits on #62.
-- [#81: Review parser and directive work on the stale rust-howto-pin branch](https://github.com/john-cd/book_tooling/issues/81) — Compare the candidate patches before retaining any behavior.
 - [#77: Epic: Validate and finalize Cargo profiles, output paths, and linker policy](https://github.com/john-cd/book_tooling/issues/77) — Controlled local measurements can proceed; Linux/macOS acceptance needs the matching hosts.
 
 ### Blocked or deferred

@@ -2,6 +2,7 @@
 //!
 //! TODO Reviewed ??-??-2026
 
+#![cfg(feature = "cli")]
 #![expect(
     clippy::expect_used,
     reason = "Helpers in this test file fail loudly when test setup breaks."
