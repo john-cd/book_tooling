@@ -49,9 +49,6 @@ None currently open.
 
 ### 1. Unit Testing and Test Coverage Gaps
 
-- [ ] **`book_tool::links` and CLI modules**:
-  - Add unit tests for `links::link::Link` constructors, Display formatting, and URL normalization.
-  - Add inline unit tests for `book_tool/src/extract_comments/mod.rs` and `book_tool/src/link_check/mod.rs` error handling paths.
 - [ ] **`parse_lib::link_extractor`**: Add unit tests for `LinkExtractor` visitor checking extraction of autolinks, reference-style definitions, collapsed reference links, and image links.
 - [ ] **`parse_lib::errors`**: Add unit tests for `ParsingError::display` and `annotate-snippets` rendering across single-line, multiline, and out-of-bounds byte spans.
 - [ ] **`parse_lib::visit` helpers**:

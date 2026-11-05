@@ -79,3 +79,52 @@ pub fn execute(directories: &[PathBuf], output: &Path, scope: &Scope) -> Result<
     );
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn writes_comments_grouped_by_file_and_overwrites_output() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let book = dir.path().join("book");
+        std::fs::create_dir_all(&book)?;
+        std::fs::write(
+            book.join("a.md"),
+            "text <!-- first --> more\n\n<!-- second -->\n",
+        )?;
+        std::fs::write(book.join("b.md"), "no comments here\n")?;
+        let output = dir.path().join("comments.txt");
+        std::fs::write(&output, "stale")?;
+
+        execute(std::slice::from_ref(&book), &output, &Scope::default())?;
+
+        let written = std::fs::read_to_string(&output)?;
+        assert!(!written.contains("stale"));
+        assert!(written.contains("a.md\n<!-- first -->\n\n"), "{written}");
+        assert!(written.contains("<!-- second -->\n\n"), "{written}");
+        assert!(!written.contains("b.md"), "{written}");
+        Ok(())
+    }
+
+    #[test]
+    fn no_comments_yields_an_empty_output_file() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        std::fs::write(dir.path().join("a.md"), "plain\n")?;
+        let output = dir.path().join("out").with_extension("txt");
+        execute(&[dir.path().to_path_buf()], &output, &Scope::default())?;
+        assert_eq!(std::fs::read_to_string(output)?, "");
+        Ok(())
+    }
+
+    #[test]
+    fn missing_input_directory_is_an_error() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let result = execute(
+            &[dir.path().join("absent")],
+            &dir.path().join("out.txt"),
+            &Scope::default(),
+        );
+        result.expect_err("missing directory is reported");
+    }
+}

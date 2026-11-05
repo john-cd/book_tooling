@@ -221,3 +221,72 @@ pub async fn execute(
     println!("All links verified successfully.");
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn active(source: &str, unused: Option<&HashSet<String>>) -> Vec<String> {
+        let doc = parse_lib::parse_document("t", None, source).expect("parses");
+        let mut found: Vec<_> = collect_active_external_links(&doc, unused)
+            .into_iter()
+            .map(String::from)
+            .collect();
+        found.sort();
+        found
+    }
+
+    #[test]
+    fn only_http_and_https_links_are_collected() {
+        let found = active(
+            "[a](https://a.example/) [m](mailto:x@y.z) <http://b.example/> ![i](ftp://c.example/x)\n",
+            None,
+        );
+        assert_eq!(found, ["http://b.example/", "https://a.example/"]);
+    }
+
+    #[test]
+    fn unused_definitions_are_skipped_case_and_space_insensitively() {
+        let source = "[Keep Me]: https://keep.example/\n[Drop  Me]: https://drop.example/\n";
+        let unused = HashSet::from(["drop me".to_owned()]);
+        assert_eq!(active(source, Some(&unused)), ["https://keep.example/"]);
+        assert_eq!(active(source, None).len(), 2);
+    }
+
+    #[tokio::test]
+    async fn delete_without_refdefs_is_rejected() {
+        let err = execute(vec![], false, true, &Scope::default())
+            .await
+            .expect_err("invalid flag combination");
+        assert!(
+            err.to_string().contains("--delete requires --refdefs"),
+            "{err}"
+        );
+    }
+
+    #[tokio::test]
+    async fn directory_without_external_links_verifies_trivially() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        std::fs::write(dir.path().join("a.md"), "[local](other.md)\n")?;
+        execute(
+            vec![dir.path().to_path_buf()],
+            false,
+            false,
+            &Scope::default(),
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn missing_directory_is_an_error() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        execute(
+            vec![dir.path().join("absent")],
+            false,
+            false,
+            &Scope::default(),
+        )
+        .await
+        .expect_err("missing directory");
+    }
+}

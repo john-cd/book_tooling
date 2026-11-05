@@ -60,3 +60,52 @@ pub fn extract_urls(doc: &Document<'_>) -> HashSet<Url> {
     doc.accept(&mut collector);
     urls
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn urls(source: &str) -> Vec<String> {
+        let doc = parse_lib::parse_document("t", None, source).expect("parses");
+        let mut found: Vec<_> = extract_urls(&doc).into_iter().map(String::from).collect();
+        found.sort();
+        found
+    }
+
+    #[test]
+    fn extracts_autolinks_inline_links_images_and_definitions() {
+        let found = urls(concat!(
+            "<https://auto.example/a>\n\n",
+            "[inline](https://inline.example/b) ![img](https://img.example/c.png)\n\n",
+            "[ref]: https://ref.example/d\n"
+        ));
+        assert_eq!(
+            found,
+            [
+                "https://auto.example/a",
+                "https://img.example/c.png",
+                "https://inline.example/b",
+                "https://ref.example/d",
+            ]
+        );
+    }
+
+    #[test]
+    fn relative_and_unparseable_destinations_are_skipped() {
+        assert!(urls("[rel](../page.md) [anchor](#top) [file](chapter.md)").is_empty());
+    }
+
+    #[test]
+    fn duplicates_collapse_and_urls_are_normalized() {
+        let found = urls("[a](https://EXAMPLE.com) [b](https://example.com/)\n");
+        assert_eq!(found, ["https://example.com/"]);
+    }
+
+    #[test]
+    fn non_http_schemes_are_still_extracted() {
+        assert_eq!(
+            urls("[mail](mailto:a@example.com)"),
+            ["mailto:a@example.com"]
+        );
+    }
+}
