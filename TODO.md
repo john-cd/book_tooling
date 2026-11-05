@@ -52,7 +52,6 @@ None currently open.
 ### 2. Integration Testing Enhancements
 
 - [ ] **CLI error reporting & edge cases**:
-  - Add integration tests verifying non-zero exit codes and helpful error messages when `book_tool` commands receive non-existent directories, unreadable files, or malformed CLI arguments.
   - Add integration tests exercising `book_tool directives` flag overrides and config file precedence.
 - [ ] **`parse_lib` diagnostic snapshots**: Add integration tests verifying source snippet rendering for invalid directive syntax and corrupted input documents.
 
