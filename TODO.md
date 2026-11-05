@@ -51,8 +51,6 @@ None currently open.
 
 ### 2. Integration Testing Enhancements
 
-- [ ] **CLI error reporting & edge cases**:
-  - Add integration tests exercising `book_tool directives` flag overrides and config file precedence.
 - [ ] **`parse_lib` diagnostic snapshots**: Add integration tests verifying source snippet rendering for invalid directive syntax and corrupted input documents.
 
 ### 3. Benchmarks and Examples
