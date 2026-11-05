@@ -63,6 +63,5 @@ None currently open.
   - Reserve `anyhow::Result` for application/CLI boundaries in `book_tool` and `rust_rate`.
 - [ ] **Deduplicate template formatting**:
   - Extract badge and link template rendering shared between `book_tool/src/common/templates.rs` and `rust_rate/src/templates/mod.rs` into a shared module or crate to eliminate duplicated template logic.
-- [ ] **Parser backtracking complexity audit**: Audit `winnow` parsers in `parse_lib/src/markdown` for potential catastrophic backtracking on deeply nested or unbalanced inputs.
 
 ### 6. Discrepancies Between Documentation and Code
