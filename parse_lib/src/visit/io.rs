@@ -85,3 +85,94 @@ impl<'d> Document<'d> {
         self.to_io(io_writer, f)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fmt::Write as _;
+
+    use super::*;
+    use crate::parse_document;
+
+    /// Visitor that ignores every element; the tests write through the adapted writer directly.
+    struct Noop;
+    impl Visitor<'_> for Noop {}
+
+    struct FailingWriter;
+    impl io::Write for FailingWriter {
+        /// Verifies: write.
+        fn write(&mut self, _buf: &[u8]) -> io::Result<usize> {
+            Err(io::Error::other("disk full"))
+        }
+
+        /// Verifies: flush.
+        fn flush(&mut self) -> io::Result<()> {
+            Err(io::Error::other("disk full"))
+        }
+    }
+
+    /// Verifies: to io forwards fmt writes to the io writer.
+    #[test]
+    fn to_io_forwards_fmt_writes_to_the_io_writer() {
+        let doc = parse_document(
+            "t", None, "# Title
+",
+        )
+        .expect("parses");
+        let mut out = Vec::new();
+        doc.to_io(&mut out, |writer| {
+            write!(writer, "hello").expect("fmt write");
+            Noop
+        })
+        .expect("writes");
+        assert_eq!(out, b"hello");
+    }
+
+    /// Verifies: with buffer flushes to the inner writer.
+    #[test]
+    fn with_buffer_flushes_to_the_inner_writer() {
+        let doc = parse_document(
+            "t", None, "x
+",
+        )
+        .expect("parses");
+        let mut out = Vec::new();
+        doc.with_buffer(1024, &mut out, |writer| {
+            write!(writer, "buffered").expect("fmt write");
+            Noop
+        })
+        .expect("writes");
+        assert_eq!(out, b"buffered");
+    }
+
+    /// Verifies: write failures are propagated.
+    #[test]
+    fn write_failures_are_propagated() {
+        let doc = parse_document(
+            "t", None, "x
+",
+        )
+        .expect("parses");
+        let err = doc
+            .to_io(FailingWriter, |writer| {
+                let _unused = write!(writer, "data");
+                Noop
+            })
+            .expect_err("failure surfaces");
+        assert_eq!(err.to_string(), "disk full");
+    }
+
+    /// Verifies: flush failure is propagated when buffered writes succeed.
+    #[test]
+    fn flush_failure_is_propagated_when_buffered_writes_succeed() {
+        let doc = parse_document(
+            "t", None, "x
+",
+        )
+        .expect("parses");
+        doc.with_buffer(1024, FailingWriter, |writer| {
+            let _unused = write!(writer, "small");
+            Noop
+        })
+        .expect_err("flush error surfaces");
+    }
+}

@@ -238,3 +238,83 @@ impl fmt::Display for Document<'_> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parse_document;
+
+    /// Verifies: print.
+    fn print(source: &str) -> String {
+        parse_document("t", None, source)
+            .expect("parses")
+            .to_string()
+    }
+
+    /// Verifies: links images and titles.
+    #[test]
+    fn links_images_and_titles() {
+        let out = print("[a](https://x.example \"T\") ![i](p.png) <https://auto.example>\n");
+        assert!(out.contains("[a](https://x.example \"T\")"), "{out}");
+        assert!(out.contains("![i](p.png)"), "{out}");
+        assert!(out.contains("<https://auto.example>"), "{out}");
+    }
+
+    /// Verifies: reference definition is on its own line.
+    #[test]
+    fn reference_definition_is_on_its_own_line() {
+        let out = print("[d]: https://x.example \"Title\"\n");
+        assert_eq!(out.trim_end(), "[d]: https://x.example \"Title\"");
+    }
+
+    /// Verifies: heading levels and ids.
+    #[test]
+    fn heading_levels_and_ids() {
+        let out = print("## Two {#anchor}\n\n### Three\n");
+        assert!(out.contains("## Two {#anchor}\n"), "{out}");
+        assert!(out.contains("### Three\n"), "{out}");
+    }
+
+    /// Verifies: fenced code block keeps language and lines.
+    #[test]
+    fn fenced_code_block_keeps_language_and_lines() {
+        let out = print("```rust\nfn main() {}\n```\n");
+        assert_eq!(out.trim_end(), "```rust\nfn main() {}\n```");
+    }
+
+    /// Verifies: table columns are padded to the widest cell.
+    #[test]
+    fn table_columns_are_padded_to_the_widest_cell() {
+        let out = print("| a | bbbbb |\n|---|---|\n| longer | c |\n");
+        let lines: Vec<_> = out.trim_end().lines().collect();
+        assert_eq!(lines.len(), 3, "{out}");
+        assert!(
+            lines.iter().all(|line| line.len() == lines[0].len()),
+            "{out}"
+        );
+        assert!(lines[1].contains("| ------ | ----- |"), "{out}");
+    }
+
+    /// Verifies: writes into any fmt writer and ignores sink failures.
+    #[test]
+    fn writes_into_any_fmt_writer_and_ignores_sink_failures() {
+        struct Failing;
+        impl fmt::Write for Failing {
+            /// Verifies: write str.
+            fn write_str(&mut self, _text: &str) -> fmt::Result {
+                Err(fmt::Error)
+            }
+        }
+        let doc = parse_document("t", None, "# Title\n").expect("parses");
+        let mut printer = PrettyPrinter::new(Failing);
+        doc.accept(&mut printer);
+    }
+
+    /// Verifies: printing twice is stable.
+    #[test]
+    fn printing_twice_is_stable() {
+        let source = "# H\n\n[a](https://x.example) text `code`\n\n[d]: https://d.example\n";
+        let once = print(source);
+        assert_eq!(print(&once), once);
+    }
+}

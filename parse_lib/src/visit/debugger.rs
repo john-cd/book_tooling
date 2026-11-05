@@ -138,3 +138,32 @@ impl<'a> Visitor<'a> for Debugger {
         println!("Custom directive: {directive:?}");
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parse_document;
+    use crate::visit::Visitable as _;
+
+    /// Verifies: default and new are equivalent unit visitors.
+    #[test]
+    fn default_and_new_are_equivalent_unit_visitors() {
+        let _first = Debugger::new();
+        let _second = <Debugger as Default>::default();
+    }
+
+    /// The visitor prints to stdout; this exercises every element kind to make sure it never
+    /// panics.
+    #[test]
+    fn visits_every_element_kind_without_panicking() {
+        let source = concat!(
+            "# Heading {#id}\n\n",
+            "[inline](https://x.example \"t\") [ref][label] ![img](p.png \"t\") ![r][label]\n\n",
+            "<https://auto.example> `code` [[wiki | shown]] {{#crate serde}}\n\n",
+            "```rust\nfn f() {}\n```\n\n",
+            "[label]: https://x.example \"title\"\n",
+        );
+        let doc = parse_document("t", None, source).expect("parses");
+        doc.accept(&mut Debugger::new());
+    }
+}
