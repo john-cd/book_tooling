@@ -49,8 +49,6 @@ None currently open.
   - **`parse_lib` parser benchmarks**: Benchmark `parse_document` on small, medium, and large Markdown documents to validate zero-copy claims and track parsing throughput (MB/s).
   - **`parse_lib` reconstruction benchmarks**: Benchmark `MarkdownRenderer` and `PrettyPrinter` AST traversal and output generation.
   - **`book_tool` processing benchmarks**: Benchmark directory traversal, link extraction, and directive replacement on representative book corpus fixtures.
-- [ ] **Add runnable examples (`examples/`)**:
-  - **`book_tool` API example**: Add an example demonstrating programmatic usage of `AsyncLinkChecker` and `find_unused_refdefs_in_scopes`.
 
 ### 4. Documentation and Doc Comments
 
