@@ -1,0 +1,32 @@
+# TODO Reviewed ??-??-2026
+
+## Manual check that the development container image builds and contains the pinned tools.
+name: Container
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Development image (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Build image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose --env-file .devcontainer/.env -f .devcontainer/compose.yaml -f .devcontainer/compose.override.yaml build
+      - name: Check pinned tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose --env-file .devcontainer/.env -f .devcontainer/compose.yaml -f .devcontainer/compose.override.yaml run --rm --no-deps book-tooling \
+            bash -c 'rustc --version && cargo --version && cargo nextest --version && sccache --version && just --version && dprint --version && prek --version && cargo deny --version'
