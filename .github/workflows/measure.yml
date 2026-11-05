@@ -1,0 +1,65 @@
+# TODO Reviewed ??-??-2026
+
+## Manual measurement of cold/warm rebuild time, output sizes and release linking per OS.
+## Compiler cache is disabled so timings are not distorted by shared sccache counters.
+name: Measure
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    name: Build profiles (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    env:
+      RUSTC_WRAPPER: ""
+      CARGO_BUILD_RUSTC_WRAPPER: ""
+      CARGO_INCREMENTAL: "0"
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Set up Rust
+        uses: $/.github/actions/setup-rust
+        with:
+          cache: "false"
+          nightly: skip
+      - name: Measure
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -vV
+          sec() { date +%s; }
+          run() { # label, args...
+            local label=$1; shift
+            local t0; t0=$(sec)
+            cargo build --workspace --all-targets --locked "$@" --quiet
+            local t1; t1=$(sec)
+            echo "$label: $((t1 - t0)) s"
+          }
+          size() { du -sk "$1" 2>/dev/null | cut -f1; }
+          {
+            echo "### ${{ matrix.os }} build measurements"
+            echo '```'
+            rustc -vV | sed -n '1p;5p'
+            cargo fetch --locked
+            run "ci cold" --profile ci
+            echo "ci target KiB: $(size "${CARGO_TARGET_DIR:-target}")"
+            touch parse_lib/src/lib.rs
+            run "ci warm (touch parse_lib/src/lib.rs, deps cached)" --profile ci
+            run "ci no-op" --profile ci
+            run "release cold (linker: ${{ matrix.os }} default)" --release
+            echo "release target KiB: $(size "${CARGO_TARGET_DIR:-target}")"
+            touch parse_lib/src/lib.rs
+            run "release warm" --release
+            echo '```'
+          } 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
