@@ -105,7 +105,6 @@ None currently open.
   - Add doc comments to `parse_lib/src/markdown_renderer.rs` (`MarkdownRenderer`).
   - Add doc comments to `parse_lib/src/visit/refdefs.rs` (`refdefs`).
   - Add doc comments to internal helpers and trait methods (e.g. `implicit_reference_uses` in `book_tool/src/refdefs/occurrences.rs`).
-- [ ] **Enforce missing documentation in CI**: Enable `#![warn(missing_docs)]` or `#![deny(missing_docs)]` on library crates (`parse_lib` and library targets of `book_tool` and `rust_rate`) to prevent doc comment regressions.
 - [ ] **Document error conditions and invariants**: Add `# Errors` and `# Panics` sections to all fallible and invariant-checking public functions across `book_tool` and `parse_lib`.
 
 ### 5. Architecture and Design Alignment
