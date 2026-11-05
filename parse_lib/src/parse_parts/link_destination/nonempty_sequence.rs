@@ -13,64 +13,49 @@
 
 use winnow::ModalResult;
 use winnow::Parser as _;
-use winnow::combinator::alt;
-use winnow::combinator::delimited;
-use winnow::combinator::repeat;
 use winnow::error::ContextError;
 use winnow::error::ErrMode;
-use winnow::error::StrContext::Expected;
-use winnow::error::StrContext::Label;
-use winnow::error::StrContextValue::Description;
 use winnow::token::any;
-use winnow::token::take_while;
 
 /// Returns true if a character that is not control, space, < ( ) or \.
 fn is_allowed_char(c: char) -> bool {
     !(c.is_ascii_control() || c == ' ' || c == '<' || c == '(' || c == ')' || c == '\\')
 }
 
-/// Parses text that may contain escaped parentheses, e.g., "\(" or "\)".
+/// Returns the length in bytes of the longest link destination at the start of `text`, or `None`
+/// if there is none or it contains an unmatched `(`.
 ///
-/// It must consume at least one character.
-fn parse_text_with_escapes<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    repeat::<_, _, (), _, _>(
-        1..,
-        alt((take_while(1.., is_allowed_char).void(), ('\\', any).void())),
-    )
-    .take()
-    .context(Label("text"))
-    .context(Expected(Description(
-        r"text that may contain escaped parentheses or backslashes, e.g., \( or \) or \\",
-    )))
-    .parse_next(input)
-    .map_err(|e: ContextError| ErrMode::Backtrack(e))
-}
-
-/// Recursively parses content within balanced parentheses.
-/// It can contain allowed characters, escaped parentheses, or nested balanced parentheses.
-fn parse_balanced_parentheses_content<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    repeat::<_, _, (), _, _>(
-        0..,
-        alt((
-            parse_balanced_parentheses.void(), // Recursively parse.
-            parse_text_with_escapes.void(),
-        )),
-    )
-    .take()
-    .parse_next(input)
-}
-
-/// Parses a balanced pair of unescaped parentheses, e.g., "(foo(bar)baz)".
-/// The content inside can be anything allowed by `balanced_parentheses_content`.
-fn parse_balanced_parentheses<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-    delimited(
-        "(",
-        parse_balanced_parentheses_content,
-        ")", // An unmatched `(` backtracks so the text stays literal.
-    )
-    .take()
-    .context(Label("balanced pair of unescaped parentheses"))
-    .parse_next(input)
+/// Parentheses nest, so the scan counts depth iteratively: hostile input such as thousands of
+/// `(` must not exhaust the stack. A backslash escapes the following character; the destination
+/// stops at an unmatched `)`, a space, `<` or a control character, and a lone trailing backslash
+/// is left out.
+fn destination_len(text: &str) -> Option<usize> {
+    let mut depth = 0_usize;
+    let mut end = 0_usize;
+    let mut chars = text.char_indices();
+    while let Some((offset, c)) = chars.next() {
+        match c {
+            '\\' => {
+                let Some((escaped_offset, escaped)) = chars.next() else {
+                    break;
+                };
+                end = escaped_offset + escaped.len_utf8();
+                continue;
+            }
+            '(' => depth += 1,
+            ')' => {
+                if depth == 0 {
+                    break;
+                }
+                depth -= 1;
+            }
+            other if is_allowed_char(other) => {}
+            _ => break,
+        }
+        end = offset + c.len_utf8();
+    }
+    // An unmatched `(` makes this not a destination, so the caller keeps the text literal.
+    (depth == 0 && end > 0).then_some(end)
 }
 
 /// The main parser for a non-empty sequence of characters not starting by `<`.
@@ -79,21 +64,12 @@ pub(crate) fn parse_non_empty_sequence<'s>(input: &mut &'s str) -> ModalResult<&
     winnow::combinator::peek(any.verify(|c| *c != '<' && *c != ' ' && *c != ')'))
         .parse_next(input)?;
 
-    let destination = repeat::<_, _, (), _, _>(
-        1..,
-        alt((
-            parse_balanced_parentheses.void(),
-            parse_text_with_escapes.void(),
-        )),
-    )
-    .take()
-    .parse_next(input)?;
-
-    // Parsing stopped at an unmatched `(`: this is not a valid destination, so let the caller keep
-    // the text literal.
-    if input.starts_with('(') {
+    let source: &'s str = input;
+    let Some(end) = destination_len(source) else {
         return Err(ErrMode::Backtrack(ContextError::new()));
-    }
+    };
+    let destination = source.get(..end).unwrap_or_default();
+    *input = source.get(end..).unwrap_or_default();
     Ok(destination)
 }
 
@@ -170,82 +146,33 @@ mod tests_parse_non_empty_sequence {
         parse_non_empty_sequence(&mut "(foo").expect_err("input should be rejected");
         parse_non_empty_sequence(&mut "(a(b)c").expect_err("input should be rejected");
     }
-}
 
-#[cfg(test)]
-mod text_with_escapes_tests {
-    use super::*;
-
-    /// Plain text and backslash-escaped parentheses or backslashes are consumed, wherever they
-    /// appear in the run.
+    /// Tens of thousands of nested or unmatched parentheses must not overflow the stack.
     #[test]
-    fn test_text_with_escapes_basic() {
-        // Simple allowed chars.
+    fn test_extreme_nesting_does_not_recurse() {
+        let depth = 100_000;
+        let balanced = format!("{}x{}", "(".repeat(depth), ")".repeat(depth));
         assert_eq!(
-            parse_text_with_escapes.parse_peek("hello"),
-            Ok(("", "hello"))
+            parse_non_empty_sequence.parse_peek(balanced.as_str()),
+            Ok(("", balanced.as_str()))
         );
-        // Escaped parenthesis.
-        assert_eq!(parse_text_with_escapes.parse_peek(r"\("), Ok(("", r"\(")));
-        assert_eq!(parse_text_with_escapes.parse_peek(r"\)"), Ok(("", r"\)")));
-        // Escaped backslash.
-        assert_eq!(
-            parse_text_with_escapes.parse_peek(r"foo\\bar"),
-            Ok(("", r"foo\\bar"))
-        );
-        // Mixed escapes.
-        assert_eq!(
-            parse_text_with_escapes.parse_peek(r"foo\)bar\("),
-            Ok(("", r"foo\)bar\("))
-        );
-        // Escaped parenthesis in the middle.
-        assert_eq!(
-            parse_text_with_escapes.parse_peek(r"abc\)def"),
-            Ok(("", r"abc\)def"))
-        );
-        // Escaped parenthesis at the start.
-        assert_eq!(
-            parse_text_with_escapes.parse_peek(r"\)abc"),
-            Ok(("", r"\)abc"))
-        );
-        // Escaped parenthesis at the end.
-        assert_eq!(
-            parse_text_with_escapes.parse_peek(r"abc\("),
-            Ok(("", r"abc\("))
-        );
+        let unmatched = "(".repeat(depth);
+        parse_non_empty_sequence(&mut unmatched.as_str()).expect_err("unmatched parentheses");
     }
 
-    /// The run stops at the first unescaped parenthesis, also when escapes precede it.
+    /// An unmatched `(` after a complete group rejects the whole destination, and a dangling
+    /// backslash or multi-byte text is handled at character boundaries.
     #[test]
-    fn test_text_with_escapes_partial() {
-        // Stops at unescaped parenthesis.
+    fn test_unmatched_after_group_and_unicode() {
+        parse_non_empty_sequence(&mut "a(b)c(d").expect_err("trailing unmatched");
+        parse_non_empty_sequence(&mut "a(b c)").expect_err("space inside parentheses");
         assert_eq!(
-            parse_text_with_escapes.parse_peek("foo(bar"),
-            Ok(("(bar", "foo"))
+            parse_non_empty_sequence.parse_peek("caf\u{e9}(\u{f6})x y"),
+            Ok((" y", "caf\u{e9}(\u{f6})x"))
         );
-        // Stops at unescaped parenthesis after escapes.
         assert_eq!(
-            parse_text_with_escapes.parse_peek(r"foo\)bar(baz"),
-            Ok(("(baz", r"foo\)bar"))
+            parse_non_empty_sequence.parse_peek("ab\\"),
+            Ok(("\\", "ab"))
         );
-        // Stops at unescaped parenthesis after escaped.
-        assert_eq!(
-            parse_text_with_escapes.parse_peek(r"\(foo)bar"),
-            Ok((")bar", r"\(foo"))
-        );
-    }
-
-    /// Input starting with a parenthesis, `<`, a space or a control character, or ending in a lone
-    /// backslash, is rejected.
-    #[test]
-    fn test_text_with_escapes_invalid() {
-        // Starts with forbidden char.
-        parse_text_with_escapes(&mut "(").expect_err("input should be rejected");
-        parse_text_with_escapes(&mut ")").expect_err("input should be rejected");
-        parse_text_with_escapes(&mut "<").expect_err("input should be rejected");
-        parse_text_with_escapes(&mut " ").expect_err("input should be rejected");
-        parse_text_with_escapes(&mut "\0").expect_err("input should be rejected");
-        // A lone backslash at the end of the input has nothing to escape.
-        parse_text_with_escapes(&mut "\\").expect_err("input should be rejected");
     }
 }
