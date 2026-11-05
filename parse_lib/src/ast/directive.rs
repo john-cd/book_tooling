@@ -153,3 +153,116 @@ impl Display for DestinationKind {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Verifies: destination kinds display their directive names.
+    #[test]
+    fn destination_kinds_display_their_directive_names() {
+        let expected = [
+            (DestinationKind::Category, "cat"),
+            (DestinationKind::Crate, "crate"),
+            (DestinationKind::Docs, "docs"),
+            (DestinationKind::GithubRepo, "github"),
+            (DestinationKind::LibRs, "lib.rs"),
+            (DestinationKind::CratesIo, "crates.io"),
+            (DestinationKind::Web, "web"),
+        ];
+        for (kind, name) in expected {
+            assert_eq!(kind.to_string(), name);
+        }
+    }
+
+    /// Verifies: destination kinds compare and clone.
+    #[test]
+    fn destination_kinds_compare_and_clone() {
+        let kind = DestinationKind::Docs;
+        assert_eq!(kind.clone(), kind);
+        assert_ne!(DestinationKind::Docs, DestinationKind::Crate);
+    }
+
+    /// Verifies: directives display canonical syntax.
+    #[test]
+    fn directives_display_canonical_syntax() {
+        let cases = [
+            (
+                DirectiveData::Link {
+                    kind: DestinationKind::Docs,
+                    name: "serde",
+                },
+                "{{docs serde}}",
+            ),
+            (
+                DirectiveData::Badge {
+                    kind: DestinationKind::LibRs,
+                    name: "serde",
+                },
+                "{{!lib.rs serde}}",
+            ),
+            (
+                DirectiveData::CrateBlock {
+                    crate_name: "a",
+                    additional_categories: vec![],
+                },
+                "{{#crate a}}",
+            ),
+            (
+                DirectiveData::CrateBlock {
+                    crate_name: "a",
+                    additional_categories: vec!["x", "y"],
+                },
+                "{{#crate a x y}}",
+            ),
+            (
+                DirectiveData::BadgeSet {
+                    crate_name: "a",
+                    include_crate_index: true,
+                    additional_categories: vec![],
+                },
+                "{{#badges a}}",
+            ),
+            (
+                DirectiveData::BadgeSet {
+                    crate_name: "a",
+                    include_crate_index: false,
+                    additional_categories: vec!["x"],
+                },
+                "{{#badges a= x}}",
+            ),
+            (
+                DirectiveData::CategoryBlock {
+                    categories: vec!["a", "b=B"],
+                },
+                "{{#categories a,b=B}}",
+            ),
+            (
+                DirectiveData::ExampleBlock { name: "ex" },
+                "{{#example ex}}",
+            ),
+        ];
+        for (directive, text) in cases {
+            assert_eq!(directive.to_string(), text);
+        }
+    }
+
+    /// Verifies: directive equality considers all fields.
+    #[test]
+    fn directive_equality_considers_all_fields() {
+        let one = DirectiveData::CrateBlock {
+            crate_name: "a",
+            additional_categories: vec!["x"],
+        };
+        let same = DirectiveData::CrateBlock {
+            crate_name: "a",
+            additional_categories: vec!["x"],
+        };
+        let other = DirectiveData::CrateBlock {
+            crate_name: "a",
+            additional_categories: vec!["y"],
+        };
+        assert_eq!(one, same);
+        assert_ne!(one, other);
+    }
+}

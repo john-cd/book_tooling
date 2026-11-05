@@ -27,3 +27,23 @@ impl Display for IndexAnchorKind {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Verifies: display uses directive prefixes.
+    #[test]
+    fn display_uses_directive_prefixes() {
+        assert_eq!(IndexAnchorKind::Regular.to_string(), "i:");
+        assert_eq!(IndexAnchorKind::Italics.to_string(), "ii:");
+        assert_eq!(IndexAnchorKind::Hidden.to_string(), "hi:");
+    }
+
+    /// Verifies: kinds compare by variant.
+    #[test]
+    fn kinds_compare_by_variant() {
+        assert_eq!(IndexAnchorKind::Hidden, IndexAnchorKind::Hidden);
+        assert_ne!(IndexAnchorKind::Regular, IndexAnchorKind::Italics);
+    }
+}
