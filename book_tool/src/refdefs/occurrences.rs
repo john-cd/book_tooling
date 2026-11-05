@@ -333,6 +333,16 @@ fn implicit_reference_uses(source: &str) -> Vec<(&str, ReferenceUseKind)> {
                                     second_close + 1,
                                 )
                             } else {
+                                if after_text > close + 1 {
+                                    // `[a] [b]` is a full reference for tolerant renderers but
+                                    // two shortcut references under CommonMark; keep both
+                                    // labels alive so cleanup never deletes a definition that
+                                    // either reading uses.
+                                    uses.push((
+                                        line.get(label_start..label_end).unwrap_or_default(),
+                                        kind.clone(),
+                                    ));
+                                }
                                 (second_label, second_close + 1)
                             }
                         } else {
@@ -547,5 +557,15 @@ mod tests {
             format!("{err:#}").contains("additional Markdown root"),
             "{err:#}"
         );
+    }
+
+    /// A shortcut reference followed by a space and another bracket keeps both labels in use.
+    #[test]
+    fn spaced_bracket_pairs_keep_both_labels_in_use() {
+        let names: Vec<_> = implicit_reference_uses("a [Used] [other] [text][y]")
+            .into_iter()
+            .map(|(label, _)| label)
+            .collect();
+        assert_eq!(names, ["Used", "other", "y"]);
     }
 }
