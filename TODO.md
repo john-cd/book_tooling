@@ -34,7 +34,3 @@ None.
 Open work is tracked in [GitHub Issues](https://github.com/john-cd/book_tooling/issues).
 Keep one topic per issue, except epics, with a problem, task list, and acceptance criteria.
 Record status and validation evidence in the issue rather than duplicating checklists here.
-
-## Codebase Review: Fixes and Improvements
-
-### 5. Architecture and Design Alignment
