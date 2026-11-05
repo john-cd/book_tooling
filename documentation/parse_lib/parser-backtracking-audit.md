@@ -27,8 +27,9 @@ parentheses 100,000 deep in unit tests.
   destinations (`(` nested in `(`) recursed once per nesting level, so a few thousand unmatched
   brackets overflowed the stack (a process abort, not an error). Both now scan depth with a loop,
   and unit tests cover 100,000 levels.
-- **No other recursive parser exists** in `parse_lib/src`; remaining combinators are bounded
-  repetitions over a flat alternative list.
+- **No other unbounded recursion was found.** Blockquotes hold recursively parsed elements, but
+  20,000 nested `> ` markers parsed in under a millisecond without overflowing the stack; the
+  remaining combinators are bounded repetitions over a flat alternative list.
 
 ## Remaining risk and guidance
 
