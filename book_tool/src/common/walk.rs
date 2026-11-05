@@ -178,7 +178,7 @@ where
                 processed += 1;
             }
             Err(error) => {
-                on_parse_error(path, &error);
+                on_parse_error(path, &anyhow::Error::new(error));
                 failed_paths.push(path.display().to_string());
             }
         }

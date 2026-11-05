@@ -9,6 +9,20 @@ use annotate_snippets::Group;
 use winnow::error::ContextError;
 use winnow::error::ParseError;
 
+/// Error returned by [`parse_document()`](crate::parse_document()) when a document cannot be
+/// parsed.
+#[derive(Debug, thiserror::Error)]
+pub enum ParseDocumentError {
+    /// The parser rejected the input.
+    #[error("Failed to parse document '{name}':\n{message}")]
+    Syntax {
+        /// Name of the document, such as its file name.
+        name: String,
+        /// Rendered description of the parse failure.
+        message: String,
+    },
+}
+
 /// Custom parsing error.
 #[derive(Debug)]
 pub struct ParsingError {
@@ -120,6 +134,22 @@ mod tests {
         assert_eq!(error.input, "abx");
         assert_eq!(error.span, 0..1);
         assert!(error.to_string().contains("abx"));
+    }
+
+    /// Verifies: document errors name the document and carry the parser message.
+    #[test]
+    fn document_error_display_names_the_document() {
+        let error = ParseDocumentError::Syntax {
+            name: "chapter.md".to_owned(),
+            message: "bad token".to_owned(),
+        };
+        assert_eq!(
+            error.to_string(),
+            "Failed to parse document 'chapter.md':
+bad token"
+        );
+        let wrapped = anyhow::Error::new(error).context("while checking");
+        assert!(format!("{wrapped:#}").contains("chapter.md"));
     }
 
     /// Verifies: implements std error.

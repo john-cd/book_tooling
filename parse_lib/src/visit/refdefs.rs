@@ -75,21 +75,14 @@ impl RefDefManager<'_> {
 }
 
 /// Collects reference definitions from a set of documents and returns a manager over them.
-///
-/// # Errors
-///
-/// Never fails at present; the `Result` keeps the signature stable for future validation.
-#[expect(
-    clippy::unnecessary_wraps,
-    reason = "The Result keeps the public signature stable for future validation."
-)]
-pub fn refdefs<'d, 'a>(docs: &'a Documents<'d>) -> anyhow::Result<RefDefManager<'d>>
+#[must_use]
+pub fn refdefs<'d, 'a>(docs: &'a Documents<'d>) -> RefDefManager<'d>
 where
     'a: 'd,
 {
     let mut vis = RefDefVisitor::new();
     docs.accept(&mut vis);
-    Ok(vis.0)
+    vis.0
 }
 
 #[cfg(test)]
@@ -107,7 +100,7 @@ mod tests {
         )
         .expect("parse test markdown");
         let docs = Documents::new(vec![doc]);
-        let manager = refdefs(&docs).expect("collect reference definitions");
+        let manager = refdefs(&docs);
 
         assert_eq!(manager.dupe_labels(), vec!["alpha"]);
         assert_eq!(manager.dupe_urls(), vec!["https://one.example"]);
@@ -123,7 +116,7 @@ mod tests {
         )
         .expect("parse test markdown");
         let docs = Documents::new(vec![doc]);
-        let manager = refdefs(&docs).expect("collect reference definitions");
+        let manager = refdefs(&docs);
 
         let deduped: Vec<(&str, &str)> = manager
             .get_sorted_dedupe_refdefs()

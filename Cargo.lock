@@ -1066,6 +1066,7 @@ dependencies = [
  "fmt2io",
  "multimap",
  "proptest",
+ "thiserror",
  "url",
  "winnow",
 ]

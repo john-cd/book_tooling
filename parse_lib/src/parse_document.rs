@@ -780,14 +780,17 @@ pub fn parse_document<'s>(
     name: &'s str,
     path: Option<&'s std::path::Path>,
     input: &'s str,
-) -> anyhow::Result<crate::Document<'s>> {
+) -> Result<crate::Document<'s>, crate::errors::ParseDocumentError> {
     let mut input_ref = input;
     match parse_elements.parse_next(&mut input_ref) {
         Ok(elements) => {
             let doc = crate::Document::new(name, path, input, elements);
             Ok(doc)
         }
-        Err(e) => anyhow::bail!("Failed to parse document '{name}':\n{e}"),
+        Err(error) => Err(crate::errors::ParseDocumentError::Syntax {
+            name: name.to_owned(),
+            message: error.to_string(),
+        }),
     }
 }
 

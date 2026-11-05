@@ -39,8 +39,5 @@ Record status and validation evidence in the issue rather than duplicating check
 
 ### 5. Architecture and Design Alignment
 
-- [ ] **Error handling in `parse_lib`**:
-  - Refactor `parse_lib` public APIs (`parse_document`, `visit::refdefs::refdefs`) to return structured, typed errors using `thiserror` rather than `anyhow::Result`, aligning with the library error guidelines in `AGENTS.md`.
-  - Reserve `anyhow::Result` for application/CLI boundaries in `book_tool` and `rust_rate`.
 - [ ] **Deduplicate template formatting**:
   - Extract badge and link template rendering shared between `book_tool/src/common/templates.rs` and `rust_rate/src/templates/mod.rs` into a shared module or crate to eliminate duplicated template logic.
