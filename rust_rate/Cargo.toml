@@ -17,6 +17,7 @@ description.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+book_templates.workspace = true
 clap.workspace = true
 futures.workspace = true
 regex.workspace = true

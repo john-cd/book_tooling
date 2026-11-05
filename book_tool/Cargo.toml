@@ -34,6 +34,7 @@ cli = [
 anyhow = { workspace = true }
 clap = { workspace = true, features = ["derive"], optional = true }
 httpdate = { workspace = true, optional = true }
+book_templates = { workspace = true }
 parse_lib = { workspace = true }
 rayon = { workspace = true, optional = true }
 regex = { workspace = true }

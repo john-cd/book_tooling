@@ -32,6 +32,7 @@ currently keep their URL and badge rules in their own libraries.
 
 ### Libraries
 
+- **[`book_templates`](./book_templates)**: Markdown badge and link templates (`DestinationKind`, `render_badge`, `render_link`) shared by `book_tool` and `rust_rate`.
 - **[`parse_lib`](./parse_lib)**: A non-destructive Markdown and directive parser built with `winnow`. It provides the core AST and visitor infrastructure.
 
 ### Tools

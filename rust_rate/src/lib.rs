@@ -21,8 +21,10 @@ pub mod patterns;
 /// Cargo.toml statistics aggregation utilities.
 pub mod stats;
 
-/// Markdown link and badge rendering helpers.
-pub mod templates;
+/// Markdown link and badge rendering helpers, shared with `book_tool` through `book_templates`.
+pub mod templates {
+    pub use book_templates::*;
+}
 
 /// Test helpers and other shared support utilities.
 pub mod utils;

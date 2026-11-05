@@ -125,7 +125,7 @@ mod tests {
     #[test]
     fn template_outputs_match_shared_destination_fixtures() -> Result<(), Box<dyn std::error::Error>>
     {
-        for line in include_str!("../../../test_fixtures/template_output.tsv").lines() {
+        for line in include_str!("../../test_fixtures/template_output.tsv").lines() {
             if line.is_empty() || line.starts_with('#') {
                 continue;
             }

@@ -10,13 +10,10 @@ use anyhow::Result;
 use anyhow::bail;
 use tempfile::NamedTempFile;
 
-/// Markdown rendering helpers shared by directive processing and other workflows.
-mod templates;
-
 /// Directory traversal helpers shared by file-oriented commands.
 mod walk;
 
-pub use templates::*;
+pub use book_templates::*;
 pub use walk::*;
 
 /// Writes a parse-failure diagnostic that remains visible even when tracing is disabled.

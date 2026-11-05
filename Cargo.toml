@@ -2,7 +2,7 @@
 
 [workspace]
 resolver = "3"
-members = ["book_tool", "parse_lib", "rust_rate"]
+members = ["book_templates", "book_tool", "parse_lib", "rust_rate"]
 exclude = ["parse_lib/fuzz"]
 
 # Default values for packages in the workspace
@@ -31,6 +31,7 @@ futures-util = "0.3.34"
 httpdate = "1.0.3"
 memmap2 = "0.9.12"
 multimap = "0.10.1"
+book_templates = { path = "./book_templates" }
 parse_lib = { path = "./parse_lib" }
 proptest = "1.12.0"
 rayon = "1.12.0"
