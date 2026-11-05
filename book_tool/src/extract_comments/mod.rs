@@ -1,6 +1,6 @@
 //! Extracts HTML comments from Markdown files into an audit file.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::fmt::Write as _;
 use std::path::Path;

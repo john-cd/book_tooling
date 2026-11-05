@@ -1,6 +1,6 @@
 //! Tests of the `--extension` and `--exclude` options shared by file-oriented subcommands.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 #![expect(
     clippy::expect_used,

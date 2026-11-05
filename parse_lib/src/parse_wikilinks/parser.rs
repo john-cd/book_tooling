@@ -1,6 +1,6 @@
 //! Parser for wiki links, with an optional label.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use winnow::ModalResult;
 use winnow::Parser as _;

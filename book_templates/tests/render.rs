@@ -1,6 +1,6 @@
 //! Integration tests for rendering badges and links through the public API only.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use book_templates::DestinationKind;
 use book_templates::render_badge;

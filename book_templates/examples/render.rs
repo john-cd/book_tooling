@@ -1,6 +1,8 @@
 //! Renders a badge and a link for each destination kind.
 //!
 //! Run with `cargo run -p book_templates --example render`.
+//!
+//! TODO Reviewed ??-??-2026.
 
 use book_templates::DestinationKind;
 use book_templates::render_badge;

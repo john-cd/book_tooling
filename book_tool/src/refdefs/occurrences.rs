@@ -1,6 +1,6 @@
 //! Locates reference definitions and uses, with source positions, in Markdown files.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::collections::HashMap;
 use std::collections::HashSet;

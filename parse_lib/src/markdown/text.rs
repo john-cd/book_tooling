@@ -1,6 +1,6 @@
 //! Parsers for plain text and for the fallback single character.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use winnow::ModalResult;
 use winnow::Parser as _;

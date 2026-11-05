@@ -3,7 +3,7 @@
 //! This module groups the main document model, individual element payload types,
 //! directive-related enums, helper types such as index anchors, and reconstruction helpers.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 /// Directive-related AST types.
 mod directive;

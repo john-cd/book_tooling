@@ -1,6 +1,6 @@
 //! Shared utilities for file-based command workflows.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::io::Write as _;
 use std::path::Path;

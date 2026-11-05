@@ -1,6 +1,6 @@
 //! Inline-link conversion utilities shared by CLI workflows and reusable callers.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::cell::Cell;
 use std::cell::RefCell;

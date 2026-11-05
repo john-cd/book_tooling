@@ -13,7 +13,7 @@
 //! - [`refdefs`]: reference-definition analysis and cleanup helpers.
 //! - [`search`]: plain-text search across Markdown documents.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 /// Shared helpers used by multiple command modules.
 #[cfg(any(feature = "cli", feature = "directives"))]

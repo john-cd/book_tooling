@@ -1,6 +1,6 @@
 //! The `refdefs` command: audit, report and optionally clean up reference definitions.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::collections::HashSet;
 use std::path::Path;

@@ -1,6 +1,8 @@
 //! Aggregates crate usage from sample `Cargo.toml` contents without network access.
 //!
 //! Run with `cargo run -p rust_rate --example stats`.
+//!
+//! TODO Reviewed ??-??-2026.
 
 use rust_rate::stats::CrateStats;
 

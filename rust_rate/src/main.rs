@@ -1,7 +1,7 @@
 //! Command-line entry point that analyzes crate usage on GitHub and summarizes a crate from
 //! crates.io.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use anyhow::Context as _;
 use anyhow::Result;

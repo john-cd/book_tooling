@@ -1,6 +1,6 @@
 //! A visitor that collects the HTML comments of a document.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use crate::ast::HtmlCommentData;
 use crate::visit::Visitor;

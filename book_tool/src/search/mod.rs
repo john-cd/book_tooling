@@ -1,6 +1,6 @@
 //! Plain-text search across Markdown documents.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::ops::Range;
 use std::path::PathBuf;

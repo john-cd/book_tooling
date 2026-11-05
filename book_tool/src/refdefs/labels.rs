@@ -1,6 +1,6 @@
 //! Label-based analysis of a single Markdown document.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::collections::HashMap;
 use std::collections::HashSet;

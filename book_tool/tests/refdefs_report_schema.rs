@@ -1,6 +1,6 @@
 //! Strict structural validation of the JSON report written by `book_tool refdefs-audit --report`.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 #![expect(
     clippy::expect_used,

@@ -4,7 +4,7 @@
 //! The corpus is a temporary directory of chapters built from the checked-in fixtures. Run with
 //! `cargo bench -p book_tool`.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 #![expect(
     clippy::expect_used,

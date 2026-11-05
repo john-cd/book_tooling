@@ -1,6 +1,6 @@
 //! Parser for autolinks, delimited (`<https://...>`) or naked.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use winnow::Parser as _;
 use winnow::combinator::alt;

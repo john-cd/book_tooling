@@ -7,7 +7,7 @@
 //! - [`crates_io`]: a small crates.io summary workflow.
 //! - [`templates`] and [`utils`]: formatting and test helpers.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 /// crates.io summary workflow utilities.
 pub mod crates_io;

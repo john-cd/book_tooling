@@ -1,6 +1,6 @@
 //! Renders AST elements back to Markdown, with resolvers that rewrite links.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::fmt;
 use std::fmt::Write as _;

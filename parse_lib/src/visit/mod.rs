@@ -1,6 +1,6 @@
 //! AST visitor traits and helper visitors for traversing Markdown documents.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 /// Debug-print visitor implementations.
 mod debugger;

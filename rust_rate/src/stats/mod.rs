@@ -1,6 +1,6 @@
 //! Statistics about the crates a project depends on, from `Cargo.toml` files.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::collections::BTreeSet;
 use std::collections::HashMap;

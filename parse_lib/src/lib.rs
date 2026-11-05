@@ -18,7 +18,7 @@
 //! - Parser entry points in [`markdown`], [`parse_directives`], [`parse_hidden`], [`parse_urls`],
 //!   [`parse_wikilinks`], and [`parse_document()`].
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 // --- Core & Traits ---
 /// Abstract syntax tree types for Markdown documents and custom extensions.

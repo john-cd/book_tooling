@@ -1,6 +1,6 @@
 //! Expands custom directives and wikilinks in Markdown files.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 mod crate_blocks;
 use crate_blocks::render_badge_set;

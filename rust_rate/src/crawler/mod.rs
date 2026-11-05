@@ -1,6 +1,6 @@
 //! Searches GitHub for `Cargo.toml` files and downloads their content.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::fmt::Write as _;
 

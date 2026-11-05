@@ -1,6 +1,6 @@
 //! A visitor that prints each element to the console, for debugging.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use super::Visitor;
 use crate::ast::AutolinkData;

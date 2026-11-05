@@ -1,6 +1,6 @@
 //! crates.io summary workflow.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use anyhow::Context as _;
 use anyhow::Result;

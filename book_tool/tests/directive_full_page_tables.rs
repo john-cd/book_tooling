@@ -1,6 +1,6 @@
 //! Regression tests for directive expansion inside full-page tables (john-cd/book_tooling#47).
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use book_tool::directives::Config;
 use book_tool::directives::process_markdown;

@@ -1,6 +1,6 @@
 //! Checks URLs concurrently, with retries that honor `Retry-After`.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::time::Duration;
 use std::time::SystemTime;

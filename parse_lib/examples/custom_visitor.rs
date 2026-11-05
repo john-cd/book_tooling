@@ -3,7 +3,7 @@
 //! The visitor counts headings, collects external link destinations and lists the directives it
 //! meets. Run it with `cargo run -p parse_lib --example custom_visitor`.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use parse_lib::ast::DirectiveData;
 use parse_lib::ast::HeadingData;

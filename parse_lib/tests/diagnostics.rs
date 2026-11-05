@@ -5,7 +5,7 @@
 //! instead of an error. Hard errors surface only from the individual element parsers, and
 //! `ParsingError` renders them with a source snippet.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use parse_lib::errors::ParsingError;
 use parse_lib::parse_directives::parse_directive_element;

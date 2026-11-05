@@ -2,7 +2,7 @@
 //!
 //! Crate blocks combine multiple crate and categories badges.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use parse_lib::ast::DirectiveData;
 

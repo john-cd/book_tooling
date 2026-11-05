@@ -4,7 +4,7 @@
 //! a closing > that contains no line endings or unescaped < or > characters.
 //! See <https://spec.commonmark.org/0.31.2/#link-destination>.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use winnow::Result;
 use winnow::combinator::alt;

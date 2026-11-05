@@ -1,6 +1,6 @@
 //! Process `{{#example some_example}}` directives.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use parse_lib::ast::DirectiveData;
 

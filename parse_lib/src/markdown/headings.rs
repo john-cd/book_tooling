@@ -2,7 +2,7 @@
 //!
 //! See <https://spec.commonmark.org/0.31.2/#atx-headings>.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use winnow::ModalResult;
 use winnow::Parser as _;

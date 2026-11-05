@@ -3,7 +3,7 @@
 //! The `directives` subcommand has no per-directive override flags; the configuration file is the
 //! only override, and an explicit `--config` always wins over the working directory's file.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 #![expect(
     clippy::expect_used,

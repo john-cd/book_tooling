@@ -1,6 +1,6 @@
 //! Walks directories and runs a function on each file that matches a `Scope`.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::collections::HashSet;
 use std::ffi::OsString;

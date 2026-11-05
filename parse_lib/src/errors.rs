@@ -2,7 +2,7 @@
 //!
 //! See <https://docs.rs/winnow/0.7.11/winnow/_tutorial/chapter_7/index.html>.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use annotate_snippets::AnnotationKind;
 use annotate_snippets::Group;

@@ -1,6 +1,6 @@
 //! How an index anchor directive renders its text: as is, in italics or hidden.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::fmt::Display;
 

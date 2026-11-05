@@ -1,6 +1,6 @@
 //! End-to-end tests of the `book_tool` subcommands.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 #![cfg(feature = "cli")]
 #![expect(

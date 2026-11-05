@@ -1,6 +1,6 @@
 //! A visitor that pretty-prints the AST to any writer.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::fmt;
 

@@ -1,6 +1,6 @@
 //! End-to-end tests of `rust_rate stats` against a local mock of the GitHub API.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 #![expect(
     clippy::expect_used,

@@ -1,6 +1,6 @@
 //! Renders AST elements as HTML, with HTML escaping.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use crate::ast::BlockquoteData;
 use crate::ast::EmphasisData;

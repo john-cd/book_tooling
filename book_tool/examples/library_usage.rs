@@ -4,7 +4,7 @@
 //! [`find_unused_refdefs_in_scopes`] proves, and checks one address with [`AsyncLinkChecker`]. The
 //! link check needs network access; run it with `cargo run -p book_tool --example library_usage`.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use anyhow::Result;
 use book_tool::links::AsyncLinkChecker;

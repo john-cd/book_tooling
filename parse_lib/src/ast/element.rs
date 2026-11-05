@@ -8,7 +8,7 @@
 //!
 //! Data structures representing Markdown elements in the AST.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use super::DirectiveData;
 

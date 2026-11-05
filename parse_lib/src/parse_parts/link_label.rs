@@ -10,7 +10,7 @@
 //!   brackets of link labels.
 //! - A link label can have at most 999 characters inside the square brackets.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use winnow::ModalResult;
 use winnow::Parser as _;

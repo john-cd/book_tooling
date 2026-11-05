@@ -1,6 +1,6 @@
 //! Parsers for naked URLs and autolinks.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use url::Url;
 use winnow::ModalResult;

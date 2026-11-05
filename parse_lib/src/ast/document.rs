@@ -1,6 +1,6 @@
 //! A parsed Markdown document: its name, optional path and top-level elements.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::path::Path;
 

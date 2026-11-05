@@ -1,6 +1,6 @@
 //! Parsers for `[[wikilink]]` syntax.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 /// Winnow parser for wikilinks.
 mod parser;

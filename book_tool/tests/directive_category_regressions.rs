@@ -1,6 +1,6 @@
 //! Regression tests for category directives processed through the `book_tool` CLI.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::fs;
 use std::process::Command;

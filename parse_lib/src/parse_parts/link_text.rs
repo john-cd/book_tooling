@@ -6,7 +6,7 @@
 //!   not backslash-escaped.
 //! - Unescaped square bracket characters are allowed only if they are nested and balanced.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use winnow::ModalResult;
 use winnow::error::ContextError;

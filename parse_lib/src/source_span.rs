@@ -4,7 +4,7 @@
 //! fragment's position is recovered from its address. This is the one place that
 //! relies on that invariant; callers get a checked range or `None`.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::ops::Range;
 

@@ -3,7 +3,7 @@
 //! The documents repeat the checked-in fixture corpus, so they exercise headings, links, tables,
 //! directives, code fences and reference definitions. Run with `cargo bench -p parse_lib`.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 #![expect(
     clippy::expect_used,

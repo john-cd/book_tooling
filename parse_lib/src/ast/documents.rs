@@ -1,6 +1,6 @@
 //! A collection of parsed Markdown documents.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use super::Document;
 

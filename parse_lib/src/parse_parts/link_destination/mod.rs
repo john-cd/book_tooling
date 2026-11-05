@@ -12,7 +12,7 @@
 //!
 //! See <https://spec.commonmark.org/0.31.2/#link-destination>.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 mod angle_brackets;
 mod nonempty_sequence;

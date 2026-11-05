@@ -3,7 +3,7 @@
 //!
 //! Run with `cargo bench -p parse_lib --bench reconstruction`.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 #![expect(
     clippy::expect_used,

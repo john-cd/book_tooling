@@ -1,6 +1,6 @@
 //! Tests for configuring the `directives` subcommand through a TOML file.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::fs;
 use std::process::Command;

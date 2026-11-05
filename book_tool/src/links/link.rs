@@ -1,6 +1,6 @@
 //! AST-based URL extraction helpers.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::collections::HashSet;
 

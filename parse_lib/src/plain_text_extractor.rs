@@ -1,6 +1,6 @@
 //! A visitor that extracts the plain text of a document.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use crate::ast::AutolinkData;
 use crate::ast::CodeSpanData;

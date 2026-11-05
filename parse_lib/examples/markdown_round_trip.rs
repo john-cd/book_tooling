@@ -3,7 +3,7 @@
 //! [`MarkdownRenderer`] reproduces untouched text byte for byte and applies only the replacements
 //! its resolvers return. Run it with `cargo run -p parse_lib --example markdown_round_trip`.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use parse_lib::ast::DirectiveData;
 use parse_lib::markdown_renderer::MarkdownRenderer;

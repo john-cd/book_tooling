@@ -1,6 +1,6 @@
 //! A visitor that collects the custom directives of a document.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use crate::ast::DirectiveData;
 use crate::visit::Visitor;

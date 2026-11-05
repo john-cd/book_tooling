@@ -1,6 +1,6 @@
 //! Removal of unused reference definitions.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::collections::HashSet;
 use std::hash::BuildHasher;

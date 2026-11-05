@@ -9,7 +9,7 @@
 //! - `delete` removes unused definitions without touching other bytes;
 //! - `audit` ties them together for the `refdefs` command.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 mod audit;
 mod delete;

@@ -9,7 +9,7 @@
 //! (Implementations may impose limits on parentheses nesting to avoid performance issues,
 //! but at least three levels of nesting should be supported.)
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use winnow::ModalResult;
 use winnow::Parser as _;

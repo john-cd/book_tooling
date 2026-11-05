@@ -1,6 +1,6 @@
 //! Rebuilds Markdown source text from a sequence of AST elements.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use super::Element;
 

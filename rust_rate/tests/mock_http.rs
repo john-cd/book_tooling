@@ -1,6 +1,6 @@
 //! Tests the GitHub crawler and crates.io client against a local HTTP server.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::io::Read as _;
 use std::io::Write as _;

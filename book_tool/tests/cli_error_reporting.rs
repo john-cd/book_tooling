@@ -1,7 +1,7 @@
 //! Exit codes and diagnostics of `book_tool` for missing inputs, unreadable files, and bad
 //! arguments.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 #![expect(
     clippy::expect_used,

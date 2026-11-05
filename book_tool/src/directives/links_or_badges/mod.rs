@@ -1,6 +1,6 @@
 //! Process links and badge directives.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use parse_lib::ast::DestinationKind as AstDestinationKind;
 use parse_lib::ast::DirectiveData;

@@ -1,6 +1,6 @@
 //! A visitor that collects the link destinations of a document.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::collections::HashSet;
 

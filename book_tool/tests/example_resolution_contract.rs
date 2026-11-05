@@ -1,6 +1,6 @@
 //! Tests the contract between directive processing and caller-supplied example resolvers.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use anyhow::anyhow;
 use book_tool::directives::Config;

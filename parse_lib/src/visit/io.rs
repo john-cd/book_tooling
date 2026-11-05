@@ -2,7 +2,7 @@
 //!
 //! Provides utilities to adapt `fmt::Write` interfaces to `io::Write` streams.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::io;
 use std::io::BufWriter;

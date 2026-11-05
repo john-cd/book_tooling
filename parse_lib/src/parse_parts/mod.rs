@@ -1,6 +1,6 @@
 //! Building blocks shared by the link and reference definition parsers.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 pub(crate) mod inline_link;
 pub(crate) mod link_destination;

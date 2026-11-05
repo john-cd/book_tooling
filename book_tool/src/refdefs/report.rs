@@ -1,6 +1,6 @@
 //! Audit records and the deterministic JSON report.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::collections::BTreeMap;
 use std::collections::HashSet;

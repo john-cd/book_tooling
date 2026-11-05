@@ -1,6 +1,6 @@
 //! Helpers to run table-driven tests.
 //!
-//! TODO Reviewed ??-??-2026
+//! TODO Reviewed ??-??-2026.
 
 use std::fs::File;
 use std::io::Write as _;
