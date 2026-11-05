@@ -43,8 +43,6 @@ None currently open.
 
 ### 2. Integration Testing Enhancements
 
-- [ ] **`parse_lib` diagnostic snapshots**: Add integration tests verifying source snippet rendering for invalid directive syntax and corrupted input documents.
-
 ### 3. Benchmarks and Examples
 
 - [ ] **Add criterion/divan benchmarks (`benches/`)**:
