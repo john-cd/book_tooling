@@ -23,6 +23,7 @@ description = "A collection of Rust-based tools for processing Markdown files, p
 [workspace.dependencies]
 annotate-snippets = "0.12.17"
 anyhow = "1.0.104"
+divan = "0.1.21"
 clap = { version = "4.6.7", features = ["derive"] }
 fmt2io = "1.0.0"
 futures = "0.3.34"

@@ -48,5 +48,12 @@ tracing-subscriber = { workspace = true, features = ["env-filter"], optional = t
 url = { workspace = true, optional = true }
 walkdir = { workspace = true }
 
+[dev-dependencies]
+divan = { workspace = true }
+
+[[bench]]
+name = "processing"
+harness = false
+
 [lints]
 workspace = true

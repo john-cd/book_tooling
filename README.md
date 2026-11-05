@@ -231,6 +231,10 @@ The binaries will be available in `target/release/book_tool` and `target/release
 - `just nta` runs the workspace tests with cargo-nextest and includes doctests.
 - `dprint fmt` formats Markdown, JSON, YAML, and TOML files.
 - `prek run --all-files` runs repository hooks, including formatting and dependency policy checks.
+- `just cargo bench -p parse_lib` and `just cargo bench -p book_tool` run the [divan](https://crates.io/crates/divan)
+  benchmarks: parser throughput (`parse_lib/benches/parsing.rs`), reconstruction
+  (`parse_lib/benches/reconstruction.rs`), and corpus processing (`book_tool/benches/processing.rs`).
+  Benchmarks are not part of `just nta`; run them on an otherwise idle machine and compare runs on the same host.
 
 ## License
 

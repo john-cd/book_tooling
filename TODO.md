@@ -37,21 +37,6 @@ Record status and validation evidence in the issue rather than duplicating check
 
 ## Codebase Review: Fixes and Improvements
 
-None currently open.
-
-### 1. Unit Testing and Test Coverage Gaps
-
-### 2. Integration Testing Enhancements
-
-### 3. Benchmarks and Examples
-
-- [ ] **Add criterion/divan benchmarks (`benches/`)**:
-  - **`parse_lib` parser benchmarks**: Benchmark `parse_document` on small, medium, and large Markdown documents to validate zero-copy claims and track parsing throughput (MB/s).
-  - **`parse_lib` reconstruction benchmarks**: Benchmark `MarkdownRenderer` and `PrettyPrinter` AST traversal and output generation.
-  - **`book_tool` processing benchmarks**: Benchmark directory traversal, link extraction, and directive replacement on representative book corpus fixtures.
-
-### 4. Documentation and Doc Comments
-
 ### 5. Architecture and Design Alignment
 
 - [ ] **Error handling in `parse_lib`**:
@@ -59,5 +44,3 @@ None currently open.
   - Reserve `anyhow::Result` for application/CLI boundaries in `book_tool` and `rust_rate`.
 - [ ] **Deduplicate template formatting**:
   - Extract badge and link template rendering shared between `book_tool/src/common/templates.rs` and `rust_rate/src/templates/mod.rs` into a shared module or crate to eliminate duplicated template logic.
-
-### 6. Discrepancies Between Documentation and Code

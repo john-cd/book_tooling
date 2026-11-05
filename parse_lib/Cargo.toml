@@ -24,7 +24,16 @@ url.workspace = true
 winnow.workspace = true
 
 [dev-dependencies]
+divan.workspace = true
 proptest.workspace = true
+
+[[bench]]
+name = "parsing"
+harness = false
+
+[[bench]]
+name = "reconstruction"
+harness = false
 
 [lints]
 workspace = true
