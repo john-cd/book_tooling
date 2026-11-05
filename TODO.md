@@ -43,12 +43,12 @@ Record status and validation evidence in the issue rather than duplicating check
 
 ## Maintenance
 
-- [Finish shared formatting, lint, and hook policy validation](https://github.com/john-cd/book_tooling/issues/76).
 - [Validate and finalize Cargo profiles, output paths, and linker policy](https://github.com/john-cd/book_tooling/issues/77).
 - [Complete dependency-update coverage and consistent CI caching](https://github.com/john-cd/book_tooling/issues/78).
-- [Review and reconcile repository branches and worktrees](https://github.com/john-cd/book_tooling/issues/79).
 
 ## Codebase Review: Fixes and Improvements
+
+None currently open.
 
 ### 1. Unit Testing and Test Coverage Gaps
 
