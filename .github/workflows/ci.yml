@@ -1,6 +1,6 @@
 # TODO Reviewed ??-??-2026
 
-## Continuous integration: runs the reusable Rust CI on Linux, macOS and Windows.
+## Continuous integration: runs the reusable Rust CI on Linux (push/PR) or any OS set (manual run).
 name: CI
 
 on:
@@ -10,6 +10,11 @@ on:
     branches: [develop]
   ## Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+    inputs:
+      runners:
+        description: "JSON array of runner labels (push/PR runs use Linux only)"
+        type: string
+        default: '["ubuntu-latest", "windows-latest", "macos-latest"]'
 
 permissions:
   contents: read
@@ -21,6 +26,9 @@ concurrency:
 jobs:
   rust:
     uses: $/.github/workflows/rust-ci.yml
+    with:
+      ## Private repo: Linux only on push/PR; all OSes on manual runs.
+      runners: ${{ inputs.runners || '["ubuntu-latest"]' }}
 env:
   CODE_TARGET_ROOT: ${{ github.workspace }}/.ci/target
   CODE_BUILD_ROOT: ${{ github.workspace }}/.ci/build
