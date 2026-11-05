@@ -61,12 +61,21 @@ impl TestHttpServer {
             while !shutdown_signal.load(Ordering::Relaxed) {
                 match listener.accept() {
                     Ok((mut stream, _)) => {
-                        let response = response_queue
-                            .lock()
-                            .expect("lock response queue")
-                            .pop_front()
-                            .unwrap_or_else(ok_response);
-                        drop(respond(&mut stream, &response));
+                        // The accepted socket may inherit the listener's nonblocking mode.
+                        stream.set_nonblocking(false).expect("set stream blocking");
+                        stream
+                            .set_read_timeout(Some(Duration::from_secs(2)))
+                            .expect("set read timeout");
+                        // Answer only connections that carry a request; an idle or aborted
+                        // connection must not consume a queued response.
+                        if read_request_head(&mut stream) {
+                            let response = response_queue
+                                .lock()
+                                .expect("lock response queue")
+                                .pop_front()
+                                .unwrap_or_else(ok_response);
+                            drop(respond(&mut stream, &response));
+                        }
                     }
                     Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                         thread::sleep(Duration::from_millis(10));
@@ -94,11 +103,25 @@ fn book_tool_command() -> Command {
     Command::new(env!("CARGO_BIN_EXE_book_tool"))
 }
 
-/// Reads one request and writes its configured response to the connection.
-fn respond(stream: &mut TcpStream, response: &str) -> std::io::Result<()> {
+/// Reads until the end of the request head; returns false if the peer sent no complete request.
+fn read_request_head(stream: &mut TcpStream) -> bool {
+    let mut received = Vec::new();
     let mut buffer = [0_u8; 1024];
-    let _ = stream.read(&mut buffer)?;
-    stream.write_all(response.as_bytes())
+    while !received.windows(4).any(|window| window == b"\r\n\r\n") {
+        match stream.read(&mut buffer) {
+            Ok(0) | Err(_) => return false,
+            Ok(count) => received.extend_from_slice(buffer.get(..count).unwrap_or_default()),
+        }
+    }
+    true
+}
+
+/// Writes the configured response, then closes the connection gracefully so the client sees the
+/// whole response rather than a reset.
+fn respond(stream: &mut TcpStream, response: &str) -> std::io::Result<()> {
+    stream.write_all(response.as_bytes())?;
+    stream.flush()?;
+    stream.shutdown(std::net::Shutdown::Write)
 }
 
 /// Builds an empty HTTP 200 response that closes the connection.
