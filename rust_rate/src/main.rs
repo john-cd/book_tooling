@@ -9,7 +9,9 @@ use clap::Parser;
 use clap::Subcommand;
 use futures::future::join_all;
 use rust_rate::crates_io;
+use rust_rate::crawler::GITHUB_API;
 use rust_rate::crawler::GithubCrawler;
+use rust_rate::crawler::GithubItem;
 use rust_rate::patterns::PatternAnalyzer;
 use rust_rate::stats::CrateStats;
 use tracing::info;
@@ -42,45 +44,64 @@ enum Commands {
         /// Environment variable that holds a GitHub token (raises the API rate limit).
         #[arg(long, default_value = "GITHUB_TOKEN")]
         token_env: String,
+        /// Root URL of the GitHub REST API (override for GitHub Enterprise or a test server).
+        #[arg(long, default_value = GITHUB_API)]
+        api_base: String,
     },
 }
 
-/// Searches GitHub for manifests that mention `crate_name`, then prints usage statistics.
-async fn run_stats(crate_name: &str, limit: usize, token_env: &str) -> Result<()> {
+/// Searches GitHub for manifests that mention `crate_name`, tallies their dependencies, then
+/// downloads Rust sources that import the crate and reports the code patterns found in them.
+async fn run_stats(crate_name: &str, limit: usize, token_env: &str, api_base: &str) -> Result<()> {
     crates_io::validate_crate_name(crate_name)?;
     let token = std::env::var(token_env).ok();
-    let crawler = GithubCrawler::new(token.as_deref())?;
+    let crawler = GithubCrawler::new(token.as_deref())?.with_api_base(api_base);
     let analyzer = PatternAnalyzer::new()?;
     let mut stats = CrateStats::new();
 
-    let items = crawler
+    let manifests = crawler
         .search_cargo_tomls(crate_name)
         .await
         .context("GitHub search failed (rate limit or missing token?)")?;
-    info!("Found {} manifests; analyzing {limit}", items.len());
-
-    let downloads = items.iter().take(limit).map(|item| {
-        let crawler = &crawler;
-        async move {
-            info!("Processing {} in {}", item.path, item.repository.full_name);
-            crawler.download_content(&item.url).await
+    info!("Found {} manifests; analyzing {limit}", manifests.len());
+    for result in download_all(&crawler, &manifests, limit).await {
+        match result {
+            Ok(content) => stats.process_cargo_toml(&content),
+            Err(error) => warn!("Skipping a manifest: {error:#}"),
         }
-    });
+    }
 
-    for result in join_all(downloads).await {
+    let sources = crawler
+        .search_rust_sources(crate_name)
+        .await
+        .context("GitHub source search failed (rate limit or missing token?)")?;
+    info!("Found {} source files; analyzing {limit}", sources.len());
+    for result in download_all(&crawler, &sources, limit).await {
         match result {
             Ok(content) => {
-                stats.process_cargo_toml(&content);
                 for pattern in analyzer.analyze_source(&content, crate_name)? {
                     info!("  Found pattern: {pattern}");
                 }
             }
-            Err(error) => warn!("Skipping a manifest: {error:#}"),
+            Err(error) => warn!("Skipping a source file: {error:#}"),
         }
     }
 
     stats.print_summary();
     Ok(())
+}
+
+/// Downloads at most `limit` of the `items` concurrently, returning one result per item in order.
+async fn download_all(
+    crawler: &GithubCrawler,
+    items: &[GithubItem],
+    limit: usize,
+) -> Vec<Result<String>> {
+    join_all(items.iter().take(limit).map(|item| async move {
+        info!("Processing {} in {}", item.path, item.repository.full_name);
+        crawler.download_content(&item.url).await
+    }))
+    .await
 }
 
 /// Parses the command line, initializes tracing, and runs the selected workflow.
@@ -95,6 +116,7 @@ async fn main() -> Result<()> {
             crate_name,
             limit,
             token_env,
-        } => run_stats(&crate_name, limit, &token_env).await,
+            api_base,
+        } => run_stats(&crate_name, limit, &token_env, &api_base).await,
     }
 }

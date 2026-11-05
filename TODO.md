@@ -83,9 +83,6 @@ None currently open.
 
 ### 5. Architecture and Design Alignment
 
-- [ ] **Fix `rust_rate` pattern analysis pipeline**:
-  - In `rust_rate/src/main.rs`, `run_stats` incorrectly passes downloaded `Cargo.toml` manifest contents into `PatternAnalyzer::analyze_source`, which searches for Rust source syntax (imports and function calls).
-  - Implement downloading of actual Rust source (`.rs`) files discovered in target repositories before invoking `PatternAnalyzer`, matching the design in `documentation/rust_rate/architecture.md`.
 - [ ] **Error handling in `parse_lib`**:
   - Refactor `parse_lib` public APIs (`parse_document`, `visit::refdefs::refdefs`) to return structured, typed errors using `thiserror` rather than `anyhow::Result`, aligning with the library error guidelines in `AGENTS.md`.
   - Reserve `anyhow::Result` for application/CLI boundaries in `book_tool` and `rust_rate`.

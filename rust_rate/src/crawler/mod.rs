@@ -99,9 +99,9 @@ impl GithubCrawler {
         self
     }
 
-    /// Builds the GitHub code search URL for `query`, percent-encoding it and restricting results
-    /// to `Cargo.toml` files.
-    fn build_search_url(api_base: &str, query: &str, page: usize) -> String {
+    /// Builds the GitHub code search URL for `query`, percent-encoding it and appending the
+    /// unencoded `qualifier` (for example `filename:Cargo.toml`) that restricts the results.
+    fn build_search_url(api_base: &str, query: &str, qualifier: &str, page: usize) -> String {
         let mut encoded_query = String::with_capacity(query.len());
         for byte in query.as_bytes() {
             match byte {
@@ -115,7 +115,7 @@ impl GithubCrawler {
             }
         }
         format!(
-            "{api_base}/search/code?q={encoded_query}+filename:Cargo.toml&per_page={SEARCH_PAGE_SIZE}&page={page}"
+            "{api_base}/search/code?q={encoded_query}+{qualifier}&per_page={SEARCH_PAGE_SIZE}&page={page}"
         )
     }
 
@@ -150,9 +150,24 @@ impl GithubCrawler {
     /// Returns an error if a request fails, the API returns an error status (rate limiting is
     /// reported explicitly), or a response cannot be decoded.
     pub async fn search_cargo_tomls(&self, query: &str) -> Result<Vec<GithubItem>> {
+        self.search_code(query, "filename:Cargo.toml").await
+    }
+
+    /// Searches GitHub code results for Rust source files that import the crate `crate_name`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error under the same conditions as [`Self::search_cargo_tomls`].
+    pub async fn search_rust_sources(&self, crate_name: &str) -> Result<Vec<GithubItem>> {
+        self.search_code(&format!("\"use {crate_name}::\""), "extension:rs")
+            .await
+    }
+
+    /// Runs a GitHub code search for `query` restricted by `qualifier`, following pagination.
+    async fn search_code(&self, query: &str, qualifier: &str) -> Result<Vec<GithubItem>> {
         let mut items = Vec::new();
         for page in 1..=MAX_SEARCH_PAGES {
-            let url = Self::build_search_url(&self.api_base, query, page);
+            let url = Self::build_search_url(&self.api_base, query, qualifier, page);
             info!("Searching GitHub: {}", url);
 
             let response = self
@@ -207,7 +222,12 @@ mod tests {
     /// The query is percent-encoded and paging parameters are appended.
     #[test]
     fn test_build_search_url_encoding() {
-        let url = GithubCrawler::build_search_url(GITHUB_API, "anyhow&sort=stars", 2);
+        let url = GithubCrawler::build_search_url(
+            GITHUB_API,
+            "anyhow&sort=stars",
+            "filename:Cargo.toml",
+            2,
+        );
         assert_eq!(
             url,
             "https://api.github.com/search/code?q=anyhow%26sort%3Dstars+filename:Cargo.toml&per_page=100&page=2"
