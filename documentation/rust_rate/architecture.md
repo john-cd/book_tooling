@@ -37,9 +37,12 @@ Orchestrates the crawling and analysis process.
 2. **Crawler** returns list of repositories and URLs for `Cargo.toml`.
 3. **Crawler** downloads `Cargo.toml` files.
 4. **Stats Analyzer** processes `Cargo.toml` files and updates usage stats.
-5. **Crawler** downloads `.rs` files for popular crates.
-6. **Pattern Matcher** analyzes `.rs` files for usage patterns.
+5. **Crawler** searches for Rust (`.rs`) files that import the crate (`use <crate>::`) and downloads them.
+6. **Pattern Matcher** analyzes the downloaded `.rs` files, not the manifests, for usage patterns.
 7. **Main** generates the final report.
+
+`--limit` bounds how many manifests and how many source files are downloaded, and `--api-base`
+points the crawler at another GitHub API root, such as a local test server.
 
 ## Libraries Used
 
