@@ -85,3 +85,76 @@ impl Config {
         Ok(config)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn write_config(contents: &str) -> (tempfile::TempDir, std::path::PathBuf) {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let path = dir.path().join("config.toml");
+        std::fs::write(&path, contents).expect("write config");
+        (dir, path)
+    }
+
+    #[test]
+    fn empty_file_yields_defaults() {
+        let (_dir, path) = write_config("");
+        assert_eq!(Config::from_file(&path).expect("loads"), Config::default());
+    }
+
+    #[test]
+    fn partial_file_fills_missing_fields_from_defaults() {
+        let (_dir, path) = write_config(
+            "process-wikilinks = false\nincluded-extensions = [\"md\", \"markdown\"]\n",
+        );
+        let config = Config::from_file(&path).expect("loads");
+        assert!(!config.process_wikilinks);
+        assert_eq!(config.included_extensions, ["md", "markdown"]);
+        assert!(config.process_example_directives);
+        assert_eq!(
+            config.excluded_filenames,
+            Config::default().excluded_filenames
+        );
+    }
+
+    #[test]
+    fn unrecognized_keys_are_ignored() {
+        let (_dir, path) = write_config("not-a-real-key = 1\nprocess-wikilinks = false\n");
+        let config = Config::from_file(&path).expect("unknown keys are ignored");
+        assert!(!config.process_wikilinks);
+    }
+
+    #[test]
+    fn malformed_toml_reports_path() {
+        let (_dir, path) = write_config("process-wikilinks = [unclosed\n");
+        let err = Config::from_file(&path).expect_err("must fail");
+        assert!(
+            format!("{err:#}").contains("Failed to parse config file"),
+            "{err:#}"
+        );
+    }
+
+    #[test]
+    fn wrong_value_type_is_an_error() {
+        let (_dir, path) = write_config("process-wikilinks = \"yes\"\n");
+        Config::from_file(&path).expect_err("string is not a bool");
+    }
+
+    #[test]
+    fn missing_file_reports_read_failure() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let err = Config::from_file(dir.path().join("absent.toml")).expect_err("must fail");
+        assert!(
+            format!("{err:#}").contains("Failed to read config file"),
+            "{err:#}"
+        );
+    }
+
+    #[test]
+    fn serialization_round_trips() {
+        let config = Config::default();
+        let text = toml::to_string(&config).expect("serializes");
+        assert_eq!(toml::from_str::<Config>(&text).expect("parses"), config);
+    }
+}

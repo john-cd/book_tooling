@@ -49,7 +49,6 @@ None currently open.
 
 ### 1. Unit Testing and Test Coverage Gaps
 
-- [ ] **`book_tool::directives::conf`**: Add unit tests for configuration loading, default deserialization, unrecognized keys, and malformed TOML inputs in `book_tool/src/directives/conf.rs`.
 - [ ] **`book_tool::directives` submodules**:
   - Add isolated unit tests for `directives::crate_blocks::parse_crate_block_directive` and category block rendering edge cases (e.g. empty categories, malformed slug mappings).
   - Add unit tests for `directives::examples` verifying malformed anchor extraction, missing source files, and path canonicalization errors.
