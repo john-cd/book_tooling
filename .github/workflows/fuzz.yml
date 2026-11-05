@@ -48,7 +48,7 @@ jobs:
           [[ "$FUZZ_SECONDS" =~ ^[0-9]+$ ]] || { echo "seconds must be an integer" >&2; exit 1; }
           mkdir -p "$RUNNER_TEMP/corpus"
           cp test_fixtures/markdown/* "$RUNNER_TEMP/corpus/" 2>/dev/null || true
-          cargo "+$NIGHTLY" fuzz run --fuzz-dir parse_lib/fuzz round_trip "$RUNNER_TEMP/corpus" \
+          cargo "+$NIGHTLY" fuzz run --target x86_64-unknown-linux-gnu --fuzz-dir parse_lib/fuzz round_trip "$RUNNER_TEMP/corpus" \
             -- -max_total_time="$FUZZ_SECONDS" -print_final_stats=1 2>&1 | tee "$RUNNER_TEMP/fuzz.log"
           {
             echo "### round_trip fuzz result (${FUZZ_SECONDS}s, $GITHUB_SHA)"
