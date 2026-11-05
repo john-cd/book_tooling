@@ -28,7 +28,6 @@ No clearly bounded quick win is currently open; start with the priority list bel
 
 ### Blocked or deferred
 
-- [#68: Human check: run the fuzz target and record the coverage baseline (#49)](https://github.com/john-cd/book_tooling/issues/68) — Coverage baseline is recorded on #49; a multi-minute nightly fuzz run still needs a supported, working Linux host.
 - [#80: Epic: human decisions, reviews, and host-dependent validation](https://github.com/john-cd/book_tooling/issues/80) — Tracks the human and host prerequisites above.
 
 <!-- recommended-issue-order:end -->
