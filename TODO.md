@@ -49,9 +49,6 @@ None currently open.
 
 ### 1. Unit Testing and Test Coverage Gaps
 
-- [ ] **`book_tool::directives` submodules**:
-  - Add isolated unit tests for `directives::crate_blocks::parse_crate_block_directive` and category block rendering edge cases (e.g. empty categories, malformed slug mappings).
-  - Add unit tests for `directives::examples` verifying malformed anchor extraction, missing source files, and path canonicalization errors.
 - [ ] **`book_tool::refdefs` modules**:
   - Add unit tests for `refdefs::report::RefDefsReport` JSON serialization, field formatting, and ordering.
   - Add unit tests for `refdefs::occurrences::implicit_reference_uses` and `ReferenceUse` collection across complex Markdown structures.
