@@ -132,3 +132,92 @@ pub fn parse_atx_heading<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Verifies: heading.
+    fn heading(source: &str) -> Option<(u8, Option<&str>, Option<&str>, &str)> {
+        let mut input = source;
+        match parse_atx_heading(&mut input) {
+            Ok(Element::Heading(HeadingData { level, content, id })) => {
+                Some((level, content, id, input))
+            }
+            _ => None,
+        }
+    }
+
+    /// Verifies: levels one through six are accepted.
+    #[test]
+    fn levels_one_through_six_are_accepted() {
+        for level in 1..=6_u8 {
+            let source = format!("{} Title\n", "#".repeat(usize::from(level)));
+            assert_eq!(heading(&source), Some((level, Some("Title"), None, "")));
+        }
+    }
+
+    /// Verifies: seven hashes are not a heading.
+    #[test]
+    fn seven_hashes_are_not_a_heading() {
+        assert_eq!(heading("####### Title\n"), None);
+    }
+
+    /// Verifies: text without hashes is not a heading.
+    #[test]
+    fn text_without_hashes_is_not_a_heading() {
+        assert_eq!(heading("Title\n"), None);
+    }
+
+    /// Verifies: up to three leading spaces are allowed.
+    #[test]
+    fn up_to_three_leading_spaces_are_allowed() {
+        assert_eq!(heading("   # Title\n"), Some((1, Some("Title"), None, "")));
+        assert_eq!(heading("    # Title\n"), None);
+    }
+
+    /// Verifies: closing hashes are stripped.
+    #[test]
+    fn closing_hashes_are_stripped() {
+        assert_eq!(heading("## Title ##\n"), Some((2, Some("Title"), None, "")));
+    }
+
+    /// Verifies: attribute block provides the id.
+    #[test]
+    fn attribute_block_provides_the_id() {
+        assert_eq!(
+            heading("# Title {#my-id}\n"),
+            Some((1, Some("Title"), Some("my-id"), ""))
+        );
+    }
+
+    /// Verifies: empty heading has no content.
+    #[test]
+    fn empty_heading_has_no_content() {
+        assert_eq!(heading("#\n"), Some((1, None, None, "")));
+    }
+
+    /// Verifies: heading at end of input needs no newline.
+    #[test]
+    fn heading_at_end_of_input_needs_no_newline() {
+        assert_eq!(heading("# Title"), Some((1, Some("Title"), None, "")));
+    }
+
+    /// Verifies: only the first line is consumed.
+    #[test]
+    fn only_the_first_line_is_consumed() {
+        assert_eq!(
+            heading("# One\nnext line\n"),
+            Some((1, Some("One"), None, "next line\n"))
+        );
+    }
+
+    /// Verifies: crlf line endings are consumed.
+    #[test]
+    fn crlf_line_endings_are_consumed() {
+        assert_eq!(
+            heading("# One\r\nrest"),
+            Some((1, Some("One"), None, "rest"))
+        );
+    }
+}

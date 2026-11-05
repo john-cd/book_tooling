@@ -64,3 +64,89 @@ pub fn parse_fallback_char<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> 
     .map(|content| Element::Text(crate::ast::TextData { content }))
     .parse_next(input)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Verifies: plain.
+    fn plain(source: &str) -> Option<(&str, &str)> {
+        let mut input = source;
+        match parse_plain_text(&mut input) {
+            Ok(Element::Text(crate::ast::TextData { content })) => Some((content, input)),
+            _ => None,
+        }
+    }
+
+    /// Verifies: fallback.
+    fn fallback(source: &str) -> Option<(&str, &str)> {
+        let mut input = source;
+        match parse_fallback_char(&mut input) {
+            Ok(Element::Text(crate::ast::TextData { content })) => Some((content, input)),
+            _ => None,
+        }
+    }
+
+    /// Verifies: plain text stops at the next special character.
+    #[test]
+    fn plain_text_stops_at_the_next_special_character() {
+        assert_eq!(plain("hello [link]"), Some(("hello ", "[link]")));
+        assert_eq!(plain("a`code`"), Some(("a", "`code`")));
+    }
+
+    /// Verifies: plain text consumes everything without specials.
+    #[test]
+    fn plain_text_consumes_everything_without_specials() {
+        assert_eq!(plain("just words"), Some(("just words", "")));
+    }
+
+    /// Verifies: plain text rejects empty input and leading specials.
+    #[test]
+    fn plain_text_rejects_empty_input_and_leading_specials() {
+        assert_eq!(plain(""), None);
+        assert_eq!(plain("[x]"), None);
+        assert_eq!(plain("_emphasis_"), None);
+    }
+
+    /// Verifies: intraword underscores stay in the text.
+    #[test]
+    fn intraword_underscores_stay_in_the_text() {
+        assert_eq!(plain("snake_case word"), Some(("snake_case word", "")));
+        assert_eq!(plain("fs_extra_crate["), Some(("fs_extra_crate", "[")));
+    }
+
+    /// Verifies: leading or trailing underscore ends the run.
+    #[test]
+    fn leading_or_trailing_underscore_ends_the_run() {
+        assert_eq!(plain("word_ more"), Some(("word", "_ more")));
+        assert_eq!(plain("a _b"), Some(("a ", "_b")));
+    }
+
+    /// Verifies: unicode text is not split mid character.
+    #[test]
+    fn unicode_text_is_not_split_mid_character() {
+        assert_eq!(
+            plain("h\u{e9}llo_w\u{f6}rld!"),
+            Some(("h\u{e9}llo_w\u{f6}rld", "!"))
+        );
+    }
+
+    /// Verifies: fallback takes exactly one character.
+    #[test]
+    fn fallback_takes_exactly_one_character() {
+        assert_eq!(fallback("[rest"), Some(("[", "rest")));
+        assert_eq!(fallback("\u{e9}a"), Some(("\u{e9}", "a")));
+    }
+
+    /// Verifies: fallback keeps an escape with its character.
+    #[test]
+    fn fallback_keeps_an_escape_with_its_character() {
+        assert_eq!(fallback(r"\[rest"), Some((r"\[", "rest")));
+    }
+
+    /// Verifies: fallback rejects empty input.
+    #[test]
+    fn fallback_rejects_empty_input() {
+        assert_eq!(fallback(""), None);
+    }
+}

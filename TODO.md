@@ -49,7 +49,6 @@ None currently open.
 
 ### 1. Unit Testing and Test Coverage Gaps
 
-- [ ] **`parse_lib::markdown` submodules**: Add localized unit tests directly in `markdown/headings.rs`, `markdown/links.rs`, and `markdown/text.rs` rather than relying solely on high-level `parse_document` tests.
 - [ ] **`rust_rate` testing**:
   - Add unit tests for `rust_rate::patterns` covering syntax error handling and edge cases in regex pattern extraction.
   - Add tests for `rust_rate::utils::test_utils` helper structures.
