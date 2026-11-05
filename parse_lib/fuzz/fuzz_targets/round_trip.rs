@@ -1,6 +1,6 @@
-// TODO Reviewed ??-??-2026
-
 //! Fuzz target: `parse_document` accepts any text and rendering it back is the identity.
+//!
+//! TODO Reviewed ??-??-2026
 
 #![no_main]
 
