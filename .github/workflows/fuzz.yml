@@ -1,0 +1,65 @@
+# TODO Reviewed ??-??-2026
+
+## Manual libFuzzer run of the parse_lib `round_trip` target on a hosted Linux runner.
+## Fuzzing is not a merge gate; run it on demand and record the result on the tracking issue.
+name: Fuzz
+
+on:
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: Fuzzing time budget in seconds.
+        default: "600"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: round_trip (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      RUSTC_WRAPPER: ""
+      CARGO_BUILD_RUSTC_WRAPPER: ""
+      CARGO_INCREMENTAL: "0"
+      FUZZ_SECONDS: ${{ inputs.seconds }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Set up Rust
+        id: rust
+        uses: $/.github/actions/setup-rust
+        with:
+          cache: "false"
+      - name: Install cargo-fuzz
+        uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
+        with:
+          tool: cargo-fuzz@0.13.2
+      - name: Fuzz round_trip
+        shell: bash
+        env:
+          NIGHTLY: ${{ steps.rust.outputs.rustfmt_toolchain }}
+        run: |
+          set -euo pipefail
+          [[ "$FUZZ_SECONDS" =~ ^[0-9]+$ ]] || { echo "seconds must be an integer" >&2; exit 1; }
+          mkdir -p "$RUNNER_TEMP/corpus"
+          cp test_fixtures/markdown/* "$RUNNER_TEMP/corpus/" 2>/dev/null || true
+          cargo "+$NIGHTLY" fuzz run --fuzz-dir parse_lib/fuzz round_trip "$RUNNER_TEMP/corpus" \
+            -- -max_total_time="$FUZZ_SECONDS" -print_final_stats=1 2>&1 | tee "$RUNNER_TEMP/fuzz.log"
+          {
+            echo "### round_trip fuzz result (${FUZZ_SECONDS}s, $GITHUB_SHA)"
+            echo '```'
+            tail -n 25 "$RUNNER_TEMP/fuzz.log"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload crashes
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: fuzz-artifacts
+          path: parse_lib/fuzz/artifacts
+          if-no-files-found: ignore
