@@ -68,5 +68,3 @@ None currently open.
 - [ ] **Parser backtracking complexity audit**: Audit `winnow` parsers in `parse_lib/src/markdown` for potential catastrophic backtracking on deeply nested or unbalanced inputs.
 
 ### 6. Discrepancies Between Documentation and Code
-
-- [ ] **Align configuration file documentation**: Clarify the relationship between `config.toml` path resolution, CLI directory arguments, and default configuration behavior in `book_tool` user documentation.

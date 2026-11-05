@@ -109,8 +109,13 @@ Replaces custom directives with their expanded Markdown/HTML content.
 book_tool directives ./src
 ```
 
-The filesystem command reads an optional `config.toml` from the current working directory and uses
-`Config::default()` when the file is absent. Its example shorthand keeps the legacy
+The filesystem command picks its configuration in this order: the file named by `--config <FILE>`
+(an error if it is missing or malformed), otherwise `config.toml` in the current working directory
+(not in the directory being processed), otherwise `Config::default()`, which enables every directive
+family for `.md` files except `refs.incl.md` and `SUMMARY.md`. A configuration file replaces the
+defaults key by key, so omitted keys keep their default values and unknown keys are ignored. The
+directory arguments only choose which files to process and never select a configuration file; there
+are no per-directive command-line overrides. Its example shorthand keeps the legacy
 `examples/<name>.md` include mapping. Render-time adapters use
 `process_markdown_with_example_resolver` to resolve chapter-relative paths and anchors in their own
 book layout.
