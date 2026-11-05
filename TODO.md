@@ -58,15 +58,6 @@ None currently open.
 
 ### 4. Documentation and Doc Comments
 
-- [ ] **Complete doc comments on all APIs and items**:
-  - Add doc comments to `book_tool/src/directives/conf.rs` (`Config`).
-  - Add doc comments to `book_tool/src/refdefs/scope.rs` (`find_unused_refdefs_in_scopes`).
-  - Add doc comments to `book_tool/src/link_check/mod.rs` (`execute`).
-  - Add doc comments to `parse_lib/src/markdown_renderer.rs` (`MarkdownRenderer`).
-  - Add doc comments to `parse_lib/src/visit/refdefs.rs` (`refdefs`).
-  - Add doc comments to internal helpers and trait methods (e.g. `implicit_reference_uses` in `book_tool/src/refdefs/occurrences.rs`).
-- [ ] **Document error conditions and invariants**: Add `# Errors` and `# Panics` sections to all fallible and invariant-checking public functions across `book_tool` and `parse_lib`.
-
 ### 5. Architecture and Design Alignment
 
 - [ ] **Error handling in `parse_lib`**:
