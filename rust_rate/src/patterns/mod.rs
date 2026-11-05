@@ -118,4 +118,81 @@ mod tests {
             .expect("analyze source");
         assert_eq!(anyhow, ["-> anyhow::Result<()> {"]);
     }
+
+    /// The tokio pattern matches both bare and parameterized attribute forms.
+    #[test]
+    fn tokio_main_attribute_is_detected_with_and_without_arguments() {
+        let analyzer = PatternAnalyzer::new().expect("create analyzer");
+        let found = analyzer
+            .analyze_source(
+                "#[tokio::main]\nasync fn a() {}\n#[tokio::main(flavor = \"current_thread\")]\nasync fn b() {}\n#[tokio::test]\nasync fn c() {}",
+                "tokio",
+            )
+            .expect("analyze source");
+        assert_eq!(
+            found,
+            [
+                "#[tokio::main]",
+                "#[tokio::main(flavor = \"current_thread\")]"
+            ]
+        );
+    }
+
+    /// Unknown crates only report imports, and empty or unrelated sources report nothing.
+    #[test]
+    fn unknown_crates_and_empty_sources_report_only_imports() {
+        let analyzer = PatternAnalyzer::new().expect("create analyzer");
+        assert!(
+            analyzer
+                .analyze_source("", "serde")
+                .expect("empty")
+                .is_empty()
+        );
+        assert!(
+            analyzer
+                .analyze_source("fn main() {}", "rand")
+                .expect("unrelated")
+                .is_empty()
+        );
+        let found = analyzer
+            .analyze_source("use   rand::Rng;", "rand")
+            .expect("import");
+        assert_eq!(found, ["Import of rand"]);
+    }
+
+    /// An import of a different crate with a shared prefix is not a match.
+    #[test]
+    fn import_detection_requires_the_path_separator() {
+        let analyzer = PatternAnalyzer::new().expect("create analyzer");
+        let found = analyzer
+            .analyze_source("use serde_json::Value;", "serde")
+            .expect("analyze");
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    /// Malformed Rust is still scanned lexically instead of failing.
+    #[test]
+    fn syntactically_invalid_source_is_scanned_without_error() {
+        let analyzer = PatternAnalyzer::new().expect("create analyzer");
+        let found = analyzer
+            .analyze_source("use anyhow::{{{ fn ->->", "anyhow")
+            .expect("analyze");
+        assert_eq!(found, ["Import of anyhow"]);
+    }
+
+    /// Multiple matches of the same pattern are all reported in source order.
+    #[test]
+    fn repeated_matches_are_reported_in_order() {
+        let analyzer = PatternAnalyzer::new().expect("create analyzer");
+        let found = analyzer
+            .analyze_source(
+                "#[derive(Serialize)]\nstruct A;\n#[derive(Clone, Serialize)]\nstruct B;",
+                "serde",
+            )
+            .expect("analyze");
+        assert_eq!(
+            found,
+            ["#[derive(Serialize)]", "#[derive(Clone, Serialize)]"]
+        );
+    }
 }

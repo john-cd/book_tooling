@@ -69,3 +69,99 @@ where
     temp_dir.close()?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Cases whose function rewrites the file as expected pass.
+    #[test]
+    fn passes_when_the_function_produces_the_expected_contents() {
+        let cases = [TestCase {
+            file_name_and_ext: "a.txt",
+            original_contents: Some("old"),
+            expected_final_contents: Some("new"),
+        }];
+        test_with(&cases, |dir| {
+            std::fs::write(dir.join("a.txt"), "new")?;
+            Ok(())
+        })
+        .expect("expected contents");
+    }
+
+    /// Unexpected final contents are reported as an error naming the file.
+    #[test]
+    fn fails_when_contents_differ() {
+        let cases = [TestCase {
+            file_name_and_ext: "a.txt",
+            original_contents: Some("old"),
+            expected_final_contents: Some("new"),
+        }];
+        let err = test_with(&cases, |_dir| Ok(())).expect_err("contents unchanged");
+        assert!(err.to_string().contains("a.txt"), "{err}");
+    }
+
+    /// A file removed by the function under test is reported as missing.
+    #[test]
+    fn fails_when_the_file_disappears() {
+        let cases = [TestCase {
+            file_name_and_ext: "gone.txt",
+            original_contents: None,
+            expected_final_contents: None,
+        }];
+        let err = test_with(&cases, |dir| {
+            std::fs::remove_file(dir.join("gone.txt"))?;
+            Ok(())
+        })
+        .expect_err("file removed");
+        assert!(err.to_string().contains("should exist"), "{err}");
+    }
+
+    /// Errors from the function under test are propagated.
+    #[test]
+    fn propagates_function_errors() {
+        let cases = [TestCase {
+            file_name_and_ext: "a.txt",
+            original_contents: None,
+            expected_final_contents: None,
+        }];
+        let err = test_with(&cases, |_dir| anyhow::bail!("boom")).expect_err("fails");
+        assert_eq!(err.to_string(), "boom");
+    }
+
+    /// Without expectations only existence is checked, and an empty case list succeeds.
+    #[test]
+    fn unspecified_expectations_are_not_checked() {
+        let cases = [TestCase {
+            file_name_and_ext: "a.txt",
+            original_contents: Some("anything"),
+            expected_final_contents: None,
+        }];
+        test_with(&cases, |_dir| Ok(())).expect("existence only");
+        test_with(&[], |_dir| Ok(())).expect("no cases");
+    }
+
+    /// Each case gets the function run against the shared directory once.
+    #[test]
+    fn runs_the_function_once_per_case() {
+        let cases = [
+            TestCase {
+                file_name_and_ext: "one.txt",
+                original_contents: Some("1"),
+                expected_final_contents: Some("1"),
+            },
+            TestCase {
+                file_name_and_ext: "two.txt",
+                original_contents: Some("2"),
+                expected_final_contents: Some("2"),
+            },
+        ];
+        let calls = std::cell::Cell::new(0_usize);
+        test_with(&cases, |_dir| {
+            calls.set(calls.get() + 1);
+            Ok(())
+        })
+        .expect("passes");
+        assert_eq!(calls.get(), 2);
+    }
+}

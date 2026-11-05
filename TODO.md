@@ -49,10 +49,6 @@ None currently open.
 
 ### 1. Unit Testing and Test Coverage Gaps
 
-- [ ] **`rust_rate` testing**:
-  - Add unit tests for `rust_rate::patterns` covering syntax error handling and edge cases in regex pattern extraction.
-  - Add tests for `rust_rate::utils::test_utils` helper structures.
-
 ### 2. Integration Testing Enhancements
 
 - [ ] **`rust_rate stats` workflow test**: Add an integration test with local mock HTTP responses testing the end-to-end `rust_rate stats` CLI workflow, rate limit handling, and summary output generation.
