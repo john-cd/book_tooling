@@ -49,10 +49,6 @@ None currently open.
 
 ### 1. Unit Testing and Test Coverage Gaps
 
-- [ ] **`book_tool::refdefs` modules**:
-  - Add unit tests for `refdefs::report::RefDefsReport` JSON serialization, field formatting, and ordering.
-  - Add unit tests for `refdefs::occurrences::implicit_reference_uses` and `ReferenceUse` collection across complex Markdown structures.
-  - Add unit tests for `refdefs::audit` analyzing provenance across chained includes.
 - [ ] **`book_tool::links` and CLI modules**:
   - Add unit tests for `links::link::Link` constructors, Display formatting, and URL normalization.
   - Add inline unit tests for `book_tool/src/extract_comments/mod.rs` and `book_tool/src/link_check/mod.rs` error handling paths.

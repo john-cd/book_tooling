@@ -448,3 +448,104 @@ where
     }
     Ok(uses_by_label)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shortcut_and_collapsed_references_are_uses() {
+        let found = implicit_reference_uses("See [serde] and [Tokio][].\n");
+        let names: Vec<_> = found.iter().map(|(label, _)| *label).collect();
+        assert_eq!(names, ["serde", "Tokio"]);
+        assert!(
+            found
+                .iter()
+                .all(|(_, kind)| *kind == ReferenceUseKind::Link)
+        );
+    }
+
+    #[test]
+    fn image_shortcuts_are_image_uses() {
+        let found = implicit_reference_uses("![diagram]\n");
+        assert_eq!(found, [("diagram", ReferenceUseKind::Image)]);
+    }
+
+    #[test]
+    fn fenced_code_html_comments_and_inline_code_are_ignored() {
+        let source = "```\n[fenced]\n```\n<!-- [commented] -->\n`[inline]`\n[real]\n";
+        let names: Vec<_> = implicit_reference_uses(source)
+            .into_iter()
+            .map(|(label, _)| label)
+            .collect();
+        assert_eq!(names, ["real"]);
+    }
+
+    #[test]
+    fn escaped_brackets_are_not_uses() {
+        assert!(implicit_reference_uses(r"\[escaped]").is_empty());
+    }
+
+    #[test]
+    fn crlf_line_endings_do_not_leak_into_labels() {
+        let names: Vec<_> = implicit_reference_uses("[one]\r\n[two]\r\n")
+            .into_iter()
+            .map(|(label, _)| label)
+            .collect();
+        assert_eq!(names, ["one", "two"]);
+    }
+
+    #[test]
+    fn occurrences_cover_lists_quotes_and_tables_without_duplicates() {
+        let source = "- item [a]\n> quote [b][]\n\n| h |\n|---|\n| [c][C] |\n\n[a]: https://a\n[B]: https://b\n";
+        let occurrences = collect_reference_occurrences(Path::new("t.md"), source).expect("parses");
+        let mut used: Vec<_> = occurrences
+            .uses
+            .iter()
+            .map(|usage| usage.normalized_label.as_str())
+            .collect();
+        used.sort_unstable();
+        used.dedup();
+        assert_eq!(used, ["a", "b", "c"]);
+        let defined: Vec<_> = occurrences
+            .definitions
+            .iter()
+            .map(|definition| definition.normalized_label.as_str())
+            .collect();
+        assert_eq!(defined, ["a", "b"]);
+        let mut seen = HashSet::new();
+        for usage in &occurrences.uses {
+            assert!(
+                seen.insert((usage.line, usage.column, usage.label.clone())),
+                "duplicate use {usage:?}"
+            );
+        }
+        assert!(
+            occurrences
+                .uses
+                .iter()
+                .all(|usage| usage.line >= 1 && usage.column >= 1)
+        );
+    }
+
+    #[test]
+    fn additional_roots_group_uses_by_normalized_label() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        std::fs::write(dir.path().join("one.md"), "[Foo  Bar]\n").expect("write");
+        std::fs::write(dir.path().join("skip.txt"), "[foo bar]\n").expect("write");
+        let uses = collect_uses_outside_scoped_roots([dir.path()]).expect("collects");
+        assert_eq!(uses.len(), 1);
+        assert_eq!(uses.get("foo bar").expect("label grouped").len(), 1);
+    }
+
+    #[test]
+    fn missing_additional_root_is_an_error() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let err =
+            collect_uses_outside_scoped_roots([dir.path().join("nope")]).expect_err("missing root");
+        assert!(
+            format!("{err:#}").contains("additional Markdown root"),
+            "{err:#}"
+        );
+    }
+}

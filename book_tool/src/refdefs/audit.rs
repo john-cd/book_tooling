@@ -96,3 +96,114 @@ pub fn audit(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn read_report(path: &Path) -> Result<serde_json::Value> {
+        Ok(serde_json::from_str(&std::fs::read_to_string(path)?)?)
+    }
+
+    /// A definition file reached through a chain of includes is attributed to the root chapter.
+    #[test]
+    fn provenance_follows_chained_includes() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let root = dir.path();
+        std::fs::write(
+            root.join("chapter.md"),
+            "{{#include middle.incl.md}}\n[Used]\n",
+        )?;
+        std::fs::write(root.join("middle.incl.md"), "{{#include refs.incl.md}}\n")?;
+        std::fs::write(
+            root.join("refs.incl.md"),
+            "[used]: https://a\n[spare]: https://b\n",
+        )?;
+        let report = root.join("report.json");
+
+        audit(&[root.to_path_buf()], &report, false, vec![], vec![])?;
+
+        let value = read_report(&report)?;
+        let entries = value.as_array().expect("array");
+        let used = entries
+            .iter()
+            .find(|entry| entry["label"] == "used")
+            .expect("used");
+        let spare = entries
+            .iter()
+            .find(|entry| entry["label"] == "spare")
+            .expect("spare");
+        assert_eq!(used["proven_unused"], false);
+        assert_eq!(spare["proven_unused"], true);
+        let included_by = used["included_by"].as_array().expect("included_by");
+        assert!(
+            included_by.iter().any(|entry| entry
+                .as_str()
+                .is_some_and(|text| text.ends_with("chapter.md"))),
+            "{included_by:?}"
+        );
+        Ok(())
+    }
+
+    /// Uses in supplementary roots and protected files suppress cleanup.
+    #[test]
+    fn additional_uses_and_protected_files_prevent_proven_unused() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let book = dir.path().join("book");
+        let other = dir.path().join("other");
+        std::fs::create_dir_all(&book)?;
+        std::fs::create_dir_all(&other)?;
+        std::fs::write(book.join("chapter.md"), "{{#include refs.incl.md}}\n")?;
+        std::fs::write(book.join("refs.incl.md"), "[ext]: https://a\n")?;
+        std::fs::write(other.join("note.md"), "[Ext]\n")?;
+        let report = dir.path().join("report.json");
+
+        audit(
+            std::slice::from_ref(&book),
+            &report,
+            false,
+            vec![other],
+            vec![],
+        )?;
+        let value = read_report(&report)?;
+        assert_eq!(value[0]["proven_unused"], false);
+        assert_eq!(
+            value[0]["uses_outside_scoped_roots"]
+                .as_array()
+                .map(Vec::len),
+            Some(1)
+        );
+
+        std::fs::write(book.join("refs.incl.md"), "[lonely]: https://a\n")?;
+        audit(
+            std::slice::from_ref(&book),
+            &report,
+            false,
+            vec![],
+            vec![book.join("refs.incl.md")],
+        )?;
+        let protected_report = read_report(&report)?;
+        assert_eq!(protected_report[0]["protected"], true);
+        assert_eq!(protected_report[0]["proven_unused"], false);
+        Ok(())
+    }
+
+    #[test]
+    fn missing_protected_file_is_an_error() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        std::fs::write(dir.path().join("c.md"), "x\n")?;
+        let err = audit(
+            &[dir.path().to_path_buf()],
+            &dir.path().join("r.json"),
+            false,
+            vec![],
+            vec![dir.path().join("gone.md")],
+        )
+        .expect_err("unresolvable protected file");
+        assert!(
+            format!("{err:#}").contains("protected definition file"),
+            "{err:#}"
+        );
+        Ok(())
+    }
+}

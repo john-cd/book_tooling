@@ -90,3 +90,96 @@ pub fn write_audit_report(path: &Path, analysis: &ScopedRefDefAnalysis) -> Resul
         )
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn usage(path: &str, line: usize, kind: ReferenceUseKind) -> ReferenceUseAudit {
+        ReferenceUseAudit {
+            path: PathBuf::from(path),
+            line,
+            column: 3,
+            label: "Serde".to_owned(),
+            kind,
+        }
+    }
+
+    fn definition() -> ReferenceDefinitionAudit {
+        ReferenceDefinitionAudit {
+            path: PathBuf::from("refs.md"),
+            line: 1,
+            column: 2,
+            label: "Serde".to_owned(),
+            normalized_label: "serde".to_owned(),
+            included_by: vec![PathBuf::from("a.md")],
+            uses: vec![usage("a.md", 4, ReferenceUseKind::Link)],
+            uses_outside_scoped_roots: vec![usage("b.md", 9, ReferenceUseKind::Image)],
+            ambiguous: false,
+            protected: true,
+            proven_unused: false,
+        }
+    }
+
+    #[test]
+    fn definition_serializes_with_stable_field_order_and_snake_case_kinds() {
+        let json = serde_json::to_string(&definition()).expect("serializes");
+        assert_eq!(
+            json,
+            concat!(
+                r#"{"path":"refs.md","line":1,"column":2,"label":"Serde","#,
+                r#""normalized_label":"serde","included_by":["a.md"],"#,
+                r#""uses":[{"path":"a.md","line":4,"column":3,"label":"Serde","kind":"link"}],"#,
+                r#""uses_outside_scoped_roots":[{"path":"b.md","line":9,"column":3,"label":"Serde","kind":"image"}],"#,
+                r#""ambiguous":false,"protected":true,"proven_unused":false}"#
+            )
+        );
+    }
+
+    #[test]
+    fn use_kinds_order_links_before_images() {
+        assert!(ReferenceUseKind::Link < ReferenceUseKind::Image);
+    }
+
+    #[test]
+    fn report_is_pretty_printed_array_with_trailing_newline_in_input_order() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let path = dir.path().join("report.json");
+        let mut second = definition();
+        second.label = "Zed".to_owned();
+        let analysis = ScopedRefDefAnalysis {
+            unused_by_file: BTreeMap::new(),
+            definitions: vec![definition(), second],
+        };
+        write_audit_report(&path, &analysis).expect("writes");
+
+        let text = std::fs::read_to_string(&path).expect("reads");
+        assert!(text.ends_with("]\n"), "{text}");
+        assert!(text.contains("\n    \"path\""), "pretty printed: {text}");
+        let value: serde_json::Value = serde_json::from_str(&text).expect("valid JSON");
+        let labels: Vec<_> = value
+            .as_array()
+            .expect("array")
+            .iter()
+            .map(|entry| entry["label"].as_str().expect("label"))
+            .collect();
+        assert_eq!(labels, ["Serde", "Zed"]);
+    }
+
+    #[test]
+    fn empty_analysis_writes_an_empty_array() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let path = dir.path().join("report.json");
+        write_audit_report(&path, &ScopedRefDefAnalysis::default()).expect("writes");
+        assert_eq!(std::fs::read_to_string(path).expect("reads"), "[]\n");
+    }
+
+    #[test]
+    fn unwritable_destination_reports_the_path() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let path = dir.path().join("missing-dir").join("report.json");
+        let err = write_audit_report(&path, &ScopedRefDefAnalysis::default())
+            .expect_err("parent directory is missing");
+        assert!(format!("{err:#}").contains("report.json"), "{err:#}");
+    }
+}
