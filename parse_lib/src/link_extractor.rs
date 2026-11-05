@@ -53,3 +53,72 @@ impl<'a> Visitor<'a> for LinkExtractor<'a> {
         self.add_link(data.url);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parse_document;
+    use crate::visit::Visitable as _;
+
+    /// Verifies: extract.
+    fn extract(source: &str) -> Vec<String> {
+        let doc = parse_document("t", None, source).expect("parses");
+        let mut extractor = LinkExtractor::new();
+        doc.accept(&mut extractor);
+        let mut links: Vec<_> = extractor
+            .external_links
+            .iter()
+            .map(|link| (*link).to_owned())
+            .collect();
+        links.sort();
+        links
+    }
+
+    /// Verifies: collects autolinks inline links images and definitions.
+    #[test]
+    fn collects_autolinks_inline_links_images_and_definitions() {
+        let links = extract(concat!(
+            "<https://auto.example>\n\n",
+            "[inline](http://inline.example) ![img](https://img.example/x.png)\n\n",
+            "[def]: https://def.example\n"
+        ));
+        assert_eq!(
+            links,
+            [
+                "http://inline.example",
+                "https://auto.example",
+                "https://def.example",
+                "https://img.example/x.png",
+            ]
+        );
+    }
+
+    /// Verifies: collapsed and shortcut references carry no destination.
+    #[test]
+    fn collapsed_and_shortcut_references_carry_no_destination() {
+        assert!(extract("[text][label] [collapsed][] [shortcut]\n").is_empty());
+    }
+
+    /// Verifies: relative and non http destinations are ignored.
+    #[test]
+    fn relative_and_non_http_destinations_are_ignored() {
+        assert!(
+            extract("[a](page.md) [b](mailto:x@y.z) [c](ftp://h/f) <ftp://host/file>\n").is_empty()
+        );
+    }
+
+    /// Verifies: duplicates are collapsed.
+    #[test]
+    fn duplicates_are_collapsed() {
+        assert_eq!(
+            extract("[a](https://x.example) [b](https://x.example)\n"),
+            ["https://x.example"]
+        );
+    }
+
+    /// Verifies: new extractor is empty.
+    #[test]
+    fn new_extractor_is_empty() {
+        assert!(LinkExtractor::new().external_links.is_empty());
+    }
+}

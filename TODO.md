@@ -49,7 +49,6 @@ None currently open.
 
 ### 1. Unit Testing and Test Coverage Gaps
 
-- [ ] **`parse_lib::link_extractor`**: Add unit tests for `LinkExtractor` visitor checking extraction of autolinks, reference-style definitions, collapsed reference links, and image links.
 - [ ] **`parse_lib::errors`**: Add unit tests for `ParsingError::display` and `annotate-snippets` rendering across single-line, multiline, and out-of-bounds byte spans.
 - [ ] **`parse_lib::visit` helpers**:
   - Add unit tests for `visit::debugger::Debugger` visitor output format.
