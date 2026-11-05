@@ -51,7 +51,6 @@ None currently open.
 
 ### 2. Integration Testing Enhancements
 
-- [ ] **`refdefs-audit` JSON schema validation**: Add an integration test that verifies the structured JSON report produced by `book_tool refdefs-audit --report <file>` against a strict schema.
 - [ ] **CLI error reporting & edge cases**:
   - Add integration tests verifying non-zero exit codes and helpful error messages when `book_tool` commands receive non-existent directories, unreadable files, or malformed CLI arguments.
   - Add integration tests exercising `book_tool directives` flag overrides and config file precedence.
