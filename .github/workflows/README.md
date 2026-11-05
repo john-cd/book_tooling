@@ -8,6 +8,7 @@
 | `rust-ci.yml`   | `workflow_call`                | Reusable: prek/dprint formatting hooks, build, Clippy, nextest and doctests on Linux, macOS and Windows, plus informational `cargo llvm-cov` coverage (Linux, never a gate). |
 | `fuzz.yml`      | manual                         | Runs the `parse_lib` `round_trip` libFuzzer target on Linux for a chosen number of seconds (default 600); never a gate.                                                      |
 | `container.yml` | manual                         | Builds the `.devcontainer` image and checks the pinned tool versions; never a gate.                                                                                          |
+| `measure.yml`   | manual                         | Times cold and warm `ci` and `release` builds and reports output sizes on Linux, macOS and Windows, without a compiler cache; never a gate.                                  |
 
 Shared building block: [`../actions/setup-rust`](../actions/setup-rust/action.yml) installs the pinned stable
 toolchain (1.99.1) and the nightly from [`../../rustfmt-toolchain.toml`](../../rustfmt-toolchain), used only for `rustfmt`,

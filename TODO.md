@@ -19,29 +19,21 @@ fixture preparation and investigation can continue independently.
 
 ### Ready: quick wins
 
-No clearly bounded quick win is currently open; start with the priority list below.
+None. No issue is currently open.
 
 ### Ready: priority order
 
-- [#77: Epic: Validate and finalize Cargo profiles, output paths, and linker policy](https://github.com/john-cd/book_tooling/issues/77) — Controlled local measurements can proceed; Linux/macOS acceptance needs the matching hosts.
+None.
 
 ### Blocked or deferred
 
-- [#80: Epic: human decisions, reviews, and host-dependent validation](https://github.com/john-cd/book_tooling/issues/80) — Tracks the human and host prerequisites above.
+None.
 
 <!-- recommended-issue-order:end -->
 
 Open work is tracked in [GitHub Issues](https://github.com/john-cd/book_tooling/issues).
 Keep one topic per issue, except epics, with a problem, task list, and acceptance criteria.
 Record status and validation evidence in the issue rather than duplicating checklists here.
-
-## Blocker tracking
-
-- [Human decisions, reviews, and host prerequisites](https://github.com/john-cd/book_tooling/issues/80).
-
-## Maintenance
-
-- [Validate and finalize Cargo profiles, output paths, and linker policy](https://github.com/john-cd/book_tooling/issues/77).
 
 ## Codebase Review: Fixes and Improvements
 

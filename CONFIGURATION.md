@@ -155,9 +155,21 @@ Windows x86_64-pc-windows-msvc, develop base `a639fc4` plus `37d6ef2` (2026-11-0
   The shared sccache v0.19.0 daemon reported a 0% Rust hit rate at capture, but its counters and
   cache were shared with other work, so this is not an isolated Rust-cache measurement. The
   compiler-cache and cold-versus-warm rebuild comparison remains open.
-- The reusable CI workflow has Linux, macOS, and Windows runners, but no passing hosted Linux/macOS
-  or release-linker run is recorded for this revision. Those platform and release checks remain
-  open; the local Windows build does not establish their linker or SDK behavior.
+- On 2026-11-05 the manual `Measure` workflow ([run 41959102270](https://github.com/john-cd/book_tooling/actions/runs/41959102270))
+  built the workspace at develop `b4437a1` on GitHub-hosted runners with `RUSTC_WRAPPER` disabled
+  (no compiler cache, so the numbers are isolated from sccache) and `CARGO_INCREMENTAL=0`. Warm
+  means a rebuild after `touch parse_lib/src/lib.rs` with dependencies already built. Each OS used
+  its default linker; no alternative linker was compared.
+
+  | Runner                                   | `ci` cold | `ci` warm | `ci` target | `release` cold | `release` warm | Both profiles' target |
+  | ---------------------------------------- | --------- | --------- | ----------- | -------------- | -------------- | --------------------- |
+  | ubuntu-latest (x86_64-unknown-linux-gnu) | 148 s     | 8 s       | 623,888 KiB | 160 s          | 30 s           | 1,122,052 KiB         |
+  | macos-latest (aarch64-apple-darwin)      | 47 s      | 3 s       | 592,576 KiB | 49 s           | 10 s           | 1,090,780 KiB         |
+  | windows-latest (x86_64-pc-windows-msvc)  | 460 s     | 20 s      | 675,506 KiB | 446 s          | 81 s           | 1,264,112 KiB         |
+
+  Both release builds and all `ci` builds linked successfully on all three platforms, and a
+  repeated `ci` build was a Cargo no-op (0 s). Runner hardware varies between runs, so treat the
+  figures as order-of-magnitude comparisons. Rerun with `gh workflow run measure.yml`.
 
 ## References
 
