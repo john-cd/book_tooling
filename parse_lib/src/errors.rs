@@ -62,3 +62,70 @@ impl ParsingError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use winnow::Parser as _;
+    use winnow::token::literal;
+
+    use super::*;
+
+    /// Verifies: render.
+    fn render(message: &str, input: &str, span: std::ops::Range<usize>) -> String {
+        ParsingError {
+            message: message.to_owned(),
+            span,
+            input: input.to_owned(),
+        }
+        .to_string()
+    }
+
+    /// Verifies: single line error shows message and source.
+    #[test]
+    fn single_line_error_shows_message_and_source() {
+        let out = render("bad token", "let x = ?;", 8..9);
+        assert!(out.contains("bad token"), "{out}");
+        assert!(out.contains("let x = ?;"), "{out}");
+    }
+
+    /// Verifies: multiline error shows the offending line.
+    #[test]
+    fn multiline_error_shows_the_offending_line() {
+        let out = render("oops", "line one\nline two\nline three\n", 14..17);
+        assert!(out.contains("line two"), "{out}");
+        assert!(out.contains("oops"), "{out}");
+    }
+
+    /// Verifies: empty input and empty span render without panicking.
+    #[test]
+    fn empty_input_and_empty_span_render_without_panicking() {
+        let out = render("empty", "", 0..0);
+        assert!(out.contains("empty"), "{out}");
+    }
+
+    /// Verifies: span at end of input renders.
+    #[test]
+    fn span_at_end_of_input_renders() {
+        let out = render("eof", "abc", 3..3);
+        assert!(out.contains("abc"), "{out}");
+    }
+
+    /// Verifies: from parse captures input and first character span.
+    #[test]
+    fn from_parse_captures_input_and_first_character_span() {
+        let parse_error = literal::<_, _, ContextError>("abc")
+            .parse("abx")
+            .expect_err("mismatch");
+        let error = ParsingError::from_parse(&parse_error);
+        assert_eq!(error.input, "abx");
+        assert_eq!(error.span, 0..1);
+        assert!(error.to_string().contains("abx"));
+    }
+
+    /// Verifies: implements std error.
+    #[test]
+    fn implements_std_error() {
+        fn assert_error<E: std::error::Error>() {}
+        assert_error::<ParsingError>();
+    }
+}

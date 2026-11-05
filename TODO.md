@@ -49,7 +49,6 @@ None currently open.
 
 ### 1. Unit Testing and Test Coverage Gaps
 
-- [ ] **`parse_lib::errors`**: Add unit tests for `ParsingError::display` and `annotate-snippets` rendering across single-line, multiline, and out-of-bounds byte spans.
 - [ ] **`parse_lib::visit` helpers**:
   - Add unit tests for `visit::debugger::Debugger` visitor output format.
   - Add unit tests for `visit::pretty_printer::PrettyPrinter` state transitions and indentation handling.
