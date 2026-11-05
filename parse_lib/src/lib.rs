@@ -16,7 +16,7 @@
 //!   and [`plain_text_extractor`].
 //! - Renderers such as [`html_renderer`] and [`markdown_renderer`].
 //! - Parser entry points in [`markdown`], [`parse_directives`], [`parse_hidden`], [`parse_urls`],
-//!   [`parse_wikilinks`], and [`parse_document`].
+//!   [`parse_wikilinks`], and [`parse_document()`].
 //!
 //! TODO Reviewed ??-??-2026
 

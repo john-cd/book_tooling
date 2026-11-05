@@ -58,7 +58,6 @@ None currently open.
 
 ### 4. Documentation and Doc Comments
 
-- [ ] **Fix rustdoc link warnings**: Resolve ambiguous intra-doc link warning in `parse_lib/src/lib.rs` (`warning: parse_document is both a function and a module`) by linking explicitly with function syntax `parse_document()`.
 - [ ] **Complete doc comments on all APIs and items**:
   - Add doc comments to `book_tool/src/directives/conf.rs` (`Config`).
   - Add doc comments to `book_tool/src/refdefs/scope.rs` (`find_unused_refdefs_in_scopes`).
