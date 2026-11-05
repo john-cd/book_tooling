@@ -69,5 +69,4 @@ None currently open.
 
 ### 6. Discrepancies Between Documentation and Code
 
-- [ ] **Verify link checking cache documentation**: Ensure repository documentation accurately reflects whether in-memory link caching (`moka`) is enabled or planned for `book_tool::links::AsyncLinkChecker`.
 - [ ] **Align configuration file documentation**: Clarify the relationship between `config.toml` path resolution, CLI directory arguments, and default configuration behavior in `book_tool` user documentation.

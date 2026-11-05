@@ -128,7 +128,8 @@ requests first and falls back to `GET` when a response is not successful. Only `
 Each method retries `429` and `503` responses up to three times using the `Retry-After` value (seconds or an HTTP-date, capped at 30 seconds),
 or exponential backoff starting at one second when the header is absent or malformed. Requests time out after ten seconds, with up
 to 32 links checked concurrently. Local HTTP fixtures can exercise the command without contacting
-external sites.
+external sites. Each unique URL is checked once per run; results are not cached between runs, and
+the checker has no in-memory response cache.
 
 ### Audit Reference Definitions
 
