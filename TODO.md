@@ -51,7 +51,6 @@ None currently open.
 
 ### 2. Integration Testing Enhancements
 
-- [ ] **`rust_rate stats` workflow test**: Add an integration test with local mock HTTP responses testing the end-to-end `rust_rate stats` CLI workflow, rate limit handling, and summary output generation.
 - [ ] **`refdefs-audit` JSON schema validation**: Add an integration test that verifies the structured JSON report produced by `book_tool refdefs-audit --report <file>` against a strict schema.
 - [ ] **CLI error reporting & edge cases**:
   - Add integration tests verifying non-zero exit codes and helpful error messages when `book_tool` commands receive non-existent directories, unreadable files, or malformed CLI arguments.
