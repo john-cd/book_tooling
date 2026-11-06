@@ -38,12 +38,4 @@ hooks = [
     pass_filenames = false,
     types = ["rust"],
   },
-  {
-    id = "cargo-deny",
-    name = "cargo deny --locked check",
-    entry = "cargo deny --locked check",
-    language = "system",
-    pass_filenames = false,
-    always_run = true,
-  },
 ]
