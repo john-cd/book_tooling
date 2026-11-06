@@ -72,81 +72,120 @@ export TMP := if os() == "windows" { code_temp_root } else { env("TMP", "/tmp") 
 export TMPDIR := if os() == "windows" { code_temp_root } else { env("TMPDIR", "/tmp") }
 export DPRINT_CACHE_DIR := env("DPRINT_CACHE_DIR", join(cache_home, "dprint"))
 
-
 # List the available recipes and task modules.
 [no-exit-message]
 _default:
     @just --list --unsorted --justfile {{ source_file() }}
 
-# Format all Rust packages and their local path dependencies. Alias: fa.
-alias fa := fmtall
-
 # Check Rust formatting with the pinned formatter toolchain.
-@fmtcheck:
+@format-check:
     cargo +{{ rustfmt_toolchain }} fmt --all -- --check
 
 # Format all packages and their local path-based dependencies
-@fmtall:
+@format-all:
     echo "Formatting all packages and their local path-based dependencies in $(pwd)"
     cargo +{{ rustfmt_toolchain }} fmt --all
 
-# Check all Rust targets with every configured feature. Alias: cka.
-alias cka := checkall
-
 # Check all code (all packages, all features)
-@checkall:
+@check:
     echo "Check all code (all packages, all features) in $(pwd)"
     cargo check --workspace --all-targets --locked --all-features
 
 # `--all-targets` is equivalent to specifying `--lib --bins --tests --benches --examples`.
-
-# Run the orphansources recipe. Alias: osa.
-alias osa := orphansources
 
 # Check that every Rust source file under src/ belongs to a compiled module tree.
 @orphansources:
     echo "Check for orphan Rust source files in $(pwd)"
     python3 scripts/check_orphan_sources.py || python scripts/check_orphan_sources.py
 
-# Build all Rust targets with every configured feature. Alias: ba.
-alias ba := buildall
-
 # Build all packages (all features)
-@buildall:
+@build:
     echo "Build all packages, all features in $(pwd)"
     cargo build --workspace --all-targets --locked --all-features --timings
 
-# Lint all Rust targets and features with Clippy. Alias: ca.
-alias ca := clippyall
-
 # Scan all code for common mistakes (all packages, all features)
-@clippyall:
+@lint-check:
     echo "Scan all code for common mistakes (all packages, all features) in $(pwd)"
     cargo clippy --workspace --all-targets --locked --all-features -- -D warnings
-
-# Run the deny recipe. Alias: da.
-alias da := deny
 
 # Check dependency advisories, licenses, duplicate versions, and registry sources.
 @deny:
     echo "Check dependency policy in $(pwd)"
     cargo deny --locked check
 
-# Run the configured workspace tests and doctests. Alias: nta.
-alias nta := nextestall
-
 # Test all code in the workspace (incl. doctests) (all features)
-@nextestall:
+@test-all:
     echo "Test all code in the workspace in $(pwd) (incl. doctests) (all features)"
     -cargo test --doc --workspace --quiet # nextest does not handle doctests
     cargo nextest run --workspace --all-targets --locked --no-fail-fast --status-level all --all-features --failure-output final
 
 # Build and display the `cargo doc` documentation
-@docall:
+@doc:
     echo "Build and display the `cargo doc` documentation for $(pwd)"
     cargo clean --doc
     cargo doc --no-deps --workspace --locked --document-private-items
     cd "{{ target_dir }}/doc/" ; (python3 -m http.server 9000 || python -m http.server 9000)
+
+# Uniform task names (short aliases; old names kept as aliases).
+alias f := format-all
+alias format := format-all
+alias fmtall := format-all
+alias fa := format-all
+alias fc := format-check
+alias fmtcheck := format-check
+alias c := check
+alias cka := check
+alias checkall := check
+alias ca := check-all
+alias b := build
+alias ba := build
+alias buildall := build
+alias br := release
+alias build-release := release
+alias l := lint
+alias lf := lint
+alias lc := lint-check
+alias clippyall := lint-check
+alias la := lint-all
+alias t := test-all
+alias test := test-all
+alias ta := test-all
+alias nta := test-all
+alias nextestall := test-all
+alias d := doc
+alias docall := doc
+alias de := deny
+alias da := deny
+alias cl := clean
+alias u := update
+alias p := prep
+alias hi := hooks-install
+alias hr := hooks-run
+alias osa := orphansources
+
+# Lint with autofix: apply Clippy suggestions
+@lint:
+  cargo clippy --workspace --all-targets --locked --all-features --fix --allow-dirty --allow-staged -- -D warnings
+
+# Lint with autofix, then lint Markdown.
+lint-all: lint markdownlint
+
+# Run all checks without modifying files: format, lint, check, test, deny.
+check-all: format-check lint-check check test-all deny orphansources
+
+# Run the local CI gates.
+ci: check-all
+
+# Before committing: format everything, lint with autofix, then run all checks.
+prep: format-all lint check-all
+
+# Remove build artifacts.
+@clean:
+  cargo clean
+
+# Update Cargo.lock dependencies.
+@update:
+  cargo update
 
 # Build release binaries into the configured external artifact directory.
 @release:
@@ -204,7 +243,6 @@ export npm_config_cache := env("npm_config_cache", join(code_packages_root, "npm
 # Configure the host fallback; regular recipes retain their separate checkout slots.
 configure-cargo-host:
     pwsh -NoLogo -NoProfile -File {{quote(join(root, "scripts/cargo-host.ps1"))}} -BuildRoot {{quote(code_build_root)}} -ConfigureHost
-
 
 # Link Cargo and rust-analyzer outputs without replacing existing directories.
 build-setup:
