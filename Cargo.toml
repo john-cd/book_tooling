@@ -17,7 +17,7 @@ keywords = ["markdown", "book", "tooling", "cli", "rust"]
 license = "MIT OR Apache-2.0"
 publish = false
 repository = "https://github.com/john-cd/book_tooling"
-rust-version = "1.99"
+rust-version = "1.98.1"
 description = "A collection of Rust-based tools for processing Markdown files, particularly for books and documentation projects."
 
 [workspace.dependencies]
