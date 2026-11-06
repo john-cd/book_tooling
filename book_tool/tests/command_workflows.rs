@@ -61,21 +61,7 @@ impl TestHttpServer {
             while !shutdown_signal.load(Ordering::Relaxed) {
                 match listener.accept() {
                     Ok((mut stream, _)) => {
-                        // The accepted socket may inherit the listener's nonblocking mode.
-                        stream.set_nonblocking(false).expect("set stream blocking");
-                        stream
-                            .set_read_timeout(Some(Duration::from_secs(2)))
-                            .expect("set read timeout");
-                        // Answer only connections that carry a request; an idle or aborted
-                        // connection must not consume a queued response.
-                        if read_request_head(&mut stream) {
-                            let response = response_queue
-                                .lock()
-                                .expect("lock response queue")
-                                .pop_front()
-                                .unwrap_or_else(ok_response);
-                            drop(respond(&mut stream, &response));
-                        }
+                        serve_connection(&mut stream, &response_queue);
                     }
                     Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                         thread::sleep(Duration::from_millis(10));
@@ -104,6 +90,25 @@ fn book_tool_command() -> Command {
 }
 
 /// Reads until the end of the request head; returns false if the peer sent no complete request.
+/// Answers one accepted connection with the next queued response.
+fn serve_connection(stream: &mut TcpStream, queue: &Mutex<VecDeque<String>>) {
+    // The accepted socket may inherit the listener's nonblocking mode.
+    stream.set_nonblocking(false).expect("set stream blocking");
+    stream
+        .set_read_timeout(Some(Duration::from_secs(2)))
+        .expect("set read timeout");
+    // Answer only connections that carry a request; an idle or aborted
+    // connection must not consume a queued response.
+    if read_request_head(stream) {
+        let response = queue
+            .lock()
+            .expect("lock response queue")
+            .pop_front()
+            .unwrap_or_else(ok_response);
+        drop(respond(stream, &response));
+    }
+}
+
 fn read_request_head(stream: &mut TcpStream) -> bool {
     let mut received = Vec::new();
     let mut buffer = [0_u8; 1024];
