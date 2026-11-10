@@ -3,12 +3,15 @@
 //!
 //! TODO Reviewed ??-??-2026.
 
+use std::time::Duration;
+
 use anyhow::Context as _;
 use anyhow::Result;
 use clap::Parser;
 use clap::Subcommand;
 use futures::future::join_all;
 use rust_rate::crates_io;
+use rust_rate::crawler::CrawlerLimits;
 use rust_rate::crawler::GITHUB_API;
 use rust_rate::crawler::GithubCrawler;
 use rust_rate::crawler::GithubItem;
@@ -47,15 +50,33 @@ enum Commands {
         /// Root URL of the GitHub REST API (override for GitHub Enterprise or a test server).
         #[arg(long, default_value = GITHUB_API)]
         api_base: String,
+        /// Maximum time in milliseconds for one request, including reading its response body.
+        #[arg(long, default_value_t = 30_000)]
+        request_timeout_ms: u64,
+        /// Maximum time in milliseconds to establish a connection.
+        #[arg(long, default_value_t = 10_000)]
+        connect_timeout_ms: u64,
+        /// Maximum bytes accepted from one code-search response.
+        #[arg(long, default_value_t = 16 * 1024 * 1024)]
+        max_search_response_bytes: usize,
+        /// Maximum bytes accepted from one downloaded file response.
+        #[arg(long, default_value_t = 16 * 1024 * 1024)]
+        max_content_response_bytes: usize,
     },
 }
 
 /// Searches GitHub for manifests that mention `crate_name`, tallies their dependencies, then
 /// downloads Rust sources that import the crate and reports the code patterns found in them.
-async fn run_stats(crate_name: &str, limit: usize, token_env: &str, api_base: &str) -> Result<()> {
+async fn run_stats(
+    crate_name: &str,
+    limit: usize,
+    token_env: &str,
+    api_base: &str,
+    limits: CrawlerLimits,
+) -> Result<()> {
     crates_io::validate_crate_name(crate_name)?;
     let token = std::env::var(token_env).ok();
-    let crawler = GithubCrawler::new(token.as_deref())?.with_api_base(api_base);
+    let crawler = GithubCrawler::new_with_limits(token.as_deref(), limits)?.with_api_base(api_base);
     let analyzer = PatternAnalyzer::new()?;
     let mut stats = CrateStats::new();
 
@@ -117,6 +138,18 @@ async fn main() -> Result<()> {
             limit,
             token_env,
             api_base,
-        } => run_stats(&crate_name, limit, &token_env, &api_base).await,
+            request_timeout_ms,
+            connect_timeout_ms,
+            max_search_response_bytes,
+            max_content_response_bytes,
+        } => {
+            let limits = CrawlerLimits {
+                request_timeout: Duration::from_millis(request_timeout_ms),
+                connect_timeout: Duration::from_millis(connect_timeout_ms),
+                max_search_response_bytes,
+                max_content_response_bytes,
+            };
+            run_stats(&crate_name, limit, &token_env, &api_base, limits).await
+        }
     }
 }

@@ -32,6 +32,15 @@
 
 Set your `GITHUB_TOKEN` environment variable for higher rate limits.
 
+The `stats` command bounds GitHub requests with a 30-second request deadline, a
+10-second connection deadline, and 16 MiB limits for each search page and
+downloaded file. Override these with `--request-timeout-ms`,
+`--connect-timeout-ms`, `--max-search-response-bytes`, and
+`--max-content-response-bytes`. Request deadlines include reading the response
+body; when a deadline expires, the in-flight request is canceled. Response
+bodies are read incrementally and rejected before exceeding their configured
+byte limits.
+
 ```bash
 cargo run -p rust_rate -- stats anyhow --limit 5
 cargo run -p rust_rate -- crates-io anyhow
