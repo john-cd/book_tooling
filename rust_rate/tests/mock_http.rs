@@ -5,11 +5,17 @@
 use std::io::Read as _;
 use std::io::Write as _;
 use std::net::TcpListener;
+use std::net::TcpStream;
+use std::process::Command;
+use std::process::Output;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
+use std::time::Duration;
+use std::time::Instant;
 
 use rust_rate::crates_io::fetch_summary;
+use rust_rate::crawler::CrawlerLimits;
 use rust_rate::crawler::GithubCrawler;
 
 /// Serves canned responses in order and records the request lines it receives.
@@ -23,25 +29,38 @@ struct MockServer {
 impl MockServer {
     /// Starts a server that answers consecutive connections with `responses`.
     fn spawn(responses: Vec<String>) -> std::io::Result<Self> {
-        let listener = TcpListener::bind("127.0.0.1:0")?;
-        let url = format!("http://{}", listener.local_addr()?);
-        let requests = Arc::new(Mutex::new(Vec::new()));
-        let recorded = Arc::clone(&requests);
-        thread::spawn(move || {
+        Self::spawn_with_handler(move |listener, recorded| {
             for response in responses {
                 let Ok((mut stream, _)) = listener.accept() else {
                     return;
                 };
-                let mut buffer = [0_u8; 4096];
-                let read = stream.read(&mut buffer).unwrap_or(0);
-                let request = String::from_utf8_lossy(buffer.get(..read).unwrap_or_default());
-                if let Ok(mut lines) = recorded.lock() {
-                    lines.push(request.lines().next().unwrap_or_default().to_owned());
-                }
+                Self::record_request(&mut stream, &recorded);
                 let _ignored = stream.write_all(response.as_bytes());
             }
-        });
+        })
+    }
+
+    /// Starts a server whose handler controls the accepted connection.
+    fn spawn_with_handler<F>(handler: F) -> std::io::Result<Self>
+    where
+        F: FnOnce(TcpListener, Arc<Mutex<Vec<String>>>) + Send + 'static,
+    {
+        let listener = TcpListener::bind("127.0.0.1:0")?;
+        let url = format!("http://{}", listener.local_addr()?);
+        let requests = Arc::new(Mutex::new(Vec::new()));
+        let recorded = Arc::clone(&requests);
+        thread::spawn(move || handler(listener, recorded));
         Ok(Self { url, requests })
+    }
+
+    /// Records the first line from an accepted HTTP request.
+    fn record_request(stream: &mut TcpStream, recorded: &Mutex<Vec<String>>) {
+        let mut buffer = [0_u8; 4096];
+        let read = stream.read(&mut buffer).unwrap_or_default();
+        let request = String::from_utf8_lossy(buffer.get(..read).unwrap_or_default());
+        if let Ok(mut lines) = recorded.lock() {
+            lines.push(request.lines().next().unwrap_or_default().to_owned());
+        }
     }
 
     /// Request lines received so far.
@@ -51,6 +70,54 @@ impl MockServer {
             .map(|lines| lines.clone())
             .unwrap_or_default()
     }
+}
+
+/// Creates a crawler with short deadlines and explicit body ceilings for local tests.
+fn crawler_with_limits(
+    api_base: &str,
+    request_timeout: Duration,
+    max_search_response_bytes: usize,
+    max_content_response_bytes: usize,
+) -> anyhow::Result<GithubCrawler> {
+    GithubCrawler::new_with_limits(
+        None,
+        CrawlerLimits {
+            request_timeout,
+            connect_timeout: Duration::from_secs(1),
+            max_search_response_bytes,
+            max_content_response_bytes,
+        },
+    )
+    .map(|crawler| crawler.with_api_base(api_base))
+}
+
+/// Runs the CLI with short request deadlines against a local API root.
+fn run_stats_cli(
+    api_base: &str,
+    request_timeout_ms: u64,
+    max_search_response_bytes: usize,
+) -> std::io::Result<Output> {
+    Command::new(env!("CARGO_BIN_EXE_rust_rate"))
+        .args([
+            "stats",
+            "anyhow",
+            "--limit",
+            "0",
+            "--api-base",
+            api_base,
+            "--token-env",
+            "RUST_RATE_TEST_TOKEN_NOT_SET",
+            "--request-timeout-ms",
+            &request_timeout_ms.to_string(),
+            "--connect-timeout-ms",
+            "1000",
+            "--max-search-response-bytes",
+            &max_search_response_bytes.to_string(),
+            "--max-content-response-bytes",
+            "64",
+        ])
+        .env_remove("RUST_RATE_TEST_TOKEN_NOT_SET")
+        .output()
 }
 
 /// Builds a complete HTTP/1.1 response with a JSON or plain body.
@@ -130,6 +197,159 @@ async fn search_reports_other_http_errors_by_status() {
         .expect_err("HTTP 422 must fail");
 
     assert!(error.to_string().contains("422"), "{error}");
+}
+
+/// The request deadline cancels a search whose server never sends response headers.
+#[tokio::test]
+async fn search_request_deadline_bounds_a_stalled_header_response() {
+    let server = MockServer::spawn_with_handler(|listener, recorded| {
+        let Ok((mut stream, _)) = listener.accept() else {
+            return;
+        };
+        MockServer::record_request(&mut stream, &recorded);
+        thread::sleep(Duration::from_millis(400));
+        let _ignored = stream.write_all(response("200 OK", "", r#"{"items":[]}"#).as_bytes());
+    })
+    .expect("start stalled-header server");
+    let crawler = crawler_with_limits(&server.url, Duration::from_millis(100), 1024, 1024)
+        .expect("build bounded crawler");
+    let started = Instant::now();
+
+    let error = crawler
+        .search_cargo_tomls("anyhow")
+        .await
+        .expect_err("the stalled response should time out");
+
+    assert!(started.elapsed() < Duration::from_secs(2));
+    assert!(format!("{error:#}").contains("timed out"), "{error:#}");
+}
+
+/// The request deadline cancels a content response whose body stops making progress.
+#[tokio::test]
+async fn content_request_deadline_bounds_a_stalled_body() {
+    let server = MockServer::spawn_with_handler(|listener, recorded| {
+        let Ok((mut stream, _)) = listener.accept() else {
+            return;
+        };
+        MockServer::record_request(&mut stream, &recorded);
+        let _header_write_result = stream
+            .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 10\r\nConnection: close\r\n\r\na");
+        thread::sleep(Duration::from_millis(400));
+        let _body_write_result = stream.write_all(b"123456789");
+    })
+    .expect("start stalled-body server");
+    let crawler = crawler_with_limits(&server.url, Duration::from_millis(100), 1024, 1024)
+        .expect("build bounded crawler");
+    let started = Instant::now();
+
+    let error = crawler
+        .download_content(&format!("{}/file", server.url))
+        .await
+        .expect_err("the stalled body should time out");
+
+    assert!(started.elapsed() < Duration::from_secs(2));
+    assert!(format!("{error:#}").contains("timed out"), "{error:#}");
+}
+
+/// Rejects a search body that exceeds its configured limit without parsing it.
+#[tokio::test]
+async fn search_response_byte_limit_rejects_an_oversized_body() {
+    let server = MockServer::spawn(vec![response("200 OK", "", r#"{"items":[]}"#)])
+        .expect("start oversized search server");
+    let crawler = crawler_with_limits(&server.url, Duration::from_secs(1), 8, 1024)
+        .expect("build bounded crawler");
+
+    let error = crawler
+        .search_cargo_tomls("anyhow")
+        .await
+        .expect_err("the oversized search response should fail");
+
+    assert!(
+        error.to_string().contains("exceeding the configured limit"),
+        "{error:#}"
+    );
+}
+
+/// Stops reading a chunked search response as soon as it crosses the configured limit.
+#[tokio::test]
+async fn search_response_byte_limit_rejects_oversized_chunked_body() {
+    let body = r#"{"items":[]}"#;
+    let response = format!(
+        "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n{:X}\r\n{body}\r\n0\r\n\r\n",
+        body.len()
+    );
+    let server = MockServer::spawn(vec![response]).expect("start chunked search server");
+    let crawler = crawler_with_limits(&server.url, Duration::from_secs(1), 8, 1024)
+        .expect("build bounded crawler");
+
+    let error = crawler
+        .search_cargo_tomls("anyhow")
+        .await
+        .expect_err("the oversized chunked response should fail");
+
+    assert!(
+        error.to_string().contains("exceeds the configured limit"),
+        "{error:#}"
+    );
+}
+
+/// Rejects a content response whose declared length exceeds its configured limit.
+#[tokio::test]
+async fn content_response_byte_limit_rejects_an_oversized_body() {
+    let server = MockServer::spawn(vec![response("200 OK", "", "123456789")])
+        .expect("start oversized content server");
+    let crawler = crawler_with_limits(&server.url, Duration::from_secs(1), 1024, 8)
+        .expect("build bounded crawler");
+
+    let error = crawler
+        .download_content(&format!("{}/file", server.url))
+        .await
+        .expect_err("the oversized content response should fail");
+
+    let message = error.to_string();
+    assert!(message.contains("declares 9 bytes"), "{message}");
+    assert!(message.contains("limit of 8 bytes"), "{message}");
+}
+
+/// The CLI exits nonzero when a local GitHub server stalls past the request deadline.
+#[test]
+fn cli_exits_nonzero_when_search_response_headers_stall() {
+    let server = MockServer::spawn_with_handler(|listener, recorded| {
+        let Ok((mut stream, _)) = listener.accept() else {
+            return;
+        };
+        MockServer::record_request(&mut stream, &recorded);
+        thread::sleep(Duration::from_millis(400));
+        let _ignored = stream.write_all(response("200 OK", "", r#"{"items":[]}"#).as_bytes());
+    })
+    .expect("start stalled-header server");
+    let started = Instant::now();
+
+    let output = run_stats_cli(&server.url, 100, 1024).expect("run rust_rate CLI");
+
+    assert!(!output.status.success());
+    assert!(started.elapsed() < Duration::from_secs(3));
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("timed out"),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+/// The CLI exits nonzero when a local GitHub search response exceeds the byte ceiling.
+#[test]
+fn cli_exits_nonzero_when_search_response_exceeds_its_byte_limit() {
+    let server = MockServer::spawn(vec![response("200 OK", "", r#"{"items":[]}"#)])
+        .expect("start oversized search server");
+
+    let output = run_stats_cli(&server.url, 1000, 8).expect("run rust_rate CLI");
+
+    assert!(!output.status.success());
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("exceeding the configured limit"),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
 }
 
 /// Download rejects error statuses instead of returning the body.

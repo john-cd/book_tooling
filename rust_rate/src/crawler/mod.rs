@@ -3,6 +3,7 @@
 //! TODO Reviewed ??-??-2026.
 
 use std::fmt::Write as _;
+use std::time::Duration;
 
 use anyhow::Context as _;
 use anyhow::Result;
@@ -47,12 +48,39 @@ const SEARCH_PAGE_SIZE: usize = 100;
 /// Pages fetched at most per search; GitHub exposes no more than 1,000 code-search results.
 const MAX_SEARCH_PAGES: usize = 10;
 
+/// Request and response limits used by [`GithubCrawler`].
+#[derive(Clone, Copy, Debug)]
+pub struct CrawlerLimits {
+    /// Maximum time from starting a request through finishing its response body.
+    pub request_timeout: Duration,
+    /// Maximum time allowed to establish an HTTP connection.
+    pub connect_timeout: Duration,
+    /// Maximum number of bytes accepted in one GitHub code-search response.
+    pub max_search_response_bytes: usize,
+    /// Maximum number of bytes accepted in one downloaded file response.
+    pub max_content_response_bytes: usize,
+}
+
+impl Default for CrawlerLimits {
+    /// Returns finite defaults suited to GitHub code-search pages and source files.
+    fn default() -> Self {
+        Self {
+            request_timeout: Duration::from_secs(30),
+            connect_timeout: Duration::from_secs(10),
+            max_search_response_bytes: 16 * 1024 * 1024,
+            max_content_response_bytes: 16 * 1024 * 1024,
+        }
+    }
+}
+
 /// Client for interacting with GitHub API.
 pub struct GithubCrawler {
     /// HTTP client preconfigured with the crawler headers.
     client: Client,
     /// Root of the GitHub REST API; overridable for tests.
     api_base: String,
+    /// Deadlines and response byte ceilings applied to every request.
+    limits: CrawlerLimits,
 }
 
 impl GithubCrawler {
@@ -64,6 +92,36 @@ impl GithubCrawler {
     ///
     /// Returns an error if the authorization header or HTTP client cannot be built.
     pub fn new(token: Option<&str>) -> Result<Self> {
+        Self::new_with_limits(token, CrawlerLimits::default())
+    }
+
+    /// Creates a crawler with explicit request deadlines and response size ceilings.
+    ///
+    /// Passing a token increases the GitHub API rate limit available to the crawler. Both
+    /// deadlines and both response limits must be greater than zero.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if a limit is zero, the authorization header is invalid, or the HTTP
+    /// client cannot be built.
+    pub fn new_with_limits(token: Option<&str>, limits: CrawlerLimits) -> Result<Self> {
+        anyhow::ensure!(
+            !limits.request_timeout.is_zero(),
+            "GitHub request timeout must be greater than zero"
+        );
+        anyhow::ensure!(
+            !limits.connect_timeout.is_zero(),
+            "GitHub connect timeout must be greater than zero"
+        );
+        anyhow::ensure!(
+            limits.max_search_response_bytes > 0,
+            "GitHub search response byte limit must be greater than zero"
+        );
+        anyhow::ensure!(
+            limits.max_content_response_bytes > 0,
+            "GitHub content response byte limit must be greater than zero"
+        );
+
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert(
             reqwest::header::USER_AGENT,
@@ -81,12 +139,15 @@ impl GithubCrawler {
 
         let client = Client::builder()
             .default_headers(headers)
+            .timeout(limits.request_timeout)
+            .connect_timeout(limits.connect_timeout)
             .build()
             .context("Failed to build GitHub crawler HTTP client")?;
 
         Ok(Self {
             client,
             api_base: GITHUB_API.to_owned(),
+            limits,
         })
     }
 
@@ -143,6 +204,62 @@ impl GithubCrawler {
         anyhow::bail!("GitHub API returned HTTP {status}.")
     }
 
+    /// Converts request timeouts into diagnostics that include the configured deadlines.
+    fn request_error(
+        error: reqwest::Error,
+        operation: &str,
+        limits: &CrawlerLimits,
+    ) -> anyhow::Error {
+        if error.is_timeout() {
+            anyhow::anyhow!(
+                "GitHub {operation} request timed out (request deadline {:?}, connect deadline {:?}): {error}",
+                limits.request_timeout,
+                limits.connect_timeout
+            )
+        } else {
+            anyhow::Error::new(error).context(format!("Failed to send GitHub {operation} request"))
+        }
+    }
+
+    /// Reads a response body incrementally and stops before it can exceed `max_bytes`.
+    async fn read_bounded_response(
+        mut response: Response,
+        response_kind: &str,
+        max_bytes: usize,
+    ) -> Result<Vec<u8>> {
+        if let Some(content_length) = response.content_length() {
+            let maximum = u64::try_from(max_bytes).unwrap_or(u64::MAX);
+            anyhow::ensure!(
+                content_length <= maximum,
+                "GitHub {response_kind} response declares {content_length} bytes, exceeding the configured limit of {max_bytes} bytes"
+            );
+        }
+
+        let initial_capacity = response
+            .content_length()
+            .and_then(|length| usize::try_from(length).ok())
+            .unwrap_or_default()
+            .min(max_bytes);
+        let mut body = Vec::with_capacity(initial_capacity);
+        while let Some(chunk) = response
+            .chunk()
+            .await
+            .with_context(|| format!("Failed to read GitHub {response_kind} response body"))?
+        {
+            let next_length = body
+                .len()
+                .checked_add(chunk.len())
+                .context("GitHub response body size overflowed")?;
+            anyhow::ensure!(
+                next_length <= max_bytes,
+                "GitHub {response_kind} response exceeds the configured limit of {max_bytes} bytes"
+            );
+            body.extend_from_slice(&chunk);
+        }
+
+        Ok(body)
+    }
+
     /// Searches GitHub code results for matching `Cargo.toml` files, following pagination.
     ///
     /// # Errors
@@ -175,11 +292,15 @@ impl GithubCrawler {
                 .get(&url)
                 .send()
                 .await
-                .context("Failed to send GitHub search request")?;
-            let search_response: GithubSearchResponse = Self::ensure_success(response)?
-                .json()
-                .await
-                .context("Failed to parse GitHub search response")?;
+                .map_err(|error| Self::request_error(error, "search", &self.limits))?;
+            let body = Self::read_bounded_response(
+                Self::ensure_success(response)?,
+                "search",
+                self.limits.max_search_response_bytes,
+            )
+            .await?;
+            let search_response: GithubSearchResponse =
+                serde_json::from_slice(&body).context("Failed to parse GitHub search response")?;
 
             let fetched = search_response.items.len();
             items.extend(search_response.items);
@@ -205,12 +326,16 @@ impl GithubCrawler {
             .header(reqwest::header::ACCEPT, "application/vnd.github.v3.raw")
             .send()
             .await
-            .context("Failed to download content")?;
+            .map_err(|error| Self::request_error(error, "content", &self.limits))?;
 
-        let content = Self::ensure_success(response)?
-            .text()
-            .await
-            .context("Failed to get response text")?;
+        let bytes = Self::read_bounded_response(
+            Self::ensure_success(response)?,
+            "content",
+            self.limits.max_content_response_bytes,
+        )
+        .await?;
+        let content =
+            String::from_utf8(bytes).context("GitHub content response was not valid UTF-8")?;
         Ok(content)
     }
 }
