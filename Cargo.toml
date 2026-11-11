@@ -21,34 +21,60 @@ rust-version = "1.98.1"
 description = "A collection of Rust-based tools for processing Markdown files, particularly for books and documentation projects."
 
 [workspace.dependencies]
+# Format diagnostic reports, including highlighting snippets of text
 annotate-snippets = "0.12.17"
+# Flexible concrete Error type built on std::error::Error
 anyhow = "1.0.104"
+# Provides statistical microbenchmarking, output formatting, and benchmark comparison tools.
 divan = "0.1.21"
+# A simple to use, efficient, and full-featured Command Line Argument Parser
 clap = { version = "4.6.7", features = ["derive"] }
+# A bridge between std::io::Write and std::fmt::Write.
 fmt2io = "1.0.0"
+# An implementation of futures and streams featuring zero allocations, composability, and iterator-like interfaces.
 futures = "0.3.34"
+# Common utilities and extension traits for the futures-rs library.
 futures-util = "0.3.34"
+# HTTP date parsing and formatting
 httpdate = "1.0.3"
+# Cross-platform Rust API for memory-mapped file IO
 memmap2 = "0.9.12"
+# Stores multiple values for each key in a map-like collection.
 multimap = "0.10.1"
+# Markdown badge and link templates shared by book_tool and rust_rate.
 book_templates = { path = "./book_templates" }
+# A collection of Rust-based tools for processing Markdown files, particularly for books and documentation projects.
 parse_lib = { path = "./parse_lib" }
+# Hypothesis-like property-based testing and shrinking.
 proptest = "1.12.0"
+# Either acts as rayon or creates a single-threaded facade
 rayon = "1.12.0"
+# A lightweight regex engine that optimizes for binary size and compilation time.
 regex = "1.13.1"
 # Keep Rustls, HTTP/2, JSON, and charset support without macOS system-proxy's conflicting core-foundation version.
+# higher level HTTP client library
 reqwest = { version = "0.13.5", default-features = false, features = ["charset", "http2", "json", "rustls", "stream"] }
+# A generic serialization/deserialization framework
 serde = { version = "1.0.229", features = ["derive"] }
+# A JSON serialization file format
 serde_json = "1.0.154"
+# A library for managing temporary files and directories.
 tempfile = "3.27.0"
+# An event-driven, non-blocking I/O platform for writing asynchronous I/O backed applications.
 tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros"] }
+# Derives standard Error implementations for custom Rust error types.
 thiserror = "2.0.21"
+# A native Rust encoder and decoder of TOML-formatted files and streams. Provides implementations of the standard Serialize/Deserialize traits for...
 toml = "1.2.1"
 # Workspace code uses tracing events and does not need the optional attribute macros.
 tracing = { version = "0.1.44", default-features = false, features = ["std"] }
+# Utilities for implementing and composing `tracing` subscribers.
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+# URL library for Rust, based on the WHATWG URL Standard
 url = "2.5.8"
+# Recursively walk a directory.
 walkdir = "2.5.0"
+# A byte-oriented, zero-copy, parser combinators library
 winnow = "1.0.5"
 
 [workspace.lints.rust]

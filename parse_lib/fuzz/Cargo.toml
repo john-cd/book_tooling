@@ -29,5 +29,7 @@ doc = false
 bench = false
 
 [dependencies]
+# A wrapper around LLVM's libFuzzer runtime.
 libfuzzer-sys = "0.4"
+# A collection of Rust-based tools for processing Markdown files, particularly for books and documentation projects.
 parse_lib = { path = ".." }

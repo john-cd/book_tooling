@@ -16,18 +16,31 @@ rust-version.workspace = true
 description.workspace = true
 
 [dependencies]
+# Flexible concrete Error type built on std::error::Error
 anyhow.workspace = true
+# Markdown badge and link templates shared by book_tool and rust_rate.
 book_templates.workspace = true
+# A simple to use, efficient, and full-featured Command Line Argument Parser
 clap.workspace = true
+# An implementation of futures and streams featuring zero allocations, composability, and iterator-like interfaces.
 futures.workspace = true
+# A lightweight regex engine that optimizes for binary size and compilation time.
 regex.workspace = true
+# higher level HTTP client library
 reqwest.workspace = true
+# A generic serialization/deserialization framework
 serde.workspace = true
+# A JSON serialization file format
 serde_json.workspace = true
+# A library for managing temporary files and directories.
 tempfile.workspace = true
+# An event-driven, non-blocking I/O platform for writing asynchronous I/O backed applications.
 tokio.workspace = true
+# A native Rust encoder and decoder of TOML-formatted files and streams. Provides implementations of the standard Serialize/Deserialize traits for...
 toml.workspace = true
+# Application-level tracing for Rust.
 tracing.workspace = true
+# Utilities for implementing and composing `tracing` subscribers.
 tracing-subscriber.workspace = true
 
 [lints]

@@ -16,16 +16,25 @@ rust-version.workspace = true
 description.workspace = true
 
 [dependencies]
+# Format diagnostic reports, including highlighting snippets of text
 annotate-snippets.workspace = true
+# A bridge between std::io::Write and std::fmt::Write.
 fmt2io.workspace = true
+# Stores multiple values for each key in a map-like collection.
 multimap.workspace = true
+# Derives standard Error implementations for custom Rust error types.
 thiserror.workspace = true
+# URL library for Rust, based on the WHATWG URL Standard
 url.workspace = true
+# A byte-oriented, zero-copy, parser combinators library
 winnow.workspace = true
 
 [dev-dependencies]
+# Flexible concrete Error type built on std::error::Error
 anyhow.workspace = true
+# Provides statistical microbenchmarking, output formatting, and benchmark comparison tools.
 divan.workspace = true
+# Hypothesis-like property-based testing and shrinking.
 proptest.workspace = true
 
 [[bench]]

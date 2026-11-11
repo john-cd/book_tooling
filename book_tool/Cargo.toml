@@ -31,25 +31,43 @@ cli = [
 ]
 
 [dependencies]
+# Flexible concrete Error type built on std::error::Error
 anyhow = { workspace = true }
+# A simple to use, efficient, and full-featured Command Line Argument Parser
 clap = { workspace = true, features = ["derive"], optional = true }
+# HTTP date parsing and formatting
 httpdate = { workspace = true, optional = true }
+# Markdown badge and link templates shared by book_tool and rust_rate.
 book_templates = { workspace = true }
+# A collection of Rust-based tools for processing Markdown files, particularly for books and documentation projects.
 parse_lib = { workspace = true }
+# Either acts as rayon or creates a single-threaded facade
 rayon = { workspace = true, optional = true }
+# A lightweight regex engine that optimizes for binary size and compilation time.
 regex = { workspace = true }
+# higher level HTTP client library
 reqwest = { workspace = true, optional = true }
+# A generic serialization/deserialization framework
 serde = { workspace = true, features = ["derive"] }
+# A JSON serialization file format
 serde_json = { workspace = true, optional = true }
+# A library for managing temporary files and directories.
 tempfile = { workspace = true }
+# An event-driven, non-blocking I/O platform for writing asynchronous I/O backed applications.
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"], optional = true }
+# A native Rust encoder and decoder of TOML-formatted files and streams. Provides implementations of the standard Serialize/Deserialize traits for...
 toml = { workspace = true }
+# Application-level tracing for Rust.
 tracing = { workspace = true }
+# Utilities for implementing and composing `tracing` subscribers.
 tracing-subscriber = { workspace = true, features = ["env-filter"], optional = true }
+# URL library for Rust, based on the WHATWG URL Standard
 url = { workspace = true, optional = true }
+# Recursively walk a directory.
 walkdir = { workspace = true }
 
 [dev-dependencies]
+# Provides statistical microbenchmarking, output formatting, and benchmark comparison tools.
 divan = { workspace = true }
 
 [[bench]]
