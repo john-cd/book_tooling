@@ -325,10 +325,6 @@ fn test_simple_list_in_blockquote() {
 
 /// A blockquote holding a paragraph and a nested list parses into the matching element tree.
 #[test]
-#[expect(
-    clippy::excessive_nesting,
-    reason = "The assertions walk a deliberately nested blockquote, list and list item."
-)]
 fn test_nested_list_in_blockquote() {
     let input = "> A paragraph.
 >
