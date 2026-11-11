@@ -88,14 +88,15 @@ is required by `scripts/cargo-host.ps1`. Windows uses junctions and NTFS interme
 uses native cache roots and symlinks. Existing Rust How-To setup recipes also provide native
 shell setup. Do not copy platform-specific links between Windows and Linux checkouts.
 
-The existing `just cargo <subcommand> ...` runner sets absolute `CODE_TARGET_ROOT/<repo>/<slot>`
-and `CODE_BUILD_ROOT/<repo>/<slot>` paths. Direct Cargo and rust-analyzer use the checkout-local
-`target` link. The local config intentionally leaves `build-dir` unset, so direct Cargo uses the
-absolute per-workspace fallback from `CARGO_HOME/config.toml`; this avoids traversing a build link
-from a ReFS checkout to NTFS on Windows. `cargo.targetDir = null` prevents rust-analyzer from
-allocating another target tree. Inherited `CARGO_*` variables can override these settings; launch
-the editor without another checkout's output variables. Multiple independent workspaces share a
-checkout's target slot and Cargo locking.
+The existing `just cargo <subcommand> ...` runner sets absolute
+`CODE_TARGET_ROOT/<repo>/<slot>` and `CODE_BUILD_ROOT/<repo>/<slot>` paths. The local Cargo config
+names the checkout's `target` and `build` links, which point to those same per-slot roots.
+`cargo.targetDir = null` prevents rust-analyzer from allocating another target tree. On this ReFS
+checkout, a previous direct build through the ReFS-to-NTFS `build` junction failed with Windows I/O
+errors; use the Just runner or set absolute `CARGO_TARGET_DIR` and `CARGO_BUILD_BUILD_DIR` values for
+direct Cargo commands. Inherited `CARGO_*` variables can override these settings; launch the editor
+without another checkout's output variables. Multiple independent workspaces share a checkout's
+target slot and Cargo locking.
 
 Build scripts/macros are optimized because they execute during compilation. Cargo gives
 package overrides precedence over build overrides, so unspecified external build dependencies
@@ -139,10 +140,11 @@ Windows x86_64-pc-windows-msvc, develop base `a639fc4` plus `37d6ef2` (2026-11-0
 - `build-setup` created and then revalidated the checkout links at `D:/target/book_tooling/f`,
   `C:/code_build/book_tooling/f`, and `D:/sccache`. C: is NTFS and D: is ReFS. A debug check through
   the ReFS-to-NTFS `build` junction failed with Windows I/O errors; it passed when Cargo received
-  the absolute NTFS `CARGO_BUILD_BUILD_DIR`. The local config now leaves `build-dir` unset so direct
-  Cargo's host-configured absolute per-workspace fallback. A direct debug check and default dev
-  check passed after this change. An isolated setup probe passed root overrides, repeatability,
-  existing-directory refusal, and mismatched-link refusal.
+  the absolute NTFS `CARGO_BUILD_BUILD_DIR`. The local config now names the `build` link so plain
+  Cargo selects the per-slot location, but that junction path has not been revalidated after this
+  config change. Use the Just runner or absolute Cargo environment paths for reliable builds on
+  this host. An isolated setup probe passed root overrides, repeatability, existing-directory
+  refusal, and mismatched-link refusal.
 - The `just` wrapper could not start Git Bash in the managed shell, so setup and builds used the
   equivalent PowerShell setup script and explicit runner environment. Linux/macOS CI, an isolated
   cold-versus-warm rebuild comparison, and comparative linker benchmarks remain unverified. Do not
