@@ -1,16 +1,20 @@
+# Project-scoped Compose stack: book-tooling-dev.
+# Build inputs come from tracked .devcontainer/.env; from the repo root pass --env-file .devcontainer/.env.
+# Keep credentials in ignored .devcontainer/.env.local; from the repo root pass it as a second --env-file when present.
 # TODO Reviewed ??-??-2026
 
+name: book-tooling-dev
 services:
   book-tooling:
     volumes:
       - ..:/code:cached
-      - cargo-registry:/usr/local/cargo/registry
-      - cargo-git:/usr/local/cargo/git
-      - bash-history:/commandhistory
+      - book-tooling-cargo-registry:/usr/local/cargo/registry
+      - book-tooling-cargo-git:/usr/local/cargo/git
+      - book-tooling-bash-history:/commandhistory
     environment:
       HISTFILE: /commandhistory/.bash_history
 
 volumes:
-  cargo-registry:
-  cargo-git:
-  bash-history:
+  book-tooling-cargo-registry:
+  book-tooling-cargo-git:
+  book-tooling-bash-history:

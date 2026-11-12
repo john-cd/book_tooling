@@ -1,28 +1,32 @@
+# Project-scoped Compose stack: book-tooling.
+# Build inputs come from tracked .devcontainer/.env; from the repo root pass --env-file .devcontainer/.env.
+# Keep credentials in ignored .devcontainer/.env.local; from the repo root pass it as a second --env-file when present.
 # TODO Reviewed ??-??-2026
 # Docker Compose reference: https://docs.docker.com/compose/
+name: book-tooling
 services:
   book-tooling:
     build:
       context: ..
       dockerfile: .devcontainer/Dockerfile
       args:
-        RUST_IMAGE_LABEL: ${RUST_IMAGE_LABEL:?Set RUST_IMAGE_LABEL in .devcontainer/.env}
-        RUSTFMT_TOOLCHAIN: ${RUSTFMT_TOOLCHAIN:-}
-        CARGO_NEXTEST_VERSION: ${CARGO_NEXTEST_VERSION:?Set CARGO_NEXTEST_VERSION in .devcontainer/.env}
-        PREK_VERSION: ${PREK_VERSION:?Set PREK_VERSION in .devcontainer/.env}
-        DPRINT_VERSION: ${DPRINT_VERSION:?Set DPRINT_VERSION in .devcontainer/.env}
-        CARGO_DENY_VERSION: ${CARGO_DENY_VERSION:?Set CARGO_DENY_VERSION in .devcontainer/.env}
-        JUST_VERSION: ${JUST_VERSION:?Set JUST_VERSION in .devcontainer/.env}
-        SCCACHE_VERSION: ${SCCACHE_VERSION:?Set SCCACHE_VERSION in .devcontainer/.env}
+        RUST_IMAGE_LABEL: ${RUST_IMAGE_LABEL:?Set RUST_IMAGE_LABEL in .devcontainer/.env or the host environment}
+        RUSTFMT_TOOLCHAIN: ${RUSTFMT_TOOLCHAIN:?Set RUSTFMT_TOOLCHAIN in .devcontainer/.env or the host environment}
+        CARGO_NEXTEST_VERSION: ${CARGO_NEXTEST_VERSION:?Set CARGO_NEXTEST_VERSION in .devcontainer/.env or the host environment}
+        PREK_VERSION: ${PREK_VERSION:?Set PREK_VERSION in .devcontainer/.env or the host environment}
+        DPRINT_VERSION: ${DPRINT_VERSION:?Set DPRINT_VERSION in .devcontainer/.env or the host environment}
+        CARGO_DENY_VERSION: ${CARGO_DENY_VERSION:?Set CARGO_DENY_VERSION in .devcontainer/.env or the host environment}
+        JUST_VERSION: ${JUST_VERSION:?Set JUST_VERSION in .devcontainer/.env or the host environment}
+        SCCACHE_VERSION: ${SCCACHE_VERSION:?Set SCCACHE_VERSION in .devcontainer/.env or the host environment}
     volumes:
       - type: bind
         source: ..
         target: /code
-      - cargo_registry:/usr/local/cargo/registry
-      - cargo_git:/usr/local/cargo/git
-      - book_tooling_cache:/var/cache/book_tooling
+      - book-tooling-cargo-registry:/usr/local/cargo/registry
+      - book-tooling-cargo-git:/usr/local/cargo/git
+      - book-tooling-cache:/var/cache/book_tooling
     environment:
-      RUSTFMT_TOOLCHAIN: ${RUSTFMT_TOOLCHAIN:-}
+      RUSTFMT_TOOLCHAIN: ${RUSTFMT_TOOLCHAIN:?Set RUSTFMT_TOOLCHAIN in .devcontainer/.env or the host environment}
       BOOK_TOOLING_CACHE_HOME: /var/cache/book_tooling
       CODE_TARGET_ROOT: /var/cache/book_tooling/target
       CODE_BUILD_ROOT: /var/cache/book_tooling/build
@@ -38,6 +42,6 @@ services:
     command: sleep infinity
 
 volumes:
-  cargo_registry:
-  cargo_git:
-  book_tooling_cache:
+  book-tooling-cargo-registry:
+  book-tooling-cargo-git:
+  book-tooling-cache:

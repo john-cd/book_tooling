@@ -96,3 +96,8 @@ Temporary Items
 **/.sccache/
 
 # Local credentials and environment files
+
+# Shared non-secret Docker configuration is tracked; local credentials are ignored.
+!.devcontainer/
+!.devcontainer/.env
+.devcontainer/.env.local
