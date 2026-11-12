@@ -19,20 +19,19 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 ARG RUSTFMT_TOOLCHAIN
-COPY rustfmt-toolchain.toml /usr/local/share/rustfmt-toolchain.toml
 RUN rustup component add clippy rustfmt \
-    && RUSTFMT_TOOLCHAIN="${RUSTFMT_TOOLCHAIN:-$(sed -n 's/^channel *= *"\([^"]*\)".*/\1/p' /usr/local/share/rustfmt-toolchain.toml)}" \
     && rustup toolchain install "$RUSTFMT_TOOLCHAIN" --profile minimal --component rustfmt
 ENV RUSTFMT_TOOLCHAIN=${RUSTFMT_TOOLCHAIN}
 
 ARG CARGO_NEXTEST_VERSION
+ARG CARGO_BINSTALL_VERSION
 ARG PREK_VERSION
 ARG DPRINT_VERSION
 ARG CARGO_DENY_VERSION
 ARG JUST_VERSION
 ARG SCCACHE_VERSION
 
-RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash \
+RUN cargo install --locked --version "${CARGO_BINSTALL_VERSION}" cargo-binstall \
     && cargo binstall --no-confirm --secure --version "${CARGO_NEXTEST_VERSION}" cargo-nextest \
     && cargo binstall --no-confirm --secure --version "${PREK_VERSION}" prek \
     && cargo binstall --no-confirm --secure --version "${DPRINT_VERSION}" dprint \

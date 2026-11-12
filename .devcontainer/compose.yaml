@@ -12,6 +12,7 @@ services:
       args:
         RUST_IMAGE_LABEL: ${RUST_IMAGE_LABEL:?Set RUST_IMAGE_LABEL in .devcontainer/.env or the host environment}
         RUSTFMT_TOOLCHAIN: ${RUSTFMT_TOOLCHAIN:?Set RUSTFMT_TOOLCHAIN in .devcontainer/.env or the host environment}
+        CARGO_BINSTALL_VERSION: ${CARGO_BINSTALL_VERSION:?Set CARGO_BINSTALL_VERSION in .devcontainer/.env or the host environment}
         CARGO_NEXTEST_VERSION: ${CARGO_NEXTEST_VERSION:?Set CARGO_NEXTEST_VERSION in .devcontainer/.env or the host environment}
         PREK_VERSION: ${PREK_VERSION:?Set PREK_VERSION in .devcontainer/.env or the host environment}
         DPRINT_VERSION: ${DPRINT_VERSION:?Set DPRINT_VERSION in .devcontainer/.env or the host environment}
