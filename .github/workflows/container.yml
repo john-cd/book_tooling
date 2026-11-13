@@ -23,10 +23,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker compose --env-file .devcontainer/.env -f .devcontainer/compose.yaml -f .devcontainer/compose.override.yaml build
+          docker compose --env-file .devcontainer/.env -f .devcontainer/compose.yaml build
       - name: Check pinned tools
         shell: bash
         run: |
           set -euo pipefail
-          docker compose --env-file .devcontainer/.env -f .devcontainer/compose.yaml -f .devcontainer/compose.override.yaml run --rm --no-deps book-tooling \
+          docker compose --env-file .devcontainer/.env -f .devcontainer/compose.yaml run --rm --no-deps book-tooling \
             bash -c 'rustc --version && cargo --version && cargo nextest --version && sccache --version && just --version && dprint --version && prek --version && cargo deny --version'
