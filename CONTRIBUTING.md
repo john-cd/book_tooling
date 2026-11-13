@@ -17,7 +17,7 @@ paths. Run `just build-env` to see the effective values for a checkout. Set `COD
 `CODE_PACKAGES_ROOT`, `CODE_TOOLS_ROOT`, and `CODE_TEMP_ROOT` for repository, package, tool, and temp
 roots. Use `CODE_TARGET_ROOT`, `CODE_BUILD_ROOT`, and `CODE_SCCACHE_ROOT` for Cargo outputs and the
 compiler cache. `CARGO_TARGET_DIR` and `CARGO_BUILD_BUILD_DIR` override direct Cargo output paths;
-`DPRINT_CACHE_DIR` selects the dprint plugin cache. On Windows, intermediate builds must use NTFS.
+`DPRINT_CACHE_DIR` selects the dprint plugin cache. On Windows, intermediate builds can use NTFS or ReFS with Rust 1.100.0 or newer.
 Run `just configure-cargo-host` and `just build-setup` as described in [README](README.md). This
 repository has no tracked Python project, so no Ruff or Python dependency-sync hook is configured.
 
