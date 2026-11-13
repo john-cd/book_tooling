@@ -22,6 +22,7 @@ root := replace(source_directory(), "\\", "/")
 rustfmt_toolchain_default := trim(replace_regex(read(join(root, "rustfmt-toolchain.toml")), '(?s).*channel\s*=\s*"([^"]+)".*', "$1"))
 rustfmt_toolchain_override := env("RUSTFMT_TOOLCHAIN", "")
 rustfmt_toolchain := if rustfmt_toolchain_override == "" { rustfmt_toolchain_default } else { rustfmt_toolchain_override }
+export RUSTFMT_TOOLCHAIN := rustfmt_toolchain
 checkout_name := file_name(root)
 worktree_name := if file_name(parent_directory(root)) == ".worktrees" { checkout_name } else { "main" }
 windows_cache_home := env("LOCALAPPDATA", join(home_directory(), ".cache"))
@@ -79,12 +80,15 @@ _default:
 
 # Check Rust formatting with the pinned formatter toolchain.
 @format-check:
+    echo "Checking Rust formatting with {{ rustfmt_toolchain }}"
     cargo +{{ rustfmt_toolchain }} fmt --all -- --check
+    echo "Rust formatting check complete"
 
 # Format all packages and their local path-based dependencies
 @format-all:
     echo "Formatting all packages and their local path-based dependencies in $(pwd)"
     cargo +{{ rustfmt_toolchain }} fmt --all
+    echo "Rust formatting complete"
 
 # Check all code (all packages, all features)
 @check:
@@ -195,7 +199,9 @@ prep: format-all lint check-all
 # Forward Cargo arguments with this checkout environment and central output paths.
 [positional-arguments]
 cargo +args:
+    @printf '[cargo] start: %s\n' "$*"
     cargo "$@"
+    @printf '[cargo] done: %s\n' "$*"
 
 # Print the active worktree paths and compiler-cache configuration.
 build-env:
