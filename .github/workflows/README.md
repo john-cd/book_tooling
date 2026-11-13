@@ -11,7 +11,7 @@
 | `measure.yml`   | manual                         | Times cold and warm `ci` and `release` builds and reports output sizes on Linux, macOS and Windows, without a compiler cache; never a gate.                                  |
 
 Shared building block: [`../actions/setup-rust`](../actions/setup-rust/action.yml) installs the pinned stable
-toolchain (1.99.1) and the nightly from [`../../rustfmt-toolchain.toml`](../../rustfmt-toolchain), used only for `rustfmt`,
+toolchain and the nightly from [`../../rustfmt-toolchain.toml`](../../rustfmt-toolchain), used only for `rustfmt`,
 then restores the Cargo cache. Set `RUSTFMT_TOOLCHAIN` to override the pin for local commands and container builds.
 Related Rust CI workflows are maintained in `mdbook-utils` and `rust_howto`; keep toolchain,
 cache, and validation changes aligned with each repository's configuration.

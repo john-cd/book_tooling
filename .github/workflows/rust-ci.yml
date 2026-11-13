@@ -50,7 +50,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Rust (1.99.1 + pinned nightly rustfmt)
+      - name: Set up Rust (pinned stable + pinned nightly rustfmt)
         id: setup-rust
         uses: $/.github/actions/setup-rust
 
@@ -102,7 +102,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Rust (1.99.1 + llvm-tools)
+      - name: Set up Rust (pinned stable + llvm-tools)
         id: setup-rust
         uses: $/.github/actions/setup-rust
         with:
