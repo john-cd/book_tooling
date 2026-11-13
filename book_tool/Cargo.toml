@@ -22,7 +22,6 @@ cli = [
     "directives",
     "dep:clap",
     "dep:httpdate",
-    "dep:rayon",
     "dep:reqwest",
     "dep:serde_json",
     "dep:tokio",
@@ -41,10 +40,6 @@ httpdate = { workspace = true, optional = true }
 book_templates = { workspace = true }
 # A collection of Rust-based tools for processing Markdown files, particularly for books and documentation projects.
 parse_lib = { workspace = true }
-# Either acts as rayon or creates a single-threaded facade
-rayon = { workspace = true, optional = true }
-# A lightweight regex engine that optimizes for binary size and compilation time.
-regex = { workspace = true }
 # higher level HTTP client library
 reqwest = { workspace = true, optional = true }
 # A generic serialization/deserialization framework

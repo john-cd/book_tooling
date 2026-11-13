@@ -65,10 +65,7 @@ impl MockServer {
 
     /// Request lines received so far.
     fn requests(&self) -> Vec<String> {
-        self.requests
-            .lock()
-            .map(|lines| lines.clone())
-            .unwrap_or_default()
+        self.requests.lock().map_or_default(|lines| lines.clone())
     }
 }
 

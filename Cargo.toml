@@ -12,7 +12,6 @@ authors = ["John CD"]
 categories = ["command-line-utilities", "development-tools", "text-processing"]
 documentation = "https://docs.rs/book_tooling/"
 edition = "2024"
-homepage = "https://github.com/john-cd/book_tooling"
 keywords = ["markdown", "book", "tooling", "cli", "rust"]
 license = "MIT OR Apache-2.0"
 publish = false
@@ -33,12 +32,8 @@ clap = { version = "4.6.7", features = ["derive"] }
 fmt2io = "1.0.0"
 # An implementation of futures and streams featuring zero allocations, composability, and iterator-like interfaces.
 futures = "0.3.34"
-# Common utilities and extension traits for the futures-rs library.
-futures-util = "0.3.34"
 # HTTP date parsing and formatting
 httpdate = "1.0.3"
-# Cross-platform Rust API for memory-mapped file IO
-memmap2 = "0.9.12"
 # Stores multiple values for each key in a map-like collection.
 multimap = "0.10.1"
 # Markdown badge and link templates shared by book_tool and rust_rate.
@@ -47,8 +42,6 @@ book_templates = { path = "./book_templates" }
 parse_lib = { path = "./parse_lib" }
 # Hypothesis-like property-based testing and shrinking.
 proptest = "1.12.0"
-# Either acts as rayon or creates a single-threaded facade
-rayon = "1.12.0"
 # A lightweight regex engine that optimizes for binary size and compilation time.
 regex = "1.13.1"
 # Keep Rustls, HTTP/2, JSON, and charset support without macOS system-proxy's conflicting core-foundation version.
