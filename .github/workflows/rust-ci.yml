@@ -62,8 +62,8 @@ jobs:
         uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
         with:
           tool: |
-            cargo-nextest@0.9.148
-            prek@0.5.7
+            cargo-nextest@0.9.151
+            prek@0.5.9
             dprint@0.64.3
             cargo-deny@0.20.2
             just@1.59.0

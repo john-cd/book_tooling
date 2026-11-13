@@ -1,6 +1,6 @@
 # TODO Reviewed ??-??-2026
 
-nextest-version = "0.9.148"
+nextest-version = "0.9.151"
 
 [profile.default]
 fail-fast = true

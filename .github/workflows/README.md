@@ -16,7 +16,7 @@ then restores the Cargo cache. Set `RUSTFMT_TOOLCHAIN` to override the pin for l
 Related Rust CI workflows are maintained in `mdbook-utils` and `rust_howto`; keep toolchain,
 cache, and validation changes aligned with each repository's configuration.
 
-The setup action pins sccache 0.19.0. CI pins cargo-nextest 0.9.148, prek 0.5.7, dprint 0.64.3, cargo-deny 0.20.2, and Just 1.59.0; keep these aligned with `.devcontainer/.env` and `CONTRIBUTING.md`. `.config/nextest.toml` also pins the nextest version.
+The setup action pins sccache 0.19.0. CI pins cargo-nextest 0.9.151, prek 0.5.9, dprint 0.64.3, cargo-deny 0.20.2, and Just 1.59.0; keep these aligned with `.devcontainer/.env` and `CONTRIBUTING.md`. `.config/nextest.toml` also pins the nextest version.
 
 ## Conventions
 
