@@ -6,6 +6,10 @@
 name: book-tooling
 services:
   book-tooling:
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
     build:
       context: ..
       dockerfile: .devcontainer/Dockerfile
