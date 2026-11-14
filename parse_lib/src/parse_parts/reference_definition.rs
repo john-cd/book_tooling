@@ -15,11 +15,10 @@ use super::link_label::parse_link_label;
 use crate::ast::Element;
 use crate::ast::ReferenceDefinitionData;
 
-/// Parses a complete link reference definition.
+/// Consumes a Markdown reference definition and returns the label, destination, and optional title.
 ///
 /// # Errors
-///
-/// Returns a backtrack error if the input does not begin with a link reference definition.
+/// Backtracks if the input does not start with a valid definition.
 pub fn parse_link_reference_definition<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     let (label, _, _, dest, ws2, title, _) = seq!(
         parse_link_label,
@@ -45,6 +44,7 @@ pub fn parse_link_reference_definition<'s>(input: &mut &'s str) -> ModalResult<E
     }))
 }
 
+/// Tests for reference definitions and continuation syntax.
 #[cfg(test)]
 mod tests {
     use super::*;

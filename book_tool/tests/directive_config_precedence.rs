@@ -1,5 +1,4 @@
 //! Precedence of directive configuration sources: `--config`, `./config.toml`, then defaults.
-//!
 //! The `directives` subcommand has no per-directive override flags; the configuration file is the
 //! only override, and an explicit `--config` always wins over the working directory's file.
 //!

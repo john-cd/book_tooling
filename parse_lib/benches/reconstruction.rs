@@ -1,6 +1,5 @@
 //! Benchmarks of AST traversal and Markdown reconstruction: `MarkdownRenderer` and the pretty
 //! printer behind `Document`'s `Display`.
-//!
 //! Run with `cargo bench -p parse_lib --bench reconstruction`.
 //!
 //! TODO Reviewed ??-??-2026.
@@ -56,7 +55,7 @@ fn display(bencher: Bencher<'_, '_>, copies: usize) {
     });
 }
 
-/// Runs the benchmarks.
+/// Starts the Divan runner for the reconstruction benchmarks.
 fn main() {
     divan::main();
 }

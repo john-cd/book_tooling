@@ -86,10 +86,15 @@ impl Config {
     }
 }
 
+/// Tests for configuration loading, defaults, and diagnostics.
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// Persists the config produced by the conf workflow so later operations can retrieve it.
+    ///
+    /// # Panics
+    /// Panics if the fixture directory or configuration file cannot be created.
     fn write_config(contents: &str) -> (tempfile::TempDir, std::path::PathBuf) {
         let dir = tempfile::tempdir().expect("temp dir");
         let path = dir.path().join("config.toml");
@@ -97,12 +102,14 @@ mod tests {
         (dir, path)
     }
 
+    /// Checks that an empty configuration enables the default workflow.
     #[test]
     fn empty_file_yields_defaults() {
         let (_dir, path) = write_config("");
         assert_eq!(Config::from_file(&path).expect("loads"), Config::default());
     }
 
+    /// Checks that a partial configuration preserves defaults for unspecified fields.
     #[test]
     fn partial_file_fills_missing_fields_from_defaults() {
         let (_dir, path) = write_config(
@@ -118,6 +125,7 @@ mod tests {
         );
     }
 
+    /// Checks that unknown TOML keys do not prevent configuration loading.
     #[test]
     fn unrecognized_keys_are_ignored() {
         let (_dir, path) = write_config("not-a-real-key = 1\nprocess-wikilinks = false\n");
@@ -125,6 +133,7 @@ mod tests {
         assert!(!config.process_wikilinks);
     }
 
+    /// Checks that malformed TOML errors identify the configuration file.
     #[test]
     fn malformed_toml_reports_path() {
         let (_dir, path) = write_config("process-wikilinks = [unclosed\n");
@@ -135,12 +144,14 @@ mod tests {
         );
     }
 
+    /// Checks that configuration rejects a value of the wrong TOML type.
     #[test]
     fn wrong_value_type_is_an_error() {
         let (_dir, path) = write_config("process-wikilinks = \"yes\"\n");
         Config::from_file(&path).expect_err("string is not a bool");
     }
 
+    /// Checks that loading a missing configuration reports the read failure.
     #[test]
     fn missing_file_reports_read_failure() {
         let dir = tempfile::tempdir().expect("temp dir");
@@ -151,6 +162,7 @@ mod tests {
         );
     }
 
+    /// Checks that the configuration survives a TOML serialization round trip.
     #[test]
     fn serialization_round_trips() {
         let config = Config::default();

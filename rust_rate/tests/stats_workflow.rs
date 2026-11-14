@@ -37,7 +37,11 @@ struct MockGithub {
 }
 
 impl MockGithub {
-    /// Starts a server on an ephemeral port; `route` maps `(base, target)` to a reply.
+    /// Starts an HTTP server on an ephemeral loopback port. The `route` callback receives the
+    /// request target and server base URL and supplies the reply.
+    ///
+    /// # Panics
+    /// Panics if the listener cannot bind or its address cannot be read.
     fn start(route: impl Fn(&str, &str) -> Reply + Send + Sync + 'static) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind mock server");
         let base = format!("http://{}", listener.local_addr().expect("local address"));
@@ -59,12 +63,14 @@ impl MockGithub {
         Self { base, requests }
     }
 
-    /// Returns the request targets seen so far.
+    /// Returns the recorded request targets in arrival order.
+    ///
+    /// # Panics
+    /// Panics if the request log lock is poisoned.
     fn seen(&self) -> Vec<String> {
         self.requests.lock().expect("request log").clone()
     }
 }
-
 /// Reads one request from `stream`, records its target, and writes the routed reply.
 fn serve(
     mut stream: TcpStream,
@@ -137,7 +143,6 @@ fn run_stats(base: &str, extra: &[&str]) -> Output {
         .output()
         .expect("run rust_rate")
 }
-
 /// Routes the happy-path scenario: two manifests and one Rust source.
 fn happy_route(base: &str, target: &str) -> Reply {
     if target.starts_with("/search/code") && target.contains("extension:rs") {

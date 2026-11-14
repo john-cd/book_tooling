@@ -1,4 +1,6 @@
 //! Unit tests for this module.
+//!
+//! TODO Reviewed ??-??-2026.
 
 use super::*;
 use crate::ast::DirectiveData;
@@ -26,7 +28,6 @@ fn count_tables(document: &crate::Document<'_>) -> usize {
         .filter(|element| matches!(element, Element::Table(_)))
         .count()
 }
-
 /// Concatenates the plain-text children of `elements`.
 fn plain_text(elements: &[Element<'_>]) -> String {
     let mut combined = String::new();

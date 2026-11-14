@@ -1,5 +1,4 @@
 //! Process crate block directives, for example `{{#crate crt}}`.
-//!
 //! Crate blocks combine multiple crate and categories badges.
 //!
 //! TODO Reviewed ??-??-2026.
@@ -11,7 +10,8 @@ use crate::common::render_badge;
 use crate::common::render_badge_with_text;
 use crate::common::render_badge_without_index;
 
-/// Renders a crate block based on the provided `DirectiveData`.
+/// Renders a docs.rs badge followed by category badges for a crate block. Other directive variants
+/// produce an empty string.
 pub(super) fn render_crate_block(directive: &DirectiveData<'_>) -> String {
     if let DirectiveData::CrateBlock {
         crate_name,
@@ -30,8 +30,8 @@ pub(super) fn render_crate_block(directive: &DirectiveData<'_>) -> String {
     }
 }
 
-/// Renders a badge set: `docs.rs`, `crates.io`, repository and `lib.rs` badges sharing one
-/// index entry, followed by the category badges.
+/// Renders the docs.rs, crates.io, repository, and lib.rs badges for a crate. The crate gets at
+/// most one index entry, then category badges follow in argument order.
 pub(super) fn render_badge_set(directive: &DirectiveData<'_>) -> String {
     let DirectiveData::BadgeSet {
         crate_name,
@@ -65,7 +65,8 @@ pub(super) fn render_badge_set(directive: &DirectiveData<'_>) -> String {
     parts.join(" ")
 }
 
-/// Renders a `{{#categories ...}}` directive as a space-separated list of category badges.
+/// Renders category badges in argument order and returns an empty string for other directive
+/// variants.
 pub(super) fn render_category_block(directive: &DirectiveData<'_>) -> String {
     if let DirectiveData::CategoryBlock { categories } = directive {
         categories
@@ -90,14 +91,17 @@ fn render_category_badge(category: &str) -> String {
     }
 }
 
+/// Tests for crate and category badge rendering.
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// Provides a link directive to exercise mismatched renderer inputs.
     fn non_block() -> DirectiveData<'static> {
         DirectiveData::ExampleBlock { name: "x" }
     }
 
+    /// Checks that a crate block with no categories renders a single docs.rs badge.
     #[test]
     fn crate_block_without_categories_is_one_docs_badge() {
         let out = render_crate_block(&DirectiveData::CrateBlock {
@@ -107,6 +111,7 @@ mod tests {
         assert_eq!(out, render_badge(DestinationKind::Docs, "serde"));
     }
 
+    /// Checks that category badges follow the crate badge in source order.
     #[test]
     fn crate_block_appends_category_badges_in_order() {
         let out = render_crate_block(&DirectiveData::CrateBlock {
@@ -118,6 +123,7 @@ mod tests {
         assert!(first < second);
     }
 
+    /// Checks that the block renderers return empty output for a link directive.
     #[test]
     fn mismatched_directives_render_empty() {
         assert_eq!(render_crate_block(&non_block()), "");
@@ -125,12 +131,14 @@ mod tests {
         assert_eq!(render_category_block(&non_block()), "");
     }
 
+    /// Checks that an empty category list emits no badge markup.
     #[test]
     fn empty_category_list_renders_empty() {
         let out = render_category_block(&DirectiveData::CategoryBlock { categories: vec![] });
         assert_eq!(out, "");
     }
 
+    /// Checks how bare slugs, custom titles, and empty titles affect category badges.
     #[test]
     fn category_title_forms() {
         let plain = render_category_badge("filesystem");
@@ -147,6 +155,7 @@ mod tests {
         assert!(!no_index.contains("{{hi:"), "{no_index}");
     }
 
+    /// Checks that adjacent category badges are separated by spaces.
     #[test]
     fn category_block_joins_badges_with_spaces() {
         let out = render_category_block(&DirectiveData::CategoryBlock {
@@ -162,6 +171,7 @@ mod tests {
         );
     }
 
+    /// Checks that the badge-set flag controls whether the crate gets an index entry.
     #[test]
     fn badge_set_index_flag_controls_crate_index_entry() {
         let with = render_badge_set(&DirectiveData::BadgeSet {

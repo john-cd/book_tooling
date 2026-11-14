@@ -54,8 +54,8 @@ impl Scope {
     }
 }
 
-/// Normalizes a path to a string usable as a map key; lowercased on Windows, where paths are
-/// case-insensitive.
+/// Builds a deduplication key from a canonical path, normalizing separators and folding case on
+/// Windows.
 fn path_identity(path: &Path) -> String {
     let identity = path.to_string_lossy().replace('\\', "/");
     #[cfg(windows)]
@@ -68,8 +68,12 @@ fn path_identity(path: &Path) -> String {
     }
 }
 
-/// Returns the files under `root` that `scope` includes and that are not already in `seen`, in
-/// depth-first file-name order.
+/// Returns files under `root` in depth-first file-name order. Applies the extension and name
+/// filters in `scope` and records canonical path keys in `seen` to skip files from overlapping
+/// roots.
+///
+/// # Errors
+/// Returns an error if traversal or canonicalization fails.
 fn collect_files(root: &Path, scope: &Scope, seen: &mut HashSet<String>) -> Result<Vec<PathBuf>> {
     let mut files = Vec::new();
     for entry in WalkDir::new(root).sort_by_file_name() {
@@ -200,6 +204,7 @@ where
     Ok(())
 }
 
+/// Tests for file selection, traversal order, and overlapping roots.
 #[cfg(test)]
 mod tests {
     use tempfile::tempdir;

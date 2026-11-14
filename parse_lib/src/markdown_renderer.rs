@@ -165,7 +165,8 @@ impl<F> MarkdownRenderer<F> {
         Some(start..end)
     }
 
-    /// Returns the byte range of the whole inline link in the source.
+    /// Recovers the full byte range of a source-backed inline link. Returns `None` if the source
+    /// cannot be located or its delimiters cannot be verified.
     fn inline_link_range(&self, data: &InlineLinkData<'_>) -> Option<Range<usize>> {
         let text_range = self.source_range(data.text)?;
         let source = self.source.as_ref()?;
@@ -190,7 +191,8 @@ impl<F> MarkdownRenderer<F> {
         Some(start..end)
     }
 
-    /// Returns the byte range of the whole autolink in the source.
+    /// Returns the source byte range of an autolink, including enclosing angle brackets when
+    /// present. Returns `None` when the URL is unavailable in the original source.
     fn autolink_range(&self, data: &AutolinkData<'_>) -> Option<Range<usize>> {
         let url_range = self.source_range(data.url)?;
         let source = self.source.as_ref()?;
@@ -293,8 +295,8 @@ impl<'a, F> Visitor<'a> for MarkdownRenderer<F>
 where
     F: FnMut(&DirectiveData<'a>) -> String,
 {
-    /// Renders the whole document, remembering its source so resolver replacements can be applied
-    /// to it byte for byte.
+    /// Resets renderer state for `doc` and preserves unchanged source bytes when all edits can be
+    /// located.
     fn visit_document(&mut self, doc: &'a Document<'a>) {
         self.markdown.clear();
         self.source_edits.clear();
@@ -612,6 +614,7 @@ where
     }
 }
 
+/// Tests for Markdown rendering and source-preserving replacements.
 #[cfg(test)]
 mod tests {
     use super::*;

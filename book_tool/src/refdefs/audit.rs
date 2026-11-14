@@ -97,14 +97,18 @@ pub fn audit(
     Ok(())
 }
 
+/// Tests for audit scopes, protected definitions, and deletion safeguards.
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// Reads the generated audit report as JSON.
+    ///
+    /// # Errors
+    /// Propagates filesystem, UTF-8 decoding, and JSON parsing errors.
     fn read_report(path: &Path) -> Result<serde_json::Value> {
         Ok(serde_json::from_str(&std::fs::read_to_string(path)?)?)
     }
-
     /// A definition file reached through a chain of includes is attributed to the root chapter.
     #[test]
     fn provenance_follows_chained_includes() -> Result<()> {
@@ -188,6 +192,7 @@ mod tests {
         Ok(())
     }
 
+    /// Checks that an audit reports a configured protected file that does not exist.
     #[test]
     fn missing_protected_file_is_an_error() -> Result<()> {
         let dir = tempfile::tempdir()?;

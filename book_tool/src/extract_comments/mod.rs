@@ -80,10 +80,12 @@ pub fn execute(directories: &[PathBuf], output: &Path, scope: &Scope) -> Result<
     Ok(())
 }
 
+/// Tests for comment extraction and output file handling.
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// Checks that the output groups comments by source file and replaces existing content.
     #[test]
     fn writes_comments_grouped_by_file_and_overwrites_output() -> Result<()> {
         let dir = tempfile::tempdir()?;
@@ -107,6 +109,7 @@ mod tests {
         Ok(())
     }
 
+    /// Checks that a scan with no comments creates an empty output file.
     #[test]
     fn no_comments_yields_an_empty_output_file() -> Result<()> {
         let dir = tempfile::tempdir()?;
@@ -117,6 +120,7 @@ mod tests {
         Ok(())
     }
 
+    /// Checks that comment extraction reports a missing source directory.
     #[test]
     fn missing_input_directory_is_an_error() {
         let dir = tempfile::tempdir().expect("temp dir");

@@ -21,11 +21,10 @@ use crate::DirectiveData;
 use crate::ast::DestinationKind;
 use crate::ast::Element;
 
-/// Parses one custom directive and wraps it as [`Element::CustomDirective`].
+/// Consumes a custom `{{ ... }}` directive and wraps its arguments in a Markdown AST node.
 ///
 /// # Errors
-///
-/// Returns a backtrack error if the input does not begin with a custom directive.
+/// Backtracks when the input does not start with a supported directive and valid arguments.
 pub fn parse_directive_element<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     alt((
         parse_link_directive,
@@ -56,9 +55,11 @@ fn parse_destination_kind(input: &mut &str) -> ModalResult<DestinationKind> {
     ))
     .parse_next(input)
 }
-
-/// Parses the non-empty name after the destination keyword, introduced by `:` or whitespace and
-/// ending at `}}`.
+/// Consumes the colon or whitespace after a destination keyword and returns the trimmed name before
+/// `}}`.
+///
+/// # Errors
+/// Backtracks if the separator, closing delimiter, or a nonblank name is missing.
 fn parse_link_or_badge_name<'a>(input: &mut &'a str) -> ModalResult<&'a str> {
     alt((
         preceded(':', preceded(space0, take_until(1.., "}}"))),
@@ -68,7 +69,6 @@ fn parse_link_or_badge_name<'a>(input: &mut &'a str) -> ModalResult<&'a str> {
     .map(str::trim)
     .parse_next(input)
 }
-
 /// Parses a link directive such as `{{web example.com}}`.
 fn parse_link_directive<'a>(input: &mut &'a str) -> ModalResult<DirectiveData<'a>> {
     delimited(
@@ -127,7 +127,11 @@ fn parse_crate_block_directive<'a>(input: &mut &'a str) -> ModalResult<Directive
     .parse_next(input)
 }
 
-/// Parses a `{{#badges ...}}` block directive.
+/// Parses `{{#badges ...}}` into a crate name, an index-entry flag, and optional category
+/// arguments. A trailing `=` on the crate name suppresses its index entry.
+///
+/// # Errors
+/// Backtracks for an empty or malformed crate argument or a missing closing delimiter.
 fn parse_badge_set_directive<'a>(input: &mut &'a str) -> ModalResult<DirectiveData<'a>> {
     // {{#badges: crt cat1 cat-2="Title with spaces"}}
     delimited(
@@ -165,7 +169,8 @@ fn parse_category_block_directive<'a>(input: &mut &'a str) -> ModalResult<Direct
     .parse_next(input)
 }
 
-/// Splits category arguments on whitespace and commas, keeping double-quoted text together.
+/// Splits comma- and whitespace-separated category arguments into borrowed slices, keeping
+/// separators inside quoted titles.
 fn split_category_arguments(input: &str) -> Vec<&str> {
     let mut categories = Vec::new();
     let mut category_start = None;
@@ -198,7 +203,7 @@ fn split_category_arguments(input: &str) -> Vec<&str> {
     categories
 }
 
-/// Parses a `{{#example ...}}` block directive.
+/// Consumes `{{#example ...}}` and returns the trimmed example name without resolving it.
 fn parse_example_block_directive<'a>(input: &mut &'a str) -> ModalResult<DirectiveData<'a>> {
     // Nested directives: {{#example {{#include ...}}}}
     // Actually, commonmark-style directives usually aren't that complex but let's allow
@@ -209,6 +214,7 @@ fn parse_example_block_directive<'a>(input: &mut &'a str) -> ModalResult<Directi
         .parse_next(input)
 }
 
+/// Tests for recognition and round-tripping of custom directives.
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -289,7 +295,7 @@ mod tests {
         assert!(input.is_empty());
     }
 
-    /// Verifies category destinations require a name and preserve punctuation and URL escapes.
+    /// Checks that category directives keep percent-encoded names and require a nonblank payload.
     #[test]
     fn category_links_and_badges_parse_encoded_names_and_reject_empty_names() {
         assert_eq!(
@@ -315,7 +321,7 @@ mod tests {
         parse_directive_element(&mut invalid_destination).expect_err("input should be rejected");
     }
 
-    /// Verifies every directive variant has canonical double-brace formatting that reparses.
+    /// Checks that the display form of every custom directive parses back to the same variant.
     #[test]
     fn every_directive_variant_round_trips_through_display() {
         let sources = [
@@ -345,7 +351,7 @@ mod tests {
         }
     }
 
-    /// Verifies empty directive payloads and native helpers are not parsed as custom directives.
+    /// Checks that empty directives and native mdBook helpers are outside the custom grammar.
     #[test]
     fn empty_payloads_and_native_helpers_are_not_custom_directives() {
         for source in [

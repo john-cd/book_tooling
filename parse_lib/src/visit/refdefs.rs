@@ -42,7 +42,7 @@ impl RefDefManager<'_> {
         }
     }
 
-    /// Return labels used more than once.
+    /// Returns the sorted, case-sensitive labels that occur more than once.
     #[must_use]
     pub fn dupe_labels(&self) -> Vec<&str> {
         // Could use `itertools` as well.
@@ -53,7 +53,7 @@ impl RefDefManager<'_> {
         labels
     }
 
-    /// Return urls used more than once.
+    /// Returns the sorted destination strings that occur more than once.
     #[must_use]
     pub fn dupe_urls(&self) -> Vec<&str> {
         let mm: MultiMap<&str, &ReferenceDefinitionData<'_>> =
@@ -63,7 +63,7 @@ impl RefDefManager<'_> {
         urls
     }
 
-    /// Get a sorted, deduplicated list of reference definitions.
+    /// Returns a sorted copy of the collected definitions with duplicates removed.
     #[must_use]
     pub fn get_sorted_dedupe_refdefs(&self) -> Vec<&ReferenceDefinitionData<'_>> {
         let mut refdefs = self.refdefs.clone();
@@ -85,6 +85,7 @@ where
     vis.0
 }
 
+/// Tests for duplicate reference labels and destinations.
 #[cfg(test)]
 mod tests {
     use super::*;

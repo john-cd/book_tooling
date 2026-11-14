@@ -22,17 +22,14 @@ fn run(args: &[&str]) -> Output {
         .output()
         .expect("run book_tool")
 }
-
 /// Converts a path to UTF-8 text for use as an argument.
 fn text(path: &Path) -> &str {
     path.to_str().expect("UTF-8 temp path")
 }
-
-/// Returns stderr as text.
+/// Decodes the command's standard error using replacement characters for invalid UTF-8.
 fn stderr(output: &Output) -> String {
     String::from_utf8_lossy(&output.stderr).into_owned()
 }
-
 /// Every directory-based subcommand fails with a non-zero status for a missing directory.
 #[test]
 fn missing_directories_fail_with_a_diagnostic_naming_the_path() {

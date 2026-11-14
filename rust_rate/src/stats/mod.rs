@@ -24,7 +24,6 @@ const DEPENDENCY_TABLES: [&str; 3] = ["dependencies", "dev-dependencies", "build
 fn dependency_package_name<'a>(key: &'a str, value: &'a Value) -> &'a str {
     value.get("package").and_then(Value::as_str).unwrap_or(key)
 }
-
 /// Adds the crate names of every dependency in `table` to `names`.
 fn collect_dependency_names<'a>(table: Option<&'a Value>, names: &mut BTreeSet<&'a str>) {
     let Some(entries) = table.and_then(Value::as_table) else {
@@ -88,7 +87,8 @@ impl CrateStats {
         }
     }
 
-    /// Returns `(crate, count)` pairs ordered by count descending, then name ascending.
+    /// Returns dependency names with their counts, ordered by descending count and then ascending
+    /// name.
     #[must_use]
     pub fn ranked_usage(&self) -> Vec<(&str, usize)> {
         let mut ranked: Vec<(&str, usize)> = self
@@ -109,6 +109,7 @@ impl CrateStats {
     }
 }
 
+/// Tests for dependency counting across Cargo manifests.
 #[cfg(test)]
 mod tests {
     use super::*;

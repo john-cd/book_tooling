@@ -14,12 +14,8 @@ use crate::ast::AutolinkData;
 use crate::ast::Element;
 use crate::parse_urls::parse_naked_url;
 
-/// Parses an autolink (`<url>` or a naked URL).
-///
 /// See <https://www.w3schools.com/tags//ref_urlencode.asp>.
-///
 /// # Errors
-///
 /// Returns a backtrack error if the input does not begin with an autolink.
 pub fn parse_autolink<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     alt((
@@ -33,6 +29,7 @@ pub fn parse_autolink<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     .parse_next(input)
 }
 
+/// Tests for Markdown autolink parsing.
 #[cfg(test)]
 mod tests {
     use super::*;

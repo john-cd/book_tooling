@@ -30,8 +30,7 @@ struct MarkdownFile {
     includes: Vec<String>,
 }
 
-/// Normalizes a path to a string usable as a map key; lowercased on Windows, where paths are
-/// case-insensitive.
+/// Builds a comparison key for a file path, normalizing separators and folding case on Windows.
 pub(super) fn path_identity(path: &Path) -> String {
     let identity = path.to_string_lossy().replace('\\', "/");
     #[cfg(windows)]
@@ -44,7 +43,8 @@ pub(super) fn path_identity(path: &Path) -> String {
     }
 }
 
-/// Returns the `{{#include}}` targets in `source` that are not inside code fences or HTML comments.
+/// Returns the Markdown include paths referenced outside fenced code and HTML comments, in source
+/// order.
 fn active_markdown_includes(source: &str) -> Vec<String> {
     let mut includes = Vec::new();
     let mut fence: Option<(u8, usize)> = None;
@@ -135,12 +135,9 @@ fn active_markdown_includes(source: &str) -> Vec<String> {
 }
 
 /// Analyze reference labels separately for each Markdown file and its recursively included files.
-///
 /// Definitions are marked unused only when every containing scope parses completely. Missing
 /// includes, traversal errors and cycles return an error so callers cannot apply partial cleanup.
-///
 /// # Errors
-///
 /// Returns an error if a root cannot be read or parsed, an include is missing, or the includes form
 /// a cycle.
 #[expect(
@@ -424,6 +421,7 @@ fn collect_scope(
     Ok(())
 }
 
+/// Tests for include discovery and audit scope resolution.
 #[cfg(test)]
 mod tests {
     use super::super::ReferenceUseKind;

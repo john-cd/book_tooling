@@ -14,11 +14,10 @@ pub struct PatternAnalyzer {
 }
 
 impl PatternAnalyzer {
-    /// Builds a pattern analyzer with a small built-in library of regular expressions.
+    /// Compiles the built-in usage patterns for Serde, Tokio, and anyhow.
     ///
     /// # Errors
-    ///
-    /// Returns an error if a built-in pattern fails to compile.
+    /// Returns an error identifying any built-in regular expression that fails to compile.
     pub fn new() -> anyhow::Result<Self> {
         let mut patterns = HashMap::new();
         // Example patterns for common crates
@@ -66,6 +65,7 @@ impl PatternAnalyzer {
     }
 }
 
+/// Tests for matching Rust usage patterns.
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -76,6 +76,7 @@ mod tests {
         let analyzer = PatternAnalyzer::new().expect("create analyzer");
         let content = "
             use anyhow::Result;
+            /// Provides an entry point containing an explicit result type for the pattern fixture.
             fn main() -> Result<()> {
                 Ok(())
             }
@@ -98,7 +99,7 @@ mod tests {
         assert!(patterns.contains(&"Import of foo[bar".to_owned()));
     }
 
-    /// The serde and anyhow patterns ignore look-alike text.
+    /// Verifies serde and anyhow patterns are specific.
     #[test]
     fn test_serde_and_anyhow_patterns_are_specific() {
         let analyzer = PatternAnalyzer::new().expect("create analyzer");

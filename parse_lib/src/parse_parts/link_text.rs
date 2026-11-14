@@ -1,7 +1,5 @@
 //! Parses a link text, which is enclosed in square brackets `[]`.
-//!
 //! Simplified from spec: <https://spec.commonmark.org/0.31.2/#link-text>
-//!
 //! - A link text begins with a left bracket ([) and ends with the first right bracket (]) that is
 //!   not backslash-escaped.
 //! - Unescaped square bracket characters are allowed only if they are nested and balanced.
@@ -47,10 +45,7 @@ fn closing_bracket(text: &str) -> Option<usize> {
     None
 }
 
-/// Parses link text.
-///
 /// Example: "[my text]" -> "my text".
-///
 /// Nested balanced brackets are part of the text. The parser is iterative, so nesting depth is
 /// limited only by the input size.
 pub(crate) fn parse_link_text<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
@@ -70,6 +65,7 @@ pub(crate) fn parse_link_text<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     Ok(text)
 }
 
+/// Tests for link text and nested brackets.
 #[cfg(test)]
 mod tests {
 

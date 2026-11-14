@@ -88,9 +88,12 @@ impl TestHttpServer {
 fn book_tool_command() -> Command {
     Command::new(env!("CARGO_BIN_EXE_book_tool"))
 }
-
-/// Reads until the end of the request head; returns false if the peer sent no complete request.
-/// Answers one accepted connection with the next queued response.
+/// Sends the next queued response after reading a request from `stream`. Uses an empty success
+/// response when the queue is exhausted, and leaves the queue unchanged for connections that close
+/// without a request.
+///
+/// # Panics
+/// Panics if socket options cannot be set or the response queue lock is poisoned.
 fn serve_connection(stream: &mut TcpStream, queue: &Mutex<VecDeque<String>>) {
     // The accepted socket may inherit the listener's nonblocking mode.
     stream.set_nonblocking(false).expect("set stream blocking");
@@ -109,6 +112,8 @@ fn serve_connection(stream: &mut TcpStream, queue: &Mutex<VecDeque<String>>) {
     }
 }
 
+/// Reads from `stream` until the blank line that ends the HTTP headers. Returns `false` if a read
+/// fails or the peer closes first.
 fn read_request_head(stream: &mut TcpStream) -> bool {
     let mut received = Vec::new();
     let mut buffer = [0_u8; 1024];
@@ -121,19 +126,21 @@ fn read_request_head(stream: &mut TcpStream) -> bool {
     true
 }
 
-/// Writes the configured response, then closes the connection gracefully so the client sees the
-/// whole response rather than a reset.
+/// Writes the complete response, flushes it, and shuts down the socket's write half so the client
+/// can read through EOF.
+///
+/// # Errors
+/// Propagates errors from writing, flushing, or shutting down the stream.
 fn respond(stream: &mut TcpStream, response: &str) -> std::io::Result<()> {
     stream.write_all(response.as_bytes())?;
     stream.flush()?;
     stream.shutdown(std::net::Shutdown::Write)
 }
 
-/// Builds an empty HTTP 200 response that closes the connection.
+/// Builds an empty HTTP 200 response that asks the client to close the connection.
 fn ok_response() -> String {
     "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_owned()
 }
-
 /// Builds an empty response with the supplied status line and headers.
 fn status_response(status_line: &str, headers: &[&str]) -> String {
     let mut response = format!("HTTP/1.1 {status_line}\r\n");
@@ -152,7 +159,7 @@ fn retry_after_response(seconds: u64) -> String {
     )
 }
 
-/// Builds a 429 response with a nonnumeric `Retry-After` value.
+/// Builds an empty HTTP 429 response with the supplied `Retry-After` field value.
 fn invalid_retry_after_response(value: &str) -> String {
     status_response("429 Too Many Requests", &[&format!("Retry-After: {value}")])
 }
@@ -760,7 +767,7 @@ fn refdefs_audit_preserves_definitions_used_in_additional_sources() {
     );
 }
 
-/// Verifies the link-check executable resolves included references and prunes only unused labels.
+/// Exercises link checking and shared-definition cleanup against a local HTTP fixture.
 #[test]
 fn link_check_cli_checks_local_urls_and_cleans_shared_references_deterministically() {
     let server = TestHttpServer::spawn();
@@ -829,7 +836,7 @@ fn link_check_cli_checks_local_urls_and_cleans_shared_references_deterministical
     assert!(!cleaned.contains("[unused]:"));
 }
 
-/// Verifies broken local HTTP links produce a nonzero executable status without source edits.
+/// Checks that a broken URL fails the command without changing the chapter.
 #[test]
 fn link_check_cli_returns_failure_for_broken_urls_and_keeps_the_chapter_unchanged() {
     let not_found = status_response("404 Not Found", &[]);

@@ -14,13 +14,9 @@ const SPECIAL_CHARS: [char; 16] = [
     '<', '[', '(', '`', '{', '!', '#', '-', '|', ']', ')', '}', '*', '_', '~', '\\',
 ];
 
-/// Parses any characters until the next recognized element or end of input.
-///
 /// An underscore between two alphanumeric characters (`snake_case`, `fs_extra`) is intraword
 /// and part of the text: as in `CommonMark`, it can neither open nor close emphasis.
-///
 /// # Errors
-///
 /// Returns a backtrack error if the input is empty or starts with a character that begins other
 /// syntax.
 pub fn parse_plain_text<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
@@ -52,9 +48,7 @@ pub fn parse_plain_text<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
 
 /// Fallback parser that handles escaped characters and consumes exactly one character if not
 /// escaped.
-///
 /// # Errors
-///
 /// Returns a backtrack error if the input is empty.
 pub fn parse_fallback_char<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     alt((
@@ -65,6 +59,7 @@ pub fn parse_fallback_char<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> 
     .parse_next(input)
 }
 
+/// Tests for plain text and fallback character parsing.
 #[cfg(test)]
 mod tests {
     use super::*;

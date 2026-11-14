@@ -1,7 +1,5 @@
 //! Parses a link label, which is enclosed in square brackets `[]`.
-//!
 //! Simplified from spec: <https://spec.commonmark.org/0.31.2/#link-label>
-//!
 //! - A link label begins with a left bracket ([) and ends with the first right bracket (]) that is
 //!   not backslash-escaped.
 //! - Between these brackets there must be at least one character that is not a space, tab, or line
@@ -23,8 +21,6 @@ use winnow::error::StrContextValue::Description;
 use winnow::token::none_of;
 use winnow::token::take_while;
 
-/// Parses link label.
-///
 /// Example: "[my label]" -> "my label".
 pub(crate) fn parse_link_label<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     // According to spec, link labels can contain escaped brackets.
@@ -51,6 +47,7 @@ pub(crate) fn parse_link_label<'s>(input: &mut &'s str) -> ModalResult<&'s str> 
         .parse_next(input)
 }
 
+/// Tests for reference labels and escaped delimiters.
 #[cfg(test)]
 mod tests {
 

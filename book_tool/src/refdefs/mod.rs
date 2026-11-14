@@ -1,7 +1,5 @@
 //! Reference-definition analysis and cleanup helpers.
-//!
 //! The module is split by responsibility:
-//!
 //! - `occurrences` finds definitions and uses, with positions, in one file;
 //! - `labels` answers "which labels are unused?" for a single document;
 //! - `scope` resolves `{{#include}}` scopes across the files of a book;
@@ -11,11 +9,29 @@
 //!
 //! TODO Reviewed ??-??-2026.
 
+/// Implements audit behavior for the refdefs component, keeping the related rules and data
+/// transformations at one boundary. The parent module calls these routines to provide normalize
+/// reference label behavior.
 mod audit;
+/// Implements delete behavior for the refdefs component, keeping the related rules and data
+/// transformations at one boundary. The parent module calls these routines to provide normalize
+/// reference label behavior.
 mod delete;
+/// Implements labels behavior for the refdefs component, keeping the related rules and data
+/// transformations at one boundary. The parent module calls these routines to provide normalize
+/// reference label behavior.
 mod labels;
+/// Implements occurrences behavior for the refdefs component, keeping the related rules and data
+/// transformations at one boundary. The parent module calls these routines to provide normalize
+/// reference label behavior.
 mod occurrences;
+/// Implements report behavior for the refdefs component, keeping the related rules and data
+/// transformations at one boundary. The parent module calls these routines to provide normalize
+/// reference label behavior.
 mod report;
+/// Implements scope behavior for the refdefs component, keeping the related rules and data
+/// transformations at one boundary. The parent module calls these routines to provide normalize
+/// reference label behavior.
 mod scope;
 
 pub use audit::audit;
@@ -29,7 +45,8 @@ pub use report::ScopedRefDefAnalysis;
 pub use report::write_audit_report;
 pub use scope::find_unused_refdefs_in_scopes;
 
-/// Normalize a Markdown reference label by collapsing whitespace and folding case.
+/// Returns `label` lowercased, with leading and trailing whitespace removed and internal whitespace
+/// runs collapsed to one space.
 #[must_use]
 pub fn normalize_reference_label(label: &str) -> String {
     label

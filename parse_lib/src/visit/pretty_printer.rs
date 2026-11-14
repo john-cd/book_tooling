@@ -42,14 +42,12 @@ impl<W: fmt::Write> PrettyPrinter<W> {
         Self { w }
     }
 
-    /// Writes formatted text to the sink.
-    ///
-    /// Write failures are deliberately ignored because the `Visitor` methods cannot return errors.
+    /// Writes formatted arguments to the sink. The visitor interface cannot propagate write errors.
     fn emit(&mut self, args: fmt::Arguments<'_>) {
         let _unused = self.w.write_fmt(args);
     }
 
-    /// Writes formatted text followed by a newline; see [`Self::emit`].
+    /// Writes formatted text followed by a line feed if formatting succeeds.
     fn emit_line(&mut self, args: fmt::Arguments<'_>) {
         let _unused = self
             .w
@@ -57,7 +55,7 @@ impl<W: fmt::Write> PrettyPrinter<W> {
             .and_then(|()| self.w.write_char('\n'));
     }
 
-    /// Writes a newline; see [`Self::emit`].
+    /// Writes a single line feed to the formatter sink.
     fn emit_newline(&mut self) {
         let _unused = self.w.write_char('\n');
     }
@@ -239,18 +237,21 @@ impl fmt::Display for Document<'_> {
     }
 }
 
+/// Tests for pretty-printing structured Markdown.
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::parse_document;
 
-    /// Verifies: print.
+    /// Parses fixture Markdown and returns the document's pretty-printed representation.
+    ///
+    /// # Panics
+    /// Panics if parsing the fixture fails.
     fn print(source: &str) -> String {
         parse_document("t", None, source)
             .expect("parses")
             .to_string()
     }
-
     /// Verifies: links images and titles.
     #[test]
     fn links_images_and_titles() {
@@ -298,6 +299,7 @@ mod tests {
     /// Verifies: writes into any fmt writer and ignores sink failures.
     #[test]
     fn writes_into_any_fmt_writer_and_ignores_sink_failures() {
+        /// Groups the data required by visit operations.
         struct Failing;
         impl fmt::Write for Failing {
             /// Verifies: write str.

@@ -1,4 +1,4 @@
-//! Parses a complete Markdown inline link: `text`.
+//! Parses complete Markdown inline links such as `[text](destination)`.
 //!
 //! TODO Reviewed ??-??-2026.
 
@@ -18,8 +18,11 @@ use super::link_text::parse_link_text;
 use crate::ast::Element;
 use crate::ast::InlineLinkData;
 
-/// Parses an optional link title enclosed in `""`, `''`, or `()`.
-/// Allows for backslash-escaped characters inside the title.
+/// Consumes a single-quoted, double-quoted, or parenthesized Markdown link title. The returned
+/// slice excludes the delimiters and preserves backslash escapes.
+///
+/// # Errors
+/// Backtracks if the opening or matching unescaped closing delimiter is missing.
 pub(crate) fn parse_link_title<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     alt((
         delimited(
@@ -62,11 +65,12 @@ pub(crate) fn parse_link_title<'s>(input: &mut &'s str) -> ModalResult<&'s str> 
     .parse_next(input)
 }
 
-/// Parses a complete inline link: `text`.
+/// Consumes a Markdown inline link and returns its text, destination, and optional title. An
+/// omitted destination becomes an empty string.
 ///
 /// # Errors
-///
-/// Returns a backtrack error if the input does not begin with an inline link.
+/// Backtracks if the link syntax is incomplete or a title follows a destination without intervening
+/// whitespace.
 pub fn parse_inline_link<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     let (text, _, _, dest, ws, title, ..) = seq!(
         parse_link_text,
@@ -93,6 +97,7 @@ pub fn parse_inline_link<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     }))
 }
 
+/// Tests for link destinations, titles, and delimiters.
 #[cfg(test)]
 mod tests {
     use super::*;

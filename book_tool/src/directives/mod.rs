@@ -2,6 +2,10 @@
 //!
 //! TODO Reviewed ??-??-2026.
 
+/// Implements crate blocks behavior for the directives component, keeping the related rules and
+/// data transformations at one boundary. The parent module calls these routines to provide execute,
+/// process markdown, process markdown with example resolver, validate no unexpanded directives
+/// behavior.
 mod crate_blocks;
 use crate_blocks::render_badge_set;
 use crate_blocks::render_category_block;
@@ -12,9 +16,17 @@ mod conf;
 
 pub use conf::*;
 
+/// Implements links or badges behavior for the directives component, keeping the related rules and
+/// data transformations at one boundary. The parent module calls these routines to provide execute,
+/// process markdown, process markdown with example resolver, validate no unexpanded directives
+/// behavior.
 mod links_or_badges;
 use links_or_badges::render_link_or_badge;
 
+/// Implements examples behavior for the directives component, keeping the related rules and data
+/// transformations at one boundary. The parent module calls these routines to provide execute,
+/// process markdown, process markdown with example resolver, validate no unexpanded directives
+/// behavior.
 mod examples;
 
 use std::ops::Range;
@@ -374,6 +386,7 @@ fn process_all_directives_in_file(
     Ok(())
 }
 
+/// Tests for directive resolution and source preservation.
 #[cfg(test)]
 mod tests {
     use anyhow::anyhow;
@@ -569,8 +582,7 @@ mod tests {
         assert!(error.to_string().contains("#example"));
     }
 
-    /// Verifies disabled custom directives, native helpers, code spans, and untouched Markdown
-    /// survive.
+    /// Checks that disabling directive families preserves native helpers and surrounding Markdown.
     #[test]
     fn disabled_families_preserve_native_helpers_and_unrelated_source() {
         let source = concat!(

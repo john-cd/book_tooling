@@ -1,17 +1,15 @@
 //! Command-oriented Markdown tooling built on top of `parse_lib`.
-//!
 //! `book_tool` exposes reusable modules behind the CLI commands defined in
 //! `main.rs`. Each public module corresponds to one user-facing workflow or a
 //! supporting utility layer.
-//!
-//! - [`common`]: shared file traversal, atomic file updates, and template helpers.
-//! - [`directives`]: expands custom `{{ ... }}` directives and wikilinks.
-//! - [`extract_comments`]: aggregates HTML comments from Markdown files.
-//! - [`inline_links`]: converts inline links and autolinks into reference-style links.
-//! - [`link_check`]: verifies external links and optionally removes unused refdefs.
-//! - [`links`]: lower-level link conversion, extraction, and asynchronous verification utilities.
-//! - [`refdefs`]: reference-definition analysis and cleanup helpers.
-//! - [`search`]: plain-text search across Markdown documents.
+//! - `common`: shared file traversal, atomic file updates, and template helpers.
+//! - `directives`: expands custom `{{ ... }}` directives and wikilinks.
+//! - `extract_comments`: aggregates HTML comments from Markdown files.
+//! - `inline_links`: converts inline links and autolinks into reference-style links.
+//! - `link_check`: verifies external links and optionally removes unused refdefs.
+//! - `links`: lower-level link conversion, extraction, and asynchronous verification utilities.
+//! - `refdefs`: reference-definition analysis and cleanup helpers.
+//! - `search`: plain-text search across Markdown documents.
 //!
 //! TODO Reviewed ??-??-2026.
 

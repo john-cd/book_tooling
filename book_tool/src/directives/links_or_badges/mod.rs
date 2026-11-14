@@ -9,7 +9,8 @@ use crate::common::DestinationKind;
 use crate::common::render_badge;
 use crate::common::render_link;
 
-/// Renders a link or badge directive.
+/// Renders link and badge variants with the shared templates. Other directives produce an empty
+/// string.
 pub(super) fn render_link_or_badge(directive: &DirectiveData<'_>) -> String {
     let (is_badge, ast_kind, name) = match directive {
         DirectiveData::Link { kind, name } => (false, kind, name),
@@ -38,6 +39,7 @@ pub(super) fn render_link_or_badge(directive: &DirectiveData<'_>) -> String {
     }
 }
 
+/// Tests for destination mapping for links and badges.
 #[cfg(test)]
 mod tests {
     use parse_lib::ast::DestinationKind as AstDestinationKind;
@@ -46,7 +48,7 @@ mod tests {
     use super::render_link_or_badge;
     use crate::common::DestinationKind;
 
-    /// Verifies every AST destination maps to the expected link and badge templates.
+    /// Checks the link and badge markup for each supported destination.
     #[test]
     fn destination_mapping_covers_every_link_and_badge_shape() {
         let cases = [

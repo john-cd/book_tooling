@@ -5,7 +5,6 @@
 //! - Reference definitions: `[...]: http://...`,
 //! - Code spans and triple quoted text between ``` and ```.
 //! - Hidden sections: <div class="hidden"> </div>
-//!
 //! Data structures representing Markdown elements in the AST.
 //!
 //! TODO Reviewed ??-??-2026.
@@ -221,7 +220,7 @@ pub struct StrikethroughData<'a> {
     pub elements: Vec<Element<'a>>,
 }
 
-/// Represents a single Markdown element in the AST.
+/// A structural element in a parsed Markdown document.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Element<'a> {
     /// A standalone URL: `http://...` or `https://...`

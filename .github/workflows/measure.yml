@@ -1,4 +1,4 @@
-# TODO Reviewed ??-??-2026
+# TODO Reviewed ??-??-2026.
 
 ## Manual measurement of cold/warm rebuild time, output sizes and release linking per OS.
 ## Compiler cache is disabled so timings are not distorted by shared sccache counters.

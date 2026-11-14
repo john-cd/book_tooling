@@ -12,7 +12,8 @@ pub struct Documents<'s> {
 }
 
 impl<'s> Documents<'s> {
-    /// Creates a new document collection.
+    /// Constructs a usable initial documents value with the defaults required by the documents
+    /// component.
     #[must_use]
     pub fn new(documents: Vec<Document<'s>>) -> Self {
         Self { documents }

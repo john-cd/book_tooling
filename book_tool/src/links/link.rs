@@ -20,28 +20,29 @@ struct UrlCollector<'a> {
 }
 
 impl<'v> Visitor<'v> for UrlCollector<'_> {
-    /// Collects the URL of an autolink if it parses as an absolute URL.
+    /// Adds the autolink URL to the collector if it is absolute and parses successfully.
     fn visit_autolink(&mut self, data: &'v AutolinkData<'v>) {
         if let Ok(url) = Url::parse(data.url) {
             self.urls.insert(url);
         }
     }
 
-    /// Collects the destination of an inline link if it parses as an absolute URL.
+    /// Adds the inline link destination to the collector if it is absolute and parses successfully.
     fn visit_inline_link(&mut self, data: &'v InlineLinkData<'v>) {
         if let Ok(url) = Url::parse(data.url) {
             self.urls.insert(url);
         }
     }
 
-    /// Collects the source of an inline image if it parses as an absolute URL.
+    /// Adds the image source to the collector if it is absolute and parses successfully.
     fn visit_inline_image(&mut self, data: &'v InlineImageData<'v>) {
         if let Ok(url) = Url::parse(data.url) {
             self.urls.insert(url);
         }
     }
 
-    /// Collects the destination of a reference definition if it parses as an absolute URL.
+    /// Adds the reference definition target to the collector if it is absolute and parses
+    /// successfully.
     fn visit_reference_definition(&mut self, data: &'v ReferenceDefinitionData<'v>) {
         if let Ok(url) = Url::parse(data.url) {
             self.urls.insert(url);
@@ -49,9 +50,8 @@ impl<'v> Visitor<'v> for UrlCollector<'_> {
     }
 }
 
-/// Extracts every URL-like destination represented in a parsed Markdown document.
-///
-/// This includes autolinks, inline links, inline images, and reference definitions.
+/// Returns distinct absolute URLs from the document's autolinks, inline links, inline images, and
+/// reference definitions. Each destination is normalized by the URL parser.
 #[must_use]
 pub fn extract_urls(doc: &Document<'_>) -> HashSet<Url> {
     let mut urls = HashSet::new();
@@ -61,10 +61,15 @@ pub fn extract_urls(doc: &Document<'_>) -> HashSet<Url> {
     urls
 }
 
+/// Tests for URL extraction and normalization.
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// Parses fixture Markdown and returns its distinct absolute URLs as sorted strings.
+    ///
+    /// # Panics
+    /// Panics if the fixture Markdown cannot be parsed.
     fn urls(source: &str) -> Vec<String> {
         let doc = parse_lib::parse_document("t", None, source).expect("parses");
         let mut found: Vec<_> = extract_urls(&doc).into_iter().map(String::from).collect();
@@ -72,6 +77,7 @@ mod tests {
         found
     }
 
+    /// Checks that all four destination-bearing node types contribute absolute URLs.
     #[test]
     fn extracts_autolinks_inline_links_images_and_definitions() {
         let found = urls(concat!(
@@ -90,17 +96,20 @@ mod tests {
         );
     }
 
+    /// Checks that relative paths and malformed URLs are skipped.
     #[test]
     fn relative_and_unparseable_destinations_are_skipped() {
         assert!(urls("[rel](../page.md) [anchor](#top) [file](chapter.md)").is_empty());
     }
 
+    /// Checks that equivalent destinations collapse after URL normalization.
     #[test]
     fn duplicates_collapse_and_urls_are_normalized() {
         let found = urls("[a](https://EXAMPLE.com) [b](https://example.com/)\n");
         assert_eq!(found, ["https://example.com/"]);
     }
 
+    /// Checks that URL extraction includes other absolute schemes.
     #[test]
     fn non_http_schemes_are_still_extracted() {
         assert_eq!(

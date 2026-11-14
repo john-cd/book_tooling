@@ -14,11 +14,10 @@ use crate::ast::ReferenceStyleLinkData;
 use crate::parse_parts::parse_link_label;
 use crate::parse_parts::parse_link_text;
 
-/// Parses a reference-style link: `[text][label]`.
+/// Consumes a reference-style link and returns the link text and definition label.
 ///
 /// # Errors
-///
-/// Returns a backtrack error if the input does not begin with a reference-style link.
+/// Backtracks if the input does not start with a supported reference-style link.
 pub fn parse_reference_style_link<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     seq!(parse_link_text, parse_link_label,)
         .map(|(text, label)| Element::ReferenceStyleLink(ReferenceStyleLinkData { text, label }))
@@ -27,6 +26,7 @@ pub fn parse_reference_style_link<'s>(input: &mut &'s str) -> ModalResult<Elemen
         .parse_next(input)
 }
 
+/// Tests for reference-style link parsing.
 #[cfg(test)]
 mod tests {
     use super::*;

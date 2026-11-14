@@ -21,12 +21,12 @@ impl HtmlCommentExtractor {
 }
 
 impl<'a> Visitor<'a> for HtmlCommentExtractor {
-    /// Stores the comment text, with its lines rejoined by newlines.
     fn visit_html_comment(&mut self, data: &HtmlCommentData<'a>) {
         self.comments.push(data.lines.join("\n"));
     }
 }
 
+/// Tests for collecting HTML comment text.
 #[cfg(test)]
 mod tests {
     use super::*;

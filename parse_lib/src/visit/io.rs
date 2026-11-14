@@ -1,5 +1,4 @@
 //! Conversion from `fmt::Write` to `io::Write`.
-//!
 //! Provides utilities to adapt `fmt::Write` interfaces to `io::Write` streams.
 //!
 //! TODO Reviewed ??-??-2026.
@@ -15,9 +14,7 @@ use crate::ast::Document;
 
 impl<'d> Document<'d> {
     /// Adapt from `fmt::Write` to `io::Write`.
-    ///
     /// # Errors
-    ///
     /// Returns an I/O error if writing to `io_writer` fails.
     pub fn to_io<'v, IO, F, V>(&'d self, mut io_writer: IO, f: F) -> io::Result<()>
     where
@@ -41,9 +38,7 @@ impl<'d> Document<'d> {
     /// Create a buffer writer from an IO writer,
     /// convert to `fmt::Write`, pass to a closure that returns a visitor,
     /// accept the visitor.
-    ///
     /// # Errors
-    ///
     /// Returns an I/O error if writing to `io_writer` fails.
     pub fn with_buffer<'v, IO, F, V>(
         &'d self,
@@ -71,9 +66,7 @@ impl<'d> Document<'d> {
 
     /// Adapt from `fmt::Write` to `stdout`.
     /// Accept the visitor returned by the closure.
-    ///
     /// # Errors
-    ///
     /// Returns an I/O error if writing to standard output fails.
     pub fn to_stdout<'v, F, V>(&'d self, f: F) -> io::Result<()>
     where
@@ -86,6 +79,7 @@ impl<'d> Document<'d> {
     }
 }
 
+/// Tests for visitor output and I/O error propagation.
 #[cfg(test)]
 mod tests {
     use std::fmt::Write as _;
@@ -97,6 +91,7 @@ mod tests {
     struct Noop;
     impl Visitor<'_> for Noop {}
 
+    /// Test writer that injects an I/O failure to verify the adapter reports it.
     struct FailingWriter;
     impl io::Write for FailingWriter {
         /// Verifies: write.
@@ -109,7 +104,6 @@ mod tests {
             Err(io::Error::other("disk full"))
         }
     }
-
     /// Verifies: to io forwards fmt writes to the io writer.
     #[test]
     fn to_io_forwards_fmt_writes_to_the_io_writer() {

@@ -2,6 +2,7 @@
 //!
 //! TODO Reviewed ??-??-2026.
 
+/// Regression tests for block and inline parsing, nesting, and source preservation.
 #[cfg(test)]
 mod parse_document_tests;
 
@@ -69,7 +70,10 @@ fn parse_task_item<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     .parse_next(input)
 }
 
-/// Parses a simplified GFM table row.
+/// Consumes a pipe-delimited row and returns trimmed slices of its cells.
+///
+/// # Errors
+/// Backtracks when the input has no cells or the row does not end at a line boundary.
 fn parse_table_row<'a>(input: &mut &'a str) -> ModalResult<Vec<&'a str>> {
     seq!(
         _: opt("|"),
@@ -78,7 +82,6 @@ fn parse_table_row<'a>(input: &mut &'a str) -> ModalResult<Vec<&'a str>> {
     ).map(|(cells,): (Vec<&str>,)| cells)
     .parse_next(input)
 }
-
 /// Parses the text of each table cell into inline elements.
 fn parse_table_cells<'a>(cells: &[&'a str]) -> ModalResult<Vec<Vec<Element<'a>>>> {
     cells
@@ -90,7 +93,12 @@ fn parse_table_cells<'a>(cells: &[&'a str]) -> ModalResult<Vec<Vec<Element<'a>>>
         .collect()
 }
 
-/// Parses a simplified GFM table.
+/// Consumes a header, separator, and at least one data row. The table retains the cell text
+/// alongside the parsed inline elements.
+///
+/// # Errors
+/// Backtracks if any required row is missing or malformed, and propagates errors from inline
+/// parsing.
 fn parse_table<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     let (header, rows): (Vec<&'a str>, Vec<Vec<&'a str>>) = seq!(
         parse_table_row,
@@ -113,7 +121,6 @@ fn parse_table<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     }))
 }
 
-/// Parses a sequence of inline elements and text.
 /// Used as the "secondary pass" for the inner text of block containers.
 fn parse_inline_sequence<'a>(input: &mut &'a str) -> ModalResult<Vec<Element<'a>>> {
     repeat(
@@ -122,14 +129,15 @@ fn parse_inline_sequence<'a>(input: &mut &'a str) -> ModalResult<Vec<Element<'a>
     )
     .parse_next(input)
 }
-
-/// Skip empty lines in a slice of lines.
+/// Consumes one or more whitespace-only lines from `input`.
+///
+/// # Errors
+/// Backtracks when the first line contains text or the input is exhausted.
 fn parse_empty_lines(input: &mut &[&str]) -> ModalResult<()> {
     winnow::token::take_while(1.., |line: &str| line.trim().is_empty())
         .void()
         .parse_next(input)
 }
-
 /// Determines if a line should be consumed as part of an ongoing paragraph.
 fn is_paragraph_continuation(line: &str) -> bool {
     let trimmed = line.trim_start();
@@ -162,15 +170,19 @@ fn is_paragraph_continuation(line: &str) -> bool {
     ordered_list_marker_len(trimmed).is_none()
 }
 
-/// Returns the length of the leading `1. ` or `1) ` ordered-list marker, including the space, if
-/// there is one.
+/// Returns the byte length of an initial decimal marker with its trailing space, or `None` if
+/// `trimmed` does not start with a marker such as `1. ` or `2) `.
 fn ordered_list_marker_len(trimmed: &str) -> Option<usize> {
     let digits = trimmed.chars().take_while(char::is_ascii_digit).count();
     let rest = trimmed.get(digits..)?;
     (digits > 0 && (rest.starts_with(". ") || rest.starts_with(") "))).then_some(digits + 2)
 }
 
-/// Parses a continuous paragraph from a slice of lines.
+/// Consumes consecutive paragraph lines and inserts soft line breaks between their inline elements.
+///
+/// # Errors
+/// Backtracks when the first line is blank or starts a block that takes precedence over a
+/// paragraph.
 fn parse_paragraph_from_lines<'a, 'b>(input: &mut &'b [&'a str]) -> ModalResult<Element<'a>> {
     let lines: &[&'a str] =
         winnow::token::take_while(1.., |line: &str| is_paragraph_continuation(line))
@@ -191,7 +203,10 @@ fn parse_paragraph_from_lines<'a, 'b>(input: &mut &'b [&'a str]) -> ModalResult<
     Ok(Element::Paragraph(ParagraphData { elements }))
 }
 
-/// Parses a fenced code block from a slice of lines.
+/// Consumes a backtick-fenced code block, preserving its inner lines and optional language.
+///
+/// # Errors
+/// Backtracks if the opening or closing fence is missing.
 fn parse_fenced_code_block_from_lines<'a, 'b>(
     input: &mut &'b [&'a str],
 ) -> ModalResult<Element<'a>> {
@@ -253,7 +268,7 @@ fn parse_indented_code_block_from_lines<'a>(input: &mut &[&'a str]) -> ModalResu
     }))
 }
 
-/// Parses an HTML comment that may span several lines.
+/// Consumes a comment from the remaining lines and keeps the text between its delimiters.
 fn parse_html_comment_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Element<'a>> {
     let backup = *input;
     let mut content_lines = Vec::new();
@@ -351,7 +366,10 @@ fn parse_unordered_list_item_from_lines<'a>(input: &mut &[&'a str]) -> ModalResu
     })
 }
 
-/// Parses consecutive `-` or `*` list items from a slice of lines into one list.
+/// Consumes consecutive bullet items and their indented continuations into an unordered list.
+///
+/// # Errors
+/// Backtracks when the remaining lines do not begin with a `-` or `*` item.
 fn parse_unordered_list_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Element<'a>> {
     let items = repeat(1.., parse_unordered_list_item_from_lines).parse_next(input)?;
     Ok(Element::List(ListData {
@@ -364,8 +382,10 @@ fn parse_unordered_list_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<El
 fn parse_ordered_list_item_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Element<'a>> {
     parse_list_item_from_lines_generic(input, ordered_list_marker_len)
 }
-
-/// Parses consecutive numbered list items from a slice of lines into one list.
+/// Consumes consecutive numbered items and their indented continuations into an ordered list.
+///
+/// # Errors
+/// Backtracks when the remaining lines do not begin with a decimal list marker.
 fn parse_ordered_list_from_lines<'a>(input: &mut &[&'a str]) -> ModalResult<Element<'a>> {
     let items = repeat(1.., parse_ordered_list_item_from_lines).parse_next(input)?;
     Ok(Element::List(ListData {
@@ -391,8 +411,6 @@ fn parse_blocks_from_lines<'a, 'b>(input: &mut &'b [&'a str]) -> ModalResult<Vec
     .map(|blocks: Vec<Option<Element<'a>>>| blocks.into_iter().flatten().collect())
     .parse_next(input)
 }
-
-/// Parses a Blockquote container block.
 /// Solves the "contiguous slice" problem by extracting each line as its own contiguous `&'a str`,
 /// bypassing the need for a custom Stream that would break slice memory layout.
 fn parse_blockquote<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
@@ -473,8 +491,10 @@ where
 fn parse_unordered_list_item<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     parse_list_item_generic(input, alt(("- ", "* ")))
 }
-
-/// Parses consecutive single-line `-` or `*` list items into one list.
+/// Consumes consecutive single-line bullet items into an unordered list.
+///
+/// # Errors
+/// Backtracks if the input does not start with a `-` or `*` item.
 fn parse_unordered_list<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     let items = repeat(1.., parse_unordered_list_item).parse_next(input)?;
     Ok(Element::List(ListData {
@@ -494,8 +514,10 @@ fn parse_ordered_list_item<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> 
             .take(),
     )
 }
-
-/// Parses consecutive single-line numbered list items into one list.
+/// Consumes consecutive single-line numbered items into an ordered list.
+///
+/// # Errors
+/// Backtracks if the input does not start with a decimal list marker.
 fn parse_ordered_list<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     let items = repeat(1.., parse_ordered_list_item).parse_next(input)?;
     Ok(Element::List(ListData {
@@ -530,7 +552,10 @@ fn parse_horizontal_rule<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     .parse_next(input)
 }
 
-/// Parses an HTML comment from `<!--` to `-->`, splitting its content into lines.
+/// Consumes `<!--` through the first `-->` and returns the enclosed text as a comment node.
+///
+/// # Errors
+/// Backtracks if either delimiter is missing.
 fn parse_html_comment<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     let content = delimited("<!--", take_until(0.., "-->"), "-->")
         .context(Label("HTML comment"))
@@ -544,7 +569,10 @@ fn parse_html_comment<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     Ok(Element::HtmlComment(HtmlCommentData { lines }))
 }
 
-/// Parses consecutive lines indented by four spaces or a tab as one indented code block.
+/// Consumes consecutive code lines introduced by four spaces or a tab and strips that indentation.
+///
+/// # Errors
+/// Backtracks when the first line does not have code-block indentation.
 fn parse_indented_code_block<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     let backup = *input;
     let mut content_lines = Vec::new();
@@ -585,7 +613,8 @@ fn parse_indented_code_block<'a>(input: &mut &'a str) -> ModalResult<Element<'a>
     }))
 }
 
-/// Parses block-level elements (structural containers).
+/// Tries the block parsers in precedence order at the current input position and returns the first
+/// match.
 fn parse_block_element<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     alt((
         parse_blockquote,
@@ -606,7 +635,6 @@ fn parse_block_element<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     ))
     .parse_next(input)
 }
-
 /// Parses text delimited by `inner_parser` and builds an element from the inline elements inside it
 /// using `construct`.
 fn parse_inline_formatting<'a, P, F>(
@@ -677,13 +705,7 @@ fn contains_blank_line(text: &str) -> bool {
     lines.any(|line| line.trim().is_empty())
 }
 
-/// Parses text between single `delimiter` characters (`*` or `_`) that satisfies the `CommonMark`
-/// flanking rules.
-///
-/// The opening delimiter must be followed, and the closing delimiter preceded, by non-whitespace.
-/// A closing `_` must not be followed by an alphanumeric character (intraword underscores are
-/// text). The opening `_` is checked by [`parse_plain_text`], which keeps intraword underscores in
-/// the text.
+/// Parses emphasis, rejecting delimiters that violate the `CommonMark` flanking rules.
 fn emphasis_inner<'a>(input: &mut &'a str, delimiter: char) -> Result<&'a str, ContextError> {
     let backtrack = ContextError::new;
     let body = input.strip_prefix(delimiter).ok_or_else(backtrack)?;
@@ -752,7 +774,6 @@ fn parse_inline_element<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     ))
     .parse_next(input)
 }
-
 /// Parse a sequence of text elements.
 /// It tries to parse specific elements first, then falls back to plain text.
 fn parse_elements<'a>(input: &mut &'a str) -> ModalResult<Vec<Element<'a>>> {
@@ -769,14 +790,9 @@ fn parse_elements<'a>(input: &mut &'a str) -> ModalResult<Vec<Element<'a>>> {
     )
     .parse_next(input)
 }
-
-/// Parses an entire Markdown document into a [`crate::Document`].
-///
 /// `name` is used for diagnostics, `path` is retained in the resulting AST when available,
 /// and `input` must be valid UTF-8 Markdown text.
-///
 /// # Errors
-///
 /// Returns an error if the Markdown cannot be parsed; the message names the document and the parse
 /// failure.
 pub fn parse_document<'s>(

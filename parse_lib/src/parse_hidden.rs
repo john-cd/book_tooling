@@ -47,12 +47,8 @@ fn parse_hidden_div_open_tag(input: &mut &str) -> Result<()> {
         .context(Expected(Description(r#"<div class="hidden">"#)))
         .parse_next(input)
 }
-
-/// Parses a hidden HTML div block: `<div class="hidden">...</div>`.
 /// This is a simplified parser and does not handle nested divs properly.
-///
 /// # Errors
-///
 /// Returns a backtrack error if the input does not begin with a hidden HTML `div`.
 pub fn parse_hidden_html_div<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     delimited(
@@ -67,6 +63,7 @@ pub fn parse_hidden_html_div<'s>(input: &mut &'s str) -> ModalResult<Element<'s>
     .map_err(ErrMode::Backtrack)
 }
 
+/// Tests for hidden HTML block parsing.
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -166,6 +163,9 @@ mod tests {
     // Tests for `parse_hidden_div_open_tag`.
 
     /// The opening tag is consumed and the content after it is left in place.
+    /// Extra spaces around the attribute, the equals sign and before `>` are accepted.
+    /// The attribute name and value match case-insensitively.
+    /// A missing class, another class value, another tag or an unterminated quote is rejected.
     #[test]
     fn test_parse_hidden_div_open_tag_basic() {
         assert_eq!(

@@ -1,13 +1,10 @@
 //! Template system for rendering Markdown badges and links.
-//!
 //! This module provides a centralized way to render common Markdown elements used
 //! across the book tooling, such as crate badges and external links.
 //!
 //! TODO Reviewed ??-??-2026.
 
 /// Crate destinations.
-///
-/// Represents different types of targets for badges and links.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DestinationKind {
     /// A crate category.
@@ -115,6 +112,7 @@ pub fn render_link(kind: DestinationKind, name: &str) -> String {
     }
 }
 
+/// Tests for badge and link templates, category labels, and index entries.
 #[cfg(test)]
 mod tests {
     use std::io;
@@ -171,7 +169,8 @@ mod tests {
         Ok(())
     }
 
-    /// Verifies independent badge text, pre-encoded category slugs, and empty values are stable.
+    /// Checks that encoded category slugs stay in link targets and punctuation remains separate
+    /// from display text.
     #[test]
     fn category_badge_preserves_encoded_slug_and_separate_punctuation_text() {
         assert_eq!(
@@ -193,7 +192,7 @@ mod tests {
         );
     }
 
-    /// Renders an unindexed category badge with its category reference definitions.
+    /// Checks that index-free category badges use the shared reference definitions.
     #[test]
     fn category_badge_without_index_uses_category_reference_definitions() {
         assert_eq!(

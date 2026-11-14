@@ -33,17 +33,17 @@ impl<'a> LinkExtractor<'a> {
 }
 
 impl<'a> Visitor<'a> for LinkExtractor<'a> {
-    /// Collects the destination of an inline link.
+    /// Records the inline link's destination text.
     fn visit_inline_link(&mut self, data: &InlineLinkData<'a>) {
         self.add_link(data.url);
     }
 
-    /// Collects the URL of an autolink.
+    /// Records the autolink's URL text.
     fn visit_autolink(&mut self, data: &AutolinkData<'a>) {
         self.add_link(data.url);
     }
 
-    /// Collects the source of an inline image.
+    /// Records the inline image's source text.
     fn visit_inline_image(&mut self, data: &InlineImageData<'a>) {
         self.add_link(data.url);
     }
@@ -54,13 +54,17 @@ impl<'a> Visitor<'a> for LinkExtractor<'a> {
     }
 }
 
+/// Tests for collecting destination text across link and image variants.
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::parse_document;
     use crate::visit::Visitable as _;
 
-    /// Verifies: extract.
+    /// Parses fixture Markdown and returns the destinations collected by the link visitor.
+    ///
+    /// # Panics
+    /// Panics if parsing the fixture fails.
     fn extract(source: &str) -> Vec<String> {
         let doc = parse_document("t", None, source).expect("parses");
         let mut extractor = LinkExtractor::new();

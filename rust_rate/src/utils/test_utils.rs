@@ -70,6 +70,7 @@ where
     Ok(())
 }
 
+/// Tests for table-driven parser test helpers.
 #[cfg(test)]
 mod tests {
     use super::*;

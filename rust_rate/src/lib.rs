@@ -1,6 +1,5 @@
 //! GitHub- and crates.io-based Rust crate analysis utilities.
-//!
-//! The crate is organized around three main concerns:
+//! The crate provides these modules.
 //! - [`crawler`]: GitHub API access for discovering Cargo manifests and downloading content.
 //! - [`stats`]: aggregation of crate usage and package category statistics.
 //! - [`patterns`]: source analysis for crate-specific usage patterns.
@@ -9,7 +8,7 @@
 //!
 //! TODO Reviewed ??-??-2026.
 
-/// crates.io summary workflow utilities.
+/// Retrieves crate metadata and download counts from crates.io.
 pub mod crates_io;
 
 /// GitHub API crawling utilities.

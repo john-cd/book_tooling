@@ -85,6 +85,8 @@ pub enum DirectiveData<'a> {
 ///
 /// Formatting normalizes spacing and does not preserve the original source bytes.
 impl Display for DirectiveData<'_> {
+    /// # Arguments
+    /// * `f` - Mutable formatter whose state is updated by this operation.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             DirectiveData::Link { kind, name } => write!(f, "{{{{{kind} {name}}}}}"),
@@ -154,6 +156,7 @@ impl Display for DestinationKind {
     }
 }
 
+/// Tests for formatting and round-tripping directive variants.
 #[cfg(test)]
 mod tests {
     use super::*;

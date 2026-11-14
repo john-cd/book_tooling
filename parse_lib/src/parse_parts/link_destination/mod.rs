@@ -1,20 +1,23 @@
 //! Parse link destinations.
-//!
 //! A link destination consists of either
 //! - a sequence of zero or more characters between an opening < and a closing > that contains no
 //!   line endings or unescaped < or > characters, (implemented in `angle_brackets.rs`), or
 //! - a nonempty sequence of characters that does not start with <, does not include ASCII control
 //!   characters or space character, and includes parentheses only if (a) they are backslash-escaped
 //!   or (b) they are part of a balanced pair of unescaped parentheses.
-//!
 //! (Implementations may impose limits on parentheses nesting to avoid performance issues,
 //! but at least three levels of nesting should be supported.)
-//!
 //! See <https://spec.commonmark.org/0.31.2/#link-destination>.
 //!
 //! TODO Reviewed ??-??-2026.
 
+/// Implements angle brackets behavior for the link destination component, keeping the related rules
+/// and data transformations at one boundary. The parent module calls these routines to provide
+/// parse link destination behavior.
 mod angle_brackets;
+/// Implements nonempty sequence behavior for the link destination component, keeping the related
+/// rules and data transformations at one boundary. The parent module calls these routines to
+/// provide parse link destination behavior.
 mod nonempty_sequence;
 
 pub(crate) use angle_brackets::parse_angle_brackets;
@@ -26,8 +29,6 @@ use winnow::error::StrContext::Label;
 use winnow::error::StrContextValue::Description;
 use winnow::prelude::*;
 
-/// Parses a link destination.
-///
 /// See <https://spec.commonmark.org/0.31.2/#link-destination>.
 pub(crate) fn parse_link_destination<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     alt((

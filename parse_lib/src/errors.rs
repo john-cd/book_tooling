@@ -1,5 +1,4 @@
 //! Custom parsing error.
-//!
 //! See <https://docs.rs/winnow/0.7.11/winnow/_tutorial/chapter_7/index.html>.
 //!
 //! TODO Reviewed ??-??-2026.
@@ -77,6 +76,7 @@ impl ParsingError {
     }
 }
 
+/// Tests for converting parser failures to source diagnostics.
 #[cfg(test)]
 mod tests {
     use winnow::Parser as _;
@@ -155,6 +155,7 @@ bad token"
     /// Verifies: implements std error.
     #[test]
     fn implements_std_error() {
+        /// Applies the rules used by errors to keep parsing error state valid for its callers.
         fn assert_error<E: std::error::Error>() {}
         assert_error::<ParsingError>();
     }

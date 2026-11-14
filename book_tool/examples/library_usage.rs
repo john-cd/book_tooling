@@ -1,5 +1,4 @@
 //! Uses `book_tool` as a library: unused reference definitions and external link checking.
-//!
 //! The example builds a tiny book in a temporary directory, lists the unused definitions that
 //! [`find_unused_refdefs_in_scopes`] proves, and checks one address with [`AsyncLinkChecker`]. The
 //! link check needs network access; run it with `cargo run -p book_tool --example library_usage`.
@@ -11,6 +10,10 @@ use book_tool::links::AsyncLinkChecker;
 use book_tool::refdefs::find_unused_refdefs_in_scopes;
 use url::Url;
 
+/// Audits unused reference definitions in a temporary book and checks one external URL.
+///
+/// # Errors
+/// Propagates temporary-file, audit, HTTP client setup, and URL parsing errors.
 #[tokio::main]
 async fn main() -> Result<()> {
     let book = tempfile::tempdir()?;

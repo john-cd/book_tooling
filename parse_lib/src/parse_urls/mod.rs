@@ -15,9 +15,8 @@ use winnow::token::take_while;
 use crate::ast::AutolinkData;
 use crate::ast::Element;
 
-/// Predicate function to check if a character is one of the valid URL characters.
-/// Valid chars in URLs are A-Z, a-z, 0-9, -, ., _, ~, :, /, ?, #, [, ], @, !, $, &, ', (, ), *, +,
-/// ,, ;, %, = ":" | "/" | "@" | "?" | "#" have special meaning in URLs.
+/// Returns whether `c` is in the ASCII character set accepted by the URL token scanner. URL
+/// structure is validated separately.
 fn is_valid_url_char(c: char) -> bool {
     matches!(c,
         'A'..='Z'
@@ -28,7 +27,10 @@ fn is_valid_url_char(c: char) -> bool {
     )
 }
 
-/// Parses one or more valid URL characters.
+/// Consumes and returns the longest nonempty prefix of URL characters in `input`.
+///
+/// # Errors
+/// Backtracks when the input starts with a character outside the accepted URL alphabet or is empty.
 pub(crate) fn parse_url_chars<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     take_while(1.., is_valid_url_char)
         .verify(|s: &str| !s.is_empty())
@@ -39,11 +41,11 @@ pub(crate) fn parse_url_chars<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
         .parse_next(input)
 }
 
-/// Parses a naked URL (e.g. `https://example.com`) directly from text.
+/// Consumes a bare HTTP or HTTPS URL and returns it as an autolink. Trailing prose punctuation
+/// stays in the input.
 ///
 /// # Errors
-///
-/// Returns a backtrack error if the input does not begin with a naked URL.
+/// Backtracks if the input does not start with a valid HTTP or HTTPS URL.
 pub fn parse_naked_url<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     let original = *input;
     let parsed_url = (alt(("https://", "http://")), parse_url_chars)
@@ -90,7 +92,6 @@ fn is_valid_http_url(url: &str) -> bool {
     has_valid_percent_encoding(url)
         && Url::parse(url).is_ok_and(|parsed| matches!(parsed.scheme(), "http" | "https"))
 }
-
 /// Checks that every percent sign in a URL is followed by two hexadecimal digits.
 fn has_valid_percent_encoding(url: &str) -> bool {
     let mut bytes = url.bytes();
@@ -105,11 +106,11 @@ fn has_valid_percent_encoding(url: &str) -> bool {
     true
 }
 
-/// Parses an autolink enclosed in angle brackets (e.g. `<https://example.com>`).
+/// Consumes an angle-bracketed HTTP or HTTPS URL and returns an autolink node bearing the URL
+/// slice.
 ///
 /// # Errors
-///
-/// Returns a backtrack error if the input does not begin with an autolink.
+/// Backtracks for a missing delimiter or an invalid HTTP or HTTPS URL.
 pub fn parse_autolink<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     let url_text = delimited(
         "<",
@@ -127,6 +128,7 @@ pub fn parse_autolink<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     Ok(Element::Autolink(AutolinkData { url: url_text }))
 }
 
+/// Tests for URL validation and punctuation boundaries.
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -210,7 +212,7 @@ mod tests {
         );
     }
 
-    /// Verifies path, query, fragment, and percent-encoded bytes stay inside a valid URL.
+    /// Checks that parsing keeps the original path, query, fragment, and percent escapes.
     #[test]
     fn naked_url_preserves_path_query_fragment_and_percent_encoding() {
         let source = "https://docs.rs/crate/path?query=api%2Fbindings#fragment";
@@ -222,7 +224,7 @@ mod tests {
         assert!(input.is_empty());
     }
 
-    /// Verifies trailing sentence punctuation and unmatched closers remain in the input.
+    /// Checks that the URL stops before prose punctuation and retains matched parentheses.
     #[test]
     fn naked_url_leaves_adjacent_punctuation_and_keeps_balanced_parentheses() {
         let mut input = "https://example.com/path(a), next";
@@ -245,7 +247,7 @@ mod tests {
         assert_eq!(punctuated_input, ").");
     }
 
-    /// Verifies malformed URLs fail without consuming their source text.
+    /// Checks that invalid URL forms leave the parser cursor at the start.
     #[test]
     fn malformed_naked_and_angle_urls_are_rejected_without_consuming_input() {
         for source in ["https://example.com/%GG", "https://[invalid-host]/path"] {
@@ -259,7 +261,7 @@ mod tests {
         assert_eq!(autolink, "<https://example.com/%GG>");
     }
 
-    /// Verifies the public document parser and no-op renderer preserve URLs and neighboring text.
+    /// Checks that document rendering preserves URL spelling and surrounding punctuation.
     #[test]
     fn document_rendering_preserves_url_punctuation_and_malformed_source() {
         use crate::markdown_renderer::MarkdownRenderer;

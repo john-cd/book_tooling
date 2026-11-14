@@ -101,6 +101,10 @@ impl OccurrenceCollector<'_> {
     }
 
     /// Records a reference definition of `label`, unless an earlier error was stored.
+    ///
+    /// # Arguments
+    /// * `label` - Human-readable value used to identify or display the selected occurrence
+    ///   collector.
     fn record_definition(&mut self, label: &str) {
         if self.error.is_some() {
             return;
@@ -140,9 +144,9 @@ pub(super) fn next_character_len(text: &str, index: usize) -> usize {
         .and_then(|suffix| suffix.chars().next())
         .map_or(1, char::len_utf8)
 }
-
-/// Finds the bracket pair that opens at `opening`, honoring nesting and backslash escapes; returns
-/// `(start, end, closing)` byte offsets.
+/// Finds the bracket group beginning at byte offset `opening`, accounting for nested brackets and
+/// escapes. Returns `(start, end, closing)` byte offsets for the contents and closing bracket, or
+/// `None` for an incomplete group.
 fn bracket_contents(line: &str, opening: usize) -> Option<(usize, usize, usize)> {
     let bytes = line.as_bytes();
     if bytes.get(opening) != Some(&b'[') {
@@ -200,9 +204,8 @@ fn skip_spaces(line: &str, mut index: usize) -> usize {
     index
 }
 
-/// Finds shortcut and collapsed references left as plain text by the lightweight AST parser.
-/// Full references are collected by the visitor; this scan also recognizes them so whitespace
-/// accepted by mdBook does not hide a use from the cleanup analysis.
+/// Finds link and image reference uses in the Markdown source, including shortcut and
+/// collapsed forms. Returns borrowed labels paired with their use kinds in source order.
 #[expect(
     clippy::too_many_lines,
     clippy::excessive_nesting,
@@ -459,10 +462,12 @@ where
     Ok(uses_by_label)
 }
 
+/// Tests for detecting reference uses across Markdown contexts.
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// Checks that shortcut and collapsed links count as reference uses.
     #[test]
     fn shortcut_and_collapsed_references_are_uses() {
         let found = implicit_reference_uses("See [serde] and [Tokio][].\n");
@@ -475,12 +480,14 @@ mod tests {
         );
     }
 
+    /// Checks that a shortcut image is recorded with the image-use kind.
     #[test]
     fn image_shortcuts_are_image_uses() {
         let found = implicit_reference_uses("![diagram]\n");
         assert_eq!(found, [("diagram", ReferenceUseKind::Image)]);
     }
 
+    /// Checks that literal examples and comments do not contribute reference uses.
     #[test]
     fn fenced_code_html_comments_and_inline_code_are_ignored() {
         let source = "```\n[fenced]\n```\n<!-- [commented] -->\n`[inline]`\n[real]\n";
@@ -491,11 +498,13 @@ mod tests {
         assert_eq!(names, ["real"]);
     }
 
+    /// Checks that escaped opening brackets cannot start a reference use.
     #[test]
     fn escaped_brackets_are_not_uses() {
         assert!(implicit_reference_uses(r"\[escaped]").is_empty());
     }
 
+    /// Checks that Windows line endings stay outside extracted labels.
     #[test]
     fn crlf_line_endings_do_not_leak_into_labels() {
         let names: Vec<_> = implicit_reference_uses("[one]\r\n[two]\r\n")
@@ -505,6 +514,7 @@ mod tests {
         assert_eq!(names, ["one", "two"]);
     }
 
+    /// Checks that nested occurrences are found once each in lists, quotes, and tables.
     #[test]
     fn occurrences_cover_lists_quotes_and_tables_without_duplicates() {
         let source = "- item [a]\n> quote [b][]\n\n| h |\n|---|\n| [c][C] |\n\n[a]: https://a\n[B]: https://b\n";
@@ -538,6 +548,7 @@ mod tests {
         );
     }
 
+    /// Checks that uses from additional roots are indexed under normalized labels.
     #[test]
     fn additional_roots_group_uses_by_normalized_label() {
         let dir = tempfile::tempdir().expect("temp dir");
@@ -548,6 +559,7 @@ mod tests {
         assert_eq!(uses.get("foo bar").expect("label grouped").len(), 1);
     }
 
+    /// Checks that scanning a missing additional root reports an error.
     #[test]
     fn missing_additional_root_is_an_error() {
         let dir = tempfile::tempdir().expect("temp dir");

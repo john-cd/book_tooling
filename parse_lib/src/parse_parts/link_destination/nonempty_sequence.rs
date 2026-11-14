@@ -1,7 +1,5 @@
 //! Parse naked link destinations (e.g. naked URLs).
-//!
 //! Simplified from <https://spec.commonmark.org/0.31.2/#link-destination>.
-//!
 //! A link destination can be a nonempty sequence of characters that does not start with <,
 //! does not include ASCII control characters or space character, and
 //! includes parentheses only if (a) they are backslash-escaped or
@@ -21,7 +19,6 @@ use winnow::token::any;
 fn is_allowed_char(c: char) -> bool {
     !(c.is_ascii_control() || c == ' ' || c == '<' || c == '(' || c == ')' || c == '\\')
 }
-
 /// Returns the length in bytes of the longest link destination at the start of `text`, or `None`
 /// if there is none or it contains an unmatched `(`.
 ///
@@ -73,6 +70,7 @@ pub(crate) fn parse_non_empty_sequence<'s>(input: &mut &'s str) -> ModalResult<&
     Ok(destination)
 }
 
+/// Tests for bare destinations, escapes, and balanced parentheses.
 #[cfg(test)]
 mod tests_parse_non_empty_sequence {
     use super::*;

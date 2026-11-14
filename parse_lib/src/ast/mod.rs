@@ -1,5 +1,4 @@
 //! AST types used by `parse_lib`.
-//!
 //! This module groups the main document model, individual element payload types,
 //! directive-related enums, helper types such as index anchors, and reconstruction helpers.
 //!

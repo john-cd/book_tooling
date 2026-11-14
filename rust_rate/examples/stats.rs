@@ -1,11 +1,11 @@
 //! Aggregates crate usage from sample `Cargo.toml` contents without network access.
-//!
 //! Run with `cargo run -p rust_rate --example stats`.
 //!
 //! TODO Reviewed ??-??-2026.
 
 use rust_rate::stats::CrateStats;
 
+/// Aggregates dependencies from two example manifests and prints their counts.
 fn main() {
     let manifests = [
         "[dependencies]\nanyhow = \"1\"\nserde = \"1\"\n",

@@ -1,5 +1,4 @@
 //! Parses a document in memory, transforms elements while rendering, and reconstructs Markdown.
-//!
 //! [`MarkdownRenderer`] reproduces untouched text byte for byte and applies only the replacements
 //! its resolvers return. Run it with `cargo run -p parse_lib --example markdown_round_trip`.
 //!
@@ -9,6 +8,10 @@ use parse_lib::ast::DirectiveData;
 use parse_lib::markdown_renderer::MarkdownRenderer;
 use parse_lib::visit::Visitor as _;
 
+/// Parses sample Markdown and renders it back to Markdown.
+///
+/// # Errors
+/// Propagates errors from parsing the sample.
 fn main() -> anyhow::Result<()> {
     let source = "\
 # Notes

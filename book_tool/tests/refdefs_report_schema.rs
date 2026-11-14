@@ -42,7 +42,7 @@ fn assert_exact_keys(value: &Value, expected: &[&str], context: &str) {
     assert_eq!(actual, wanted, "unexpected keys in {context}");
 }
 
-/// Asserts that `value` is a positive integer (1-based line or column).
+/// Checks that a JSON value is a positive integer. Uses `context` to identify the field on failure.
 fn assert_positive_integer(value: &Value, context: &str) {
     assert!(
         value.as_u64().is_some_and(|number| number >= 1),
@@ -50,7 +50,8 @@ fn assert_positive_integer(value: &Value, context: &str) {
     );
 }
 
-/// Validates one use record against the report schema.
+/// Checks a reference-use record's keys, source position, label, and use kind. Uses `context` to
+/// identify the record on failure.
 fn assert_valid_use(record: &Value, context: &str) {
     assert_exact_keys(record, &USE_FIELDS, context);
     assert!(record["path"].is_string(), "{context}.path");
@@ -64,7 +65,8 @@ fn assert_valid_use(record: &Value, context: &str) {
     );
 }
 
-/// Validates one definition record against the report schema.
+/// Checks the definition record at `index`, including its normalized label, include provenance, and
+/// nested uses.
 fn assert_valid_definition(record: &Value, index: usize) {
     let context = format!("definition[{index}]");
     assert_exact_keys(record, &DEFINITION_FIELDS, &context);

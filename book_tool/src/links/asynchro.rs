@@ -25,7 +25,8 @@ pub struct UrlCheck {
 }
 
 impl UrlCheck {
-    /// Describes the outcome for humans: the transport error, or the final HTTP status line.
+    /// Returns the transport error message, the HTTP status line, or `no response` when neither is
+    /// available.
     #[must_use]
     pub fn describe(&self) -> String {
         match (&self.error, self.status) {
@@ -42,9 +43,8 @@ const MAX_RETRY_DELAY: Duration = Duration::from_secs(30);
 /// How long a single request may take before it counts as failed.
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// Parses a `Retry-After` value, either delta-seconds or an HTTP-date, relative to `now`.
-///
-/// A date in the past means "retry now" and yields a zero delay.
+/// Parses `value` as delay seconds or as an HTTP date relative to `now`. Past dates yield zero
+/// delay. Returns `None` for an unrecognized value.
 fn parse_retry_after(value: &str, now: SystemTime) -> Option<Duration> {
     let value = value.trim();
     if let Ok(seconds) = value.parse::<u64>() {
@@ -75,10 +75,9 @@ pub struct AsyncLinkChecker {
 }
 
 impl AsyncLinkChecker {
-    /// Creates a new checker with a shared Reqwest client.
+    /// Creates an HTTP checker with the default ten-second request timeout.
     ///
     /// # Errors
-    ///
     /// Returns an error if the HTTP client cannot be built.
     pub fn new() -> anyhow::Result<Self> {
         Self::with_timeout(DEFAULT_TIMEOUT)
@@ -99,9 +98,9 @@ impl AsyncLinkChecker {
         Ok(Self { client })
     }
 
-    /// Verifies a single URL.
-    ///
-    /// The checker attempts a `HEAD` request first and falls back to `GET` when needed.
+    /// Checks `url` with `HEAD`, then tries `GET` after an unsuccessful response or a transport
+    /// error. Returns the final result, including the HTTP status or transport error when
+    /// available.
     pub async fn check_url(&self, url: Url) -> UrlCheck {
         debug!("Checking {}", url);
         // Try HEAD first, fall back to GET if HEAD fails or returns certain status codes
@@ -207,6 +206,7 @@ impl AsyncLinkChecker {
     }
 }
 
+/// Tests for HTTP response handling and retry timing.
 #[cfg(test)]
 mod tests {
     use reqwest::header::HeaderValue;

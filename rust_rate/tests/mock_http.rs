@@ -63,12 +63,12 @@ impl MockServer {
         }
     }
 
-    /// Request lines received so far.
+    /// Returns a copy of the request lines recorded so far, or an empty list if the lock is
+    /// poisoned.
     fn requests(&self) -> Vec<String> {
         self.requests.lock().map_or_default(|lines| lines.clone())
     }
 }
-
 /// Creates a crawler with short deadlines and explicit body ceilings for local tests.
 fn crawler_with_limits(
     api_base: &str,
@@ -116,7 +116,6 @@ fn run_stats_cli(
         .env_remove("RUST_RATE_TEST_TOKEN_NOT_SET")
         .output()
 }
-
 /// Builds a complete HTTP/1.1 response with a JSON or plain body.
 fn response(status: &str, extra_headers: &str, body: &str) -> String {
     format!(
@@ -125,7 +124,7 @@ fn response(status: &str, extra_headers: &str, body: &str) -> String {
     )
 }
 
-/// Builds a code-search page holding `count` items.
+/// Builds a GitHub search response with `count` distinct synthetic Cargo manifest hits.
 fn search_page(count: usize) -> String {
     let items = (0..count)
         .map(|index| {
@@ -267,7 +266,8 @@ async fn search_response_byte_limit_rejects_an_oversized_body() {
     );
 }
 
-/// Stops reading a chunked search response as soon as it crosses the configured limit.
+/// Searches the available response byte limit rejects oversized chunked body data and returns
+/// candidates that satisfy the workflow’s matching rules.
 #[tokio::test]
 async fn search_response_byte_limit_rejects_oversized_chunked_body() {
     let body = r#"{"items":[]}"#;

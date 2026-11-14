@@ -160,8 +160,8 @@ impl GithubCrawler {
         self
     }
 
-    /// Builds the GitHub code search URL for `query`, percent-encoding it and appending the
-    /// unencoded `qualifier` (for example `filename:Cargo.toml`) that restricts the results.
+    /// Builds a paginated GitHub search URL, encoding the query and appending the supplied search
+    /// qualifier, such as `filename:Cargo.toml`.
     fn build_search_url(api_base: &str, query: &str, qualifier: &str, page: usize) -> String {
         let mut encoded_query = String::with_capacity(query.len());
         for byte in query.as_bytes() {
@@ -340,6 +340,7 @@ impl GithubCrawler {
     }
 }
 
+/// Tests for GitHub pagination, response parsing, and request handling.
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,5 +1,4 @@
 //! Benchmarks of `parse_document` throughput on small, medium and large Markdown documents.
-//!
 //! The documents repeat the checked-in fixture corpus, so they exercise headings, links, tables,
 //! directives, code fences and reference definitions. Run with `cargo bench -p parse_lib`.
 //!
@@ -28,7 +27,6 @@ const FIXTURES: [&str; 4] = [
 fn corpus(copies: usize) -> String {
     FIXTURES.concat().repeat(copies)
 }
-
 /// Parses the corpus of `copies` repetitions and reports bytes per second.
 fn bench_parse(bencher: Bencher<'_, '_>, copies: usize) {
     let input = corpus(copies);
@@ -55,8 +53,7 @@ fn large(bencher: Bencher<'_, '_>) {
     bench_parse(bencher, 1_000);
 }
 
-/// Checks the zero-copy claim: every text node borrows from the input, so parsing allocates only
-/// the element vectors, never the text. The check runs once before the benchmarks start.
+/// Checks once before benchmarking that AST text borrows from its input buffer.
 fn assert_text_is_borrowed() {
     let input = corpus(10);
     let document = parse_lib::parse_document("bench.md", None, &input).expect("fixtures parse");
@@ -76,7 +73,7 @@ fn assert_text_is_borrowed() {
     assert!(checked > 0, "the corpus must contain text nodes");
 }
 
-/// Verifies the zero-copy claim, then runs the benchmarks.
+/// Starts the Divan runner for the parser benchmarks.
 fn main() {
     assert_text_is_borrowed();
     divan::main();

@@ -29,6 +29,8 @@ impl Debugger {
 }
 
 impl Default for Debugger {
+    /// Constructs a usable initial debugger value with the defaults required by the debugger
+    /// component.
     fn default() -> Self {
         Self::new()
     }
@@ -139,6 +141,7 @@ impl<'a> Visitor<'a> for Debugger {
     }
 }
 
+/// Tests for debug output for visitor events.
 #[cfg(test)]
 mod tests {
     use super::*;

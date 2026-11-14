@@ -34,6 +34,7 @@ impl<'a> Visitor<'a> for DirectiveExtractor {
     }
 }
 
+/// Tests for collecting directives in traversal order.
 #[cfg(test)]
 mod tests {
     use super::*;

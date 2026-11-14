@@ -102,6 +102,7 @@ impl<'a> Visitor<'a> for PlainTextExtractor {
     fn visit_html_comment(&mut self, _data: &HtmlCommentData<'a>) {}
 }
 
+/// Tests for extracting searchable text and heading context.
 #[cfg(test)]
 mod tests {
     use super::*;

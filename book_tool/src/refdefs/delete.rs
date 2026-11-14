@@ -153,6 +153,7 @@ pub fn delete_unused_refdefs<S: BuildHasher>(
     Ok(output)
 }
 
+/// Tests for removing unused definitions while preserving other source text.
 #[cfg(test)]
 mod tests {
     use super::super::find_unused_refdefs;

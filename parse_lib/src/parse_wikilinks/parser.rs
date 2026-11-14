@@ -19,11 +19,8 @@ use winnow::token::take_while;
 use crate::ast::Element;
 use crate::ast::WikiLinkData;
 
-/// Parses the inner content of a wikilink, which can be either a simple target
-/// or a target and a display text separated by a pipe.
-///
+/// Parses the target and optional pipe-separated display text inside a wikilink.
 /// It handles optional whitespace around the target and display text.
-///
 /// Examples:
 /// - `target]]` -> `("target", None)`
 /// - `  target ]]` -> `("target", None)`
@@ -55,7 +52,6 @@ fn parse_wikilink_inner<'s>(input: &mut &'s str) -> Result<(&'s str, Option<&'s 
 /// A wikilink as raw string slices: `((target, display), text_immediately_after)`.
 type RawWikilink<'s> = ((&'s str, Option<&'s str>), Option<&'s str>);
 
-/// Parses a wikilink in the format `[[target]]` or `[[target | display]]`.
 /// It also captures any alphanumeric characters immediately after the closing brackets,
 /// which become part of the displayed link text.
 fn parse_wikilink_to_strings<'s>(input: &mut &'s str) -> Result<RawWikilink<'s>> {
@@ -73,13 +69,13 @@ fn parse_wikilink_to_strings<'s>(input: &mut &'s str) -> Result<RawWikilink<'s>>
         .parse_next(input)
 }
 
-/// Parses a wikilink in the format `[[target]]` or `[[target | display]]`.
 /// It also captures any alphanumeric characters immediately after the closing brackets,
 /// which become part of the displayed link text.
-///
 /// # Errors
-///
 /// Returns a backtrack error if the input does not begin with a wikilink.
+///
+/// # Arguments
+/// * `input` - Input data whose fields determine the requested parser operation.
 pub fn parse_wikilink<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     parse_wikilink_to_strings
         .map(|((target, display), immediately_after)| {
@@ -95,6 +91,7 @@ pub fn parse_wikilink<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
         .map_err(ErrMode::Backtrack)
 }
 
+/// Tests for wikilink target and display text syntax.
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -130,6 +127,9 @@ mod tests {
     }
 
     /// Asserts that `input` is rejected by the inner wikilink parser.
+    ///
+    /// # Arguments
+    /// * `input` - Input data whose fields determine the requested parser operation.
     fn assert_parse_wikilink_inner_err(input: &str) {
         match parse_wikilink_inner.parse_peek(input) {
             Ok((_, (target, display))) => {
@@ -196,12 +196,9 @@ mod tests {
     /// A target and a pipe without closing brackets is rejected.
     #[test]
     fn test_parse_wikilink_inner_just_target_and_pipe() {
-        // Missing the closing brackets should result in an error.
         assert_parse_wikilink_inner_err("Target|");
     }
-
     // Test `parse_wikilink` -----------------
-    // [[file]]
     /// `[[file]]` yields the target and leaves the following text unconsumed.
     #[test]
     fn test_simple_wikilink() {
@@ -218,7 +215,6 @@ mod tests {
         );
     }
 
-    // [[ file ]]
     /// Spaces inside the brackets are trimmed from the target.
     #[test]
     fn test_simple_wikilink_with_spaces() {
@@ -235,7 +231,6 @@ mod tests {
         );
     }
 
-    // [[file|title]]
     /// `[[file|display text]]` yields both the target and the display text.
     #[test]
     fn test_piped_wikilink_with_display_text() {
@@ -257,7 +252,7 @@ mod tests {
     // [[file |title4]]
     // [[file| title5]]
     // [[file|title6 ]]
-    /// Extra whitespace around the target and display text is trimmed.
+    /// Checks that a piped wikilink accepts spaces in its text.
     #[test]
     fn test_piped_wikilink_with_spaces() {
         assert_eq!(
@@ -302,7 +297,6 @@ mod tests {
         result.expect_err("input should be rejected");
     }
 
-    // [[]]
     /// `[[]]` is not a wikilink.
     #[test]
     fn test_fails_on_empty_brackets() {
@@ -315,7 +309,7 @@ mod tests {
     // [[| title8]]
     // [[|title9 ]]
     // [[| title10 ]]
-    /// Fails on no target.
+    /// Checks that a wikilink with an empty target fails to parse.
     #[test]
     fn fails_on_no_target() {
         let inputs = [

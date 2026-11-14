@@ -1,5 +1,4 @@
 //! Markdown-specific parsing modules.
-//!
 //! This module contains various parsers for standard Markdown elements like
 //! links, images, headings, and code blocks.
 //!
@@ -13,6 +12,9 @@ mod autolink;
 
 /// Parsers for code spans and fenced code blocks.
 mod code;
+/// Implements headings behavior for the markdown component, keeping the related rules and data
+/// transformations at one boundary. The parent module calls these routines when it needs this
+/// component’s behavior.
 mod headings;
 
 /// Parsers for inline and reference-style images.

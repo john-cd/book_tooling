@@ -1,5 +1,4 @@
 //! Parses link destinations between < and >.
-//!
 //! A link destination can consist of a sequence of zero or more characters between an opening < and
 //! a closing > that contains no line endings or unescaped < or > characters.
 //! See <https://spec.commonmark.org/0.31.2/#link-destination>.
@@ -31,7 +30,10 @@ fn parse_non_special_chars<'s>(input: &mut &'s str) -> Result<&'s str> {
     .parse_next(input)
 }
 
-/// Parses an escaped angle bracket e.g., \< or \> or \\.
+/// Consumes an escaped angle bracket or backslash and returns the original two-character slice.
+///
+/// # Errors
+/// Fails if the input does not start with a supported escape.
 fn parse_escaped_chars<'s>(input: &mut &'s str) -> Result<&'s str> {
     ('\\', alt(("<", ">", r"\")))
         .take()
@@ -39,7 +41,6 @@ fn parse_escaped_chars<'s>(input: &mut &'s str) -> Result<&'s str> {
         .context(Expected(Description(r"\< or \> or \\")))
         .parse_next(input)
 }
-
 /// Parses characters allowed inside < and > brackets: non-special or \< or \>.
 fn parse_content_chars<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     repeat::<_, _, String, _, _>(
@@ -69,6 +70,7 @@ pub(crate) fn parse_angle_brackets<'s>(input: &mut &'s str) -> ModalResult<&'s s
         .parse_next(input)
 }
 
+/// Tests for angle-bracketed link destinations and escapes.
 #[cfg(test)]
 mod tests {
     use super::*;

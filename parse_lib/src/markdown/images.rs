@@ -20,11 +20,10 @@ use crate::parse_parts::parse_link_label;
 use crate::parse_parts::parse_link_text;
 use crate::parse_parts::parse_link_title;
 
-/// Parses an inline image: `![desc](url "title")`.
+/// Consumes an inline image and returns its alternate text, source URL, and optional title.
 ///
 /// # Errors
-///
-/// Returns a backtrack error if the input does not begin with an inline image.
+/// Backtracks if the input does not start with valid inline image syntax.
 pub fn parse_inline_image<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     seq!(
         _: '!',
@@ -46,11 +45,10 @@ pub fn parse_inline_image<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     .parse_next(input)
 }
 
-/// Parses a reference-style image: `![desc][label]`.
+/// Consumes a reference-style image and returns its alternate text and reference label.
 ///
 /// # Errors
-///
-/// Returns a backtrack error if the input does not begin with a reference-style image.
+/// Backtracks if the input does not start with valid reference-style image syntax.
 pub fn parse_reference_style_image<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     seq!(
         _: "!",
@@ -68,6 +66,7 @@ pub fn parse_reference_style_image<'s>(input: &mut &'s str) -> ModalResult<Eleme
     .parse_next(input)
 }
 
+/// Tests for inline and reference-style image parsing.
 #[cfg(test)]
 mod tests {
     use super::*;

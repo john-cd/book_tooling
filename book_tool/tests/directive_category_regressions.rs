@@ -12,7 +12,7 @@ fn book_tool_command() -> Command {
     Command::new(env!("CARGO_BIN_EXE_book_tool"))
 }
 
-/// Verifies category rendering preserves encoded slugs and disabled families remain valid source.
+/// Checks that category expansion preserves encoded slugs and leaves disabled directives intact.
 #[test]
 fn category_cli_renders_encoded_punctuation_and_preserves_disabled_directives() {
     let temp = tempdir().expect("create temporary book directory");

@@ -85,13 +85,9 @@ fn collect_active_external_links(
     collector.urls
 }
 
-/// Checks Markdown files for broken external links and optional unused reference definitions.
-///
 /// When `check_refdefs` is `true`, the workflow reports unused reference definitions.
 /// When `delete_unused` is also `true`, those definitions are removed before link verification.
-///
 /// # Errors
-///
 /// Returns an error if a directory cannot be processed, a link is broken, or unused definitions
 /// cannot be deleted.
 #[expect(
@@ -222,10 +218,16 @@ pub async fn execute(
     Ok(())
 }
 
+/// Tests for active URL selection and link-check outcomes.
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// Collects sorted active HTTP and HTTPS URLs from fixture Markdown, optionally ignoring unused
+    /// reference labels.
+    ///
+    /// # Panics
+    /// Panics if the fixture Markdown cannot be parsed.
     fn active(source: &str, unused: Option<&HashSet<String>>) -> Vec<String> {
         let doc = parse_lib::parse_document("t", None, source).expect("parses");
         let mut found: Vec<_> = collect_active_external_links(&doc, unused)
@@ -236,6 +238,7 @@ mod tests {
         found
     }
 
+    /// Checks that only HTTP and HTTPS destinations are eligible for network verification.
     #[test]
     fn only_http_and_https_links_are_collected() {
         let found = active(
@@ -245,6 +248,7 @@ mod tests {
         assert_eq!(found, ["http://b.example/", "https://a.example/"]);
     }
 
+    /// Checks that filtering unused definitions applies normalized reference labels.
     #[test]
     fn unused_definitions_are_skipped_case_and_space_insensitively() {
         let source = "[Keep Me]: https://keep.example/\n[Drop  Me]: https://drop.example/\n";
@@ -253,6 +257,8 @@ mod tests {
         assert_eq!(active(source, None).len(), 2);
     }
 
+    /// Removes or resets the without refdefs is rejected state owned by active link collector,
+    /// preventing stale data from affecting later work.
     #[tokio::test]
     async fn delete_without_refdefs_is_rejected() {
         let err = execute(vec![], false, true, &Scope::default())
@@ -264,6 +270,7 @@ mod tests {
         );
     }
 
+    /// Checks that a chapter with only local links passes without an HTTP request.
     #[tokio::test]
     async fn directory_without_external_links_verifies_trivially() -> Result<()> {
         let dir = tempfile::tempdir()?;
@@ -277,6 +284,7 @@ mod tests {
         .await
     }
 
+    /// Checks that link verification reports missing input directories.
     #[tokio::test]
     async fn missing_directory_is_an_error() {
         let dir = tempfile::tempdir().expect("temp dir");

@@ -66,6 +66,7 @@ pub fn find_unused_refdefs(doc: &Document<'_>) -> HashSet<String> {
         .collect()
 }
 
+/// Tests for reference label normalization.
 #[cfg(test)]
 mod tests {
     use parse_lib::parse_document;

@@ -1,5 +1,4 @@
 //! Property and corpus tests for the parser's totality and lossless round-trip invariants.
-//!
 //! Commands rewrite authored files in place, so `parse_document` must accept every input and
 //! rendering the result without directive expansion must reproduce the input byte for byte.
 //!

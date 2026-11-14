@@ -1,7 +1,8 @@
 # Project-scoped Compose stack: book-tooling.
 # Build inputs come from tracked .devcontainer/.env; from the repo root pass --env-file .devcontainer/.env.
 # Keep credentials in ignored .devcontainer/.env.local; from the repo root pass it as a second --env-file when present.
-# TODO Reviewed ??-??-2026
+# TODO Reviewed ??-??-2026.
+
 # Docker Compose reference: https://docs.docker.com/compose/
 name: book-tooling
 services:

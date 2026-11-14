@@ -201,6 +201,7 @@ impl<'a> Visitor<'a> for HtmlRenderer {
     }
 }
 
+/// Tests for HTML rendering of Markdown nodes.
 #[cfg(test)]
 mod tests {
     use super::*;

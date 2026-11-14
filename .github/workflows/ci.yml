@@ -1,4 +1,4 @@
-# TODO Reviewed ??-??-2026
+# TODO Reviewed ??-??-2026.
 
 ## Continuous integration: runs the reusable Rust CI on Linux (push/PR) or any OS set (manual run).
 name: CI

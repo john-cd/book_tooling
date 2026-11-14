@@ -7,7 +7,7 @@ use std::process::Command;
 
 use tempfile::tempdir;
 
-/// Verifies the directives CLI applies TOML flags and configured file scope.
+/// Checks that configuration controls expansion families and which file extensions are processed.
 #[test]
 fn directives_cli_uses_configured_features_and_file_extensions() {
     let temp = tempdir().expect("create temporary book directory");

@@ -1,6 +1,5 @@
 //! Diagnostics and degradation behavior of the parser for invalid directive syntax and corrupted
 //! input documents.
-//!
 //! The document parser is deliberately lenient: text it cannot interpret becomes plain text
 //! instead of an error. Hard errors surface only from the individual element parsers, and
 //! `ParsingError` renders them with a source snippet.

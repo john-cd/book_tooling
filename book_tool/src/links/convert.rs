@@ -40,8 +40,6 @@ pub struct InlineLinkConversion {
     pub stats: InlineLinkConversionStats,
 }
 
-/// Converts untitled inline links and autolinks into reference-style links for a parsed document.
-///
 /// Existing reference definitions are reused when possible. Titled inline links remain unchanged
 /// because converting them without a title-aware definition could drop their hover text. New
 /// definitions are appended to the end of the rendered Markdown in ascending numeric-label order.
@@ -115,7 +113,8 @@ struct LabelRegistry {
 }
 
 impl LabelRegistry {
-    /// Creates a registry seeded with the reference definitions of `doc`.
+    /// Initializes conversion with the document's existing URL-to-label mappings and the set of
+    /// occupied labels.
     fn from_doc(doc: &parse_lib::Document<'_>) -> Self {
         let mut existing_url_to_label = HashMap::new();
         let mut existing_labels = HashSet::new();
@@ -136,7 +135,7 @@ impl LabelRegistry {
         }
     }
 
-    /// Returns the number of definitions that existed before the conversion.
+    /// Returns the number of distinct URLs already mapped to reference labels.
     fn existing_reference_count(&self) -> usize {
         self.existing_url_to_label.len()
     }
@@ -159,7 +158,7 @@ impl LabelRegistry {
         format!("[{}][{}]", link.text, label)
     }
 
-    /// Renders an autolink as a reference-style link; issue links stay as autolinks.
+    /// Renders an autolink through a reference label, preserving issue links in angle brackets.
     fn render_autolink(&self, link: &AutolinkData<'_>) -> String {
         if should_preserve_issue_link(link.url) {
             self.preserved_issue_links
@@ -172,8 +171,8 @@ impl LabelRegistry {
         format!("[{}][{}]", link.url, label)
     }
 
-    /// Returns the label for `url`, reusing an existing or earlier allocated one, or allocating a
-    /// new one.
+    /// Returns the existing label for `url` when available. Otherwise, allocates a fresh label and
+    /// saves the new definition.
     fn label_for_url(&self, url: &str) -> String {
         if let Some(label) = self.existing_url_to_label.get(url) {
             self.reused_reference_definitions
@@ -199,7 +198,8 @@ impl LabelRegistry {
         label
     }
 
-    /// Allocates the next numeric label that is not yet in use.
+    /// Returns the next available numeric label as a decimal string and advances the allocation
+    /// cursor.
     fn allocate_label(&self) -> String {
         loop {
             let candidate = self.next_label.get();
@@ -250,6 +250,7 @@ fn should_preserve_issue_link(url: &str) -> bool {
     url.contains(ISSUE_LINK_PASSTHROUGH)
 }
 
+/// Tests for reference-label allocation and link conversion.
 #[cfg(test)]
 mod tests {
     use parse_lib::parse_document;

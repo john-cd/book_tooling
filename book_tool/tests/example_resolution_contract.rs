@@ -6,7 +6,7 @@ use anyhow::anyhow;
 use book_tool::directives::Config;
 use book_tool::directives::process_markdown_with_example_resolver;
 
-/// Verifies chapter-relative example paths and anchors reach the caller-owned resolver unchanged.
+/// Checks that example resolution receives the original chapter-relative spelling and anchor.
 #[test]
 fn example_resolver_receives_the_original_chapter_relative_path_and_anchor() {
     let source =
@@ -33,7 +33,7 @@ fn example_resolver_receives_the_original_chapter_relative_path_and_anchor() {
     );
 }
 
-/// Verifies an adapter's ambiguous-example error is returned with the original directive name.
+/// Checks that an ambiguous example error identifies the unresolved input.
 #[test]
 fn example_resolver_reports_ambiguous_names_with_context() {
     let source = "{{#example snippets/shared.rs:example}}";
@@ -45,7 +45,7 @@ fn example_resolver_reports_ambiguous_names_with_context() {
     assert!(format!("{error:#}").contains("ambiguous example path: snippets/shared.rs:example"));
 }
 
-/// Verifies disabling example processing preserves source and does not call the resolver.
+/// Checks that disabling examples leaves their text intact and skips the callback.
 #[test]
 fn disabled_example_processing_preserves_the_directive_without_resolution() {
     let source = "{{#example snippets/read_file.rs:example}}\n";

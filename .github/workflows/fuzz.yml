@@ -1,4 +1,4 @@
-# TODO Reviewed ??-??-2026
+# TODO Reviewed ??-??-2026.
 
 ## Manual libFuzzer run of the parse_lib `round_trip` target on a hosted Linux runner.
 ## Fuzzing is not a merge gate; run it on demand and record the result on the tracking issue.

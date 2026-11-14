@@ -11,12 +11,12 @@ use crate::ast::CodeSpanData;
 use crate::ast::Element;
 use crate::ast::FencedCodeBlockData;
 
-/// Parses text enclosed in single backticks.
 /// Simplified from <https://spec.commonmark.org/0.31.2/#code-spans>.
-///
 /// # Errors
-///
 /// Returns a backtrack error if the input does not begin with a code span.
+///
+/// # Arguments
+/// * `input` - Input data whose fields determine the requested code operation.
 pub fn parse_code_span<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     delimited(
         '`',                  // Opening backtick.
@@ -27,11 +27,8 @@ pub fn parse_code_span<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     .parse_next(input)
 }
 
-/// Parses text enclosed in triple backticks.
 /// Simplified from <https://spec.commonmark.org/0.31.2/#fenced-code-blocks>.
-///
 /// # Errors
-///
 /// Returns a backtrack error if the input does not begin with a fenced code block.
 pub fn parse_fenced_code_block<'a>(input: &mut &'a str) -> ModalResult<Element<'a>> {
     let content = delimited(
@@ -65,6 +62,7 @@ pub fn parse_fenced_code_block<'a>(input: &mut &'a str) -> ModalResult<Element<'
     }))
 }
 
+/// Tests for inline code and fenced code parsing.
 #[cfg(test)]
 mod tests {
     use super::*;

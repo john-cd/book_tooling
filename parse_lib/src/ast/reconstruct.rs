@@ -14,6 +14,7 @@ pub fn reconstruct_markdown(elements: &[Element<'_>]) -> String {
     result
 }
 
+/// Tests for reconstructing Markdown from document syntax.
 #[cfg(test)]
 mod tests {
     use super::*;

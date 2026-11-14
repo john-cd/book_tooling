@@ -6,8 +6,6 @@ use std::path::Path;
 
 use super::Element;
 
-/// Represents a parsed Markdown document.
-///
 /// A `Document` consists of a name, an optional filesystem path, and a collection
 /// of top-level `Element` nodes that form the AST.
 #[derive(Debug, PartialEq, Eq)]
@@ -49,15 +47,14 @@ impl<'s> Document<'s> {
     //     &mut self.elements
     // }
 
-    /// Returns the byte range of `fragment` in [`Document::source`], if it borrows from it.
-    ///
-    /// See [`crate::source_span::source_span`].
+    /// Returns the byte range of a borrowed `fragment` within the original Markdown. Returns `None`
+    /// when the slice does not belong to this source.
     #[must_use]
     pub fn span_of(&self, fragment: &str) -> Option<std::ops::Range<usize>> {
         crate::source_span::source_span(self.source, fragment)
     }
 
-    /// Returns true if the document has no elements.
+    /// Returns whether the document contains zero AST elements.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.elements.is_empty()

@@ -107,6 +107,7 @@ pub fn execute(query: &str, directories: &[PathBuf], scope: &Scope) -> Result<()
     Ok(())
 }
 
+/// Tests for plain-text matching and document context.
 #[cfg(test)]
 mod tests {
     use super::*;

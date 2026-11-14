@@ -49,12 +49,11 @@ struct CrateRecord {
     recent_downloads: Option<u64>,
 }
 
-/// Checks that `name` is a valid crates.io crate name before it is placed in a URL.
+/// Validates a crate name before the crates.io lookup.
 ///
 /// # Errors
-///
-/// Returns an error if the name is empty, longer than 64 characters, starts with a character
-/// other than an ASCII letter, or contains anything but ASCII letters, digits, `-` and `_`.
+/// Returns an error if `name` is longer than 64 bytes, does not begin with an ASCII letter,\n/// or
+/// contains characters other than ASCII letters, digits, hyphens, and underscores.
 pub fn validate_crate_name(name: &str) -> Result<()> {
     let valid = name.len() <= 64
         && name.starts_with(|c: char| c.is_ascii_alphabetic())
@@ -130,6 +129,7 @@ pub async fn execute(crate_name: &str) -> Result<()> {
     Ok(())
 }
 
+/// Tests for registry response handling and crate-name validation.
 #[cfg(test)]
 mod tests {
     use super::*;

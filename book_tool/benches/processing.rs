@@ -1,6 +1,5 @@
 //! Benchmarks of `book_tool` corpus processing: directory traversal, link extraction and
 //! directive replacement.
-//!
 //! The corpus is a temporary directory of chapters built from the checked-in fixtures. Run with
 //! `cargo bench -p book_tool`.
 //!
@@ -97,7 +96,7 @@ fn directive_replacement(bencher: Bencher<'_, '_>, chapters: usize) {
     });
 }
 
-/// Runs the benchmarks.
+/// Starts the Divan runner for the book-processing benchmarks.
 fn main() {
     divan::main();
 }

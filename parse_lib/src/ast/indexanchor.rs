@@ -28,6 +28,7 @@ impl Display for IndexAnchorKind {
     }
 }
 
+/// Tests for rendering index anchors.
 #[cfg(test)]
 mod tests {
     use super::*;

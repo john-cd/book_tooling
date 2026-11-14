@@ -1,5 +1,4 @@
 //! Maps AST fragments back to byte ranges of the source they were parsed from.
-//!
 //! The AST borrows its text from the source string instead of storing spans, so a
 //! fragment's position is recovered from its address. This is the one place that
 //! relies on that invariant; callers get a checked range or `None`.
@@ -24,6 +23,7 @@ pub fn source_span(source: &str, fragment: &str) -> Option<Range<usize>> {
         .then_some(start..end)
 }
 
+/// Tests for mapping borrowed slices to source byte ranges.
 #[cfg(test)]
 mod tests {
     use super::*;

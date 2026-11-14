@@ -1,5 +1,4 @@
 //! Analyzes a Markdown document with a custom [`Visitor`].
-//!
 //! The visitor counts headings, collects external link destinations and lists the directives it
 //! meets. Run it with `cargo run -p parse_lib --example custom_visitor`.
 //!
@@ -45,6 +44,10 @@ impl<'a> Visitor<'a> for DocumentSummary<'a> {
     }
 }
 
+/// Parses sample Markdown and prints the counts gathered by a custom visitor.
+///
+/// # Errors
+/// Propagates errors from parsing the sample.
 fn main() -> anyhow::Result<()> {
     let source = "\
 # Guide

@@ -79,6 +79,7 @@ pub fn replace_text_file_atomically(path: &Path, contents: &str) -> Result<()> {
         .with_context(|| format!("Failed to replace {}", path.display()))
 }
 
+/// Tests for atomic replacement and file content preservation.
 #[cfg(test)]
 mod tests {
     use tempfile::tempdir;

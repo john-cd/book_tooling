@@ -91,10 +91,12 @@ pub fn write_audit_report(path: &Path, analysis: &ScopedRefDefAnalysis) -> Resul
     })
 }
 
+/// Tests for audit report ordering and JSON serialization.
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// Builds a reference-use fixture at the given path and line with the supplied kind.
     fn usage(path: &str, line: usize, kind: ReferenceUseKind) -> ReferenceUseAudit {
         ReferenceUseAudit {
             path: PathBuf::from(path),
@@ -105,6 +107,7 @@ mod tests {
         }
     }
 
+    /// Builds a definition fixture with reference uses for testing report serialization.
     fn definition() -> ReferenceDefinitionAudit {
         ReferenceDefinitionAudit {
             path: PathBuf::from("refs.md"),
@@ -121,6 +124,7 @@ mod tests {
         }
     }
 
+    /// Checks field ordering and the serialized spelling of reference-use kinds.
     #[test]
     fn definition_serializes_with_stable_field_order_and_snake_case_kinds() {
         let json = serde_json::to_string(&definition()).expect("serializes");
@@ -136,11 +140,13 @@ mod tests {
         );
     }
 
+    /// Checks the order of link and image uses when sorting a report.
     #[test]
     fn use_kinds_order_links_before_images() {
         assert!(ReferenceUseKind::Link < ReferenceUseKind::Image);
     }
 
+    /// Checks the report formatting and preservation of input order.
     #[test]
     fn report_is_pretty_printed_array_with_trailing_newline_in_input_order() {
         let dir = tempfile::tempdir().expect("temp dir");
@@ -166,6 +172,7 @@ mod tests {
         assert_eq!(labels, ["Serde", "Zed"]);
     }
 
+    /// Checks that an audit with no findings writes an empty JSON array.
     #[test]
     fn empty_analysis_writes_an_empty_array() {
         let dir = tempfile::tempdir().expect("temp dir");
@@ -174,6 +181,7 @@ mod tests {
         assert_eq!(std::fs::read_to_string(path).expect("reads"), "[]\n");
     }
 
+    /// Checks that a report write failure identifies its output path.
     #[test]
     fn unwritable_destination_reports_the_path() {
         let dir = tempfile::tempdir().expect("temp dir");

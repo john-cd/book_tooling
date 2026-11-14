@@ -1,14 +1,10 @@
 //! # `parse_lib`
-//!
 //! A high-performance, non-destructive Markdown parser and transformation library.
-//!
 //! This crate provides tools to parse Markdown into a rich AST, traverse and modify that AST
 //! using the Visitor pattern, and reconstruct Markdown or render it to HTML.
-//!
 //! It is specifically designed to handle custom directives (e.g., `{{#crate name}}`) and
 //! wikilinks (`[[page | display]]`) while maintaining faithful reconstruction of the original
 //! document formatting.
-//!
 //! The public API is organized into a few layers:
 //! - [`ast`]: reusable data structures representing parsed Markdown.
 //! - [`visit`]: traits and visitors for traversing or re-rendering documents.

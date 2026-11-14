@@ -1,5 +1,4 @@
 //! Parses Markdown ATX Headings (with {# anchor} mdbook extension).
-//!
 //! See <https://spec.commonmark.org/0.31.2/#atx-headings>.
 //!
 //! TODO Reviewed ??-??-2026.
@@ -37,11 +36,11 @@ fn parse_opening_hashes(input: &mut &str) -> ModalResult<u8> {
     )
     .parse_next(input)
 }
-
-/// Parse Attribute Block.
-/// This is a simplified parser for attributes focusing on the ID.
+/// Consumes an mdBook heading attribute of the form `{#id}` and returns the trimmed ID.
 ///
-/// See <https://rust-lang.github.io/mdBook/format/markdown.html#heading-attributes>.
+/// # Errors
+/// Backtracks if the delimiters or nonblank ID are missing or the ID contains an unsupported
+/// character.
 fn parse_attribute_block<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
     let attributes_content_chars = |c: char| {
         c != '{' && c != '}' && c != '<' && c != '>' && c != '\\' && c != '\n' && c != '\r'
@@ -69,7 +68,8 @@ fn parse_attribute_block<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
         .parse_next(input)
 }
 
-/// Parses the heading text up to an optional attribute block or closing hashes.
+/// Consumes the rest of an ATX heading line and returns its optional trimmed text and explicit
+/// anchor ID.
 fn parse_heading_content<'s>(
     input: &mut &'s str,
 ) -> ModalResult<(Option<&'s str>, Option<&'s str>)> {
@@ -100,11 +100,10 @@ fn parse_heading_content<'s>(
     .parse_next(input)
 }
 
-/// Parses a Markdown ATX heading.
+/// Consumes an ATX heading and returns its level, text, and optional mdBook anchor.
 ///
 /// # Errors
-///
-/// Returns a backtrack error if the input does not begin with an ATX heading.
+/// Backtracks if the input does not start with a valid heading.
 pub fn parse_atx_heading<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     let start = input.checkpoint();
     let mut hashes = parse_opening_hashes;
@@ -133,6 +132,7 @@ pub fn parse_atx_heading<'s>(input: &mut &'s str) -> ModalResult<Element<'s>> {
     }
 }
 
+/// Tests for heading levels and explicit anchors.
 #[cfg(test)]
 mod tests {
     use super::*;

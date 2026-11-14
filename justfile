@@ -1,7 +1,7 @@
 # Purpose: Build, validate, and maintain this Rust workspace with its configured tooling environment.
 # Usage: Run just --list from this directory to inspect the available recipes.
 
-# TODO Reviewed ??-??-2026
+# TODO Reviewed ??-??-2026.
 
 # Storage-root overrides (existing environment values win over platform defaults):
 # CODE_REPOS_ROOT names the canonical checkout root for tools; CODE_TEMP_ROOT holds temporary files.
