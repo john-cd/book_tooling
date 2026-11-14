@@ -1,12 +1,20 @@
-# TODO Reviewed ??-??-2026
+# TODO Reviewed ??-??-2026.
+
 # Build configuration: see CONFIGURATION.md at the repository root.
 # The Just runner supplies absolute per-checkout paths. Direct Cargo uses these checkout-local
 # names, which are linked to D:/target/<repo>/<slot> and D:/code_build/<repo>/<slot>.
 
+# Linker policy: use rustc's target defaults for native builds.
+# Windows MSVC: use link.exe from Visual Studio Build Tools and the Windows SDK.
+# macOS: use the Apple toolchain via cc and the Xcode or Command Line Tools SDK.
+# x86_64 GNU/Linux: Rust 1.90+ selects bundled LLD through the system C driver.
+# Other Linux targets use their target defaults. Set cross-linkers in local
+# Cargo configuration or CARGO_TARGET_<TRIPLE>_LINKER for the selected toolchain.
+
 [build]
 
 # The justfile/Makefile.toml reads CODE_*_ROOT overrides (with Windows and XDG defaults) and exports per-checkout Cargo output paths; use its cargo command for these roots.
-rustc-wrapper = "sccache"
+# The repository task runner or CI can enable sccache after provisioning it.
 incremental = false
 target-dir = "target"
 build-dir = "build"
@@ -14,15 +22,7 @@ build-dir = "build"
 [env]
 SCCACHE_BASEDIRS = { value = ".", relative = true }
 
-[env.SCCACHE_CACHE_SIZE]
-value = "45G"
-force = true
 
-[target.x86_64-pc-windows-msvc]
-linker = "rust-lld.exe"
-
-[target.aarch64-pc-windows-msvc]
-linker = "rust-lld.exe"
 
 [profile.dev]
 lto = "off"

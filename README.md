@@ -1,8 +1,12 @@
-<!-- TODO Reviewed ??-??-2026 -->
+<!-- TODO Reviewed ??-??-2026. -->
 
 # Book Tooling
 
 A collection of Rust-based tools for processing Markdown files, particularly for books and documentation projects.
+
+## Local Rust checks
+
+Install the toolchain from `rust-toolchain.toml` with `rustup show` in the checkout. From the repository root, run `just check` and `just test-all`. For formatting, use the nightly pin in `rustfmt-toolchain.toml`.
 
 ## Overview
 
@@ -251,7 +255,7 @@ Build paths and diagnostics are implemented directly in the justfile.
 
 ### Compiler cache
 
-Direct Cargo defaults and `just` use sccache with incremental compilation
+Plain Cargo can run without a wrapper. The Just runner uses sccache with incremental compilation
 disabled and a 45G cache limit. The runner exports `RUSTC_WRAPPER=sccache`,
 `CARGO_BUILD_RUSTC_WRAPPER=sccache`, `CARGO_INCREMENTAL=0`, and
 `SCCACHE_CACHE_SIZE=45G`, replacing inherited values. Explicit shell or Cargo
