@@ -1,0 +1,6 @@
+# Intentional fixture exceptions for scripts/check_config_drift.py.
+
+[[fixture_exceptions]]
+path = "test_fixtures/markdown/crlf.md"
+reason = "The link parser fixture preserves CRLF bytes to verify line-ending fidelity."
+newline = "crlf"

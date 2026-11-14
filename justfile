@@ -102,6 +102,11 @@ _default:
     echo "Check for orphan Rust source files in $(pwd)"
     python3 scripts/check_orphan_sources.py || python scripts/check_orphan_sources.py
 
+# Check workspace, Dependabot, editing, toolchain and fixture configuration alignment.
+@config-drift:
+    echo "Check repository configuration consistency in $(pwd)"
+    python3 scripts/check_config_drift.py || python scripts/check_config_drift.py
+
 # Build all packages (all features)
 @build:
     echo "Build all packages, all features in $(pwd)"

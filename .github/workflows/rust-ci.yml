@@ -74,6 +74,17 @@ jobs:
           RUSTFMT_TOOLCHAIN: ${{ steps.setup-rust.outputs.rustfmt_toolchain }}
         run: prek run --all-files
 
+      - name: Check configuration paths and cross-file pins
+        run: just config-drift
+
+      - name: Validate GitHub Actions workflows
+        if: runner.os == 'Linux'
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/*.yml
+
+      - name: Validate devcontainer Compose configuration
+        if: runner.os == 'Linux'
+        run: docker compose --env-file .devcontainer/.env -f .devcontainer/compose.yaml config --quiet
+
       - name: Fetch
         run: cargo fetch --locked
 

@@ -75,4 +75,5 @@ Cargo.lock text diff=toml
 .gitignore export-ignore
 .gitkeep export-ignore
 
+# Intentional CRLF fixture; see .config/config-drift.toml for the exception rationale.
 test_fixtures/markdown/crlf.md -text -eol

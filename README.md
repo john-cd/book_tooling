@@ -6,7 +6,7 @@ A collection of Rust-based tools for processing Markdown files, particularly for
 
 ## Local Rust checks
 
-Install the toolchain from `rust-toolchain.toml` with `rustup show` in the checkout. From the repository root, run `just check` and `just test-all`. For formatting, use the nightly pin in `rustfmt-toolchain.toml`.
+Install the toolchain from `rust-toolchain.toml` with `rustup show` in the checkout. From the repository root, run `just check`, `just config-drift`, and `just test-all`. For formatting, use the nightly pin in `rustfmt-toolchain.toml`.
 
 ## Overview
 
