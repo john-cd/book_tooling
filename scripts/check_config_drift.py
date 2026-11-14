@@ -12,11 +12,13 @@ from pathlib import Path
 
 
 def read_toml(path: Path) -> dict:
+    """Load a TOML file from ``path`` in binary mode, as required by tomllib."""
     with path.open("rb") as stream:
         return tomllib.load(stream)
 
 
 def read_env(path: Path) -> dict[str, str]:
+    """Read simple KEY=VALUE entries, ignoring blank lines and comments."""
     values: dict[str, str] = {}
     for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         line = line.strip()
@@ -30,11 +32,14 @@ def read_env(path: Path) -> dict[str, str]:
 
 
 def parse_dependabot_paths(text: str) -> list[tuple[str, str]]:
+    """Extract package-ecosystem and directory pairs from Dependabot YAML."""
     entries: list[tuple[str, str]] = []
     current: str | None = None
     in_directories = False
     directories_indent = -1
 
+    # Read only the small YAML structure this check needs; this avoids requiring
+    # a YAML dependency just to verify configured paths.
     for line in text.splitlines():
         ecosystem = re.match(r"^\s*-\s+package-ecosystem:\s*([^\s#]+)", line)
         if ecosystem:
@@ -69,6 +74,7 @@ def parse_dependabot_paths(text: str) -> list[tuple[str, str]]:
 
 
 def check_dependabot_paths(root: Path, errors: list[str]) -> None:
+    """Report invalid or unmatched package directories in Dependabot config."""
     path = root / ".github" / "dependabot.yml"
     if not path.is_file():
         return
@@ -110,6 +116,7 @@ def check_dependabot_paths(root: Path, errors: list[str]) -> None:
 
 
 def check_workspace(root: Path, errors: list[str]) -> None:
+    """Validate Cargo workspace members and their effective Rust version pins."""
     manifest = root / "Cargo.toml"
     if not manifest.is_file():
         return
@@ -141,6 +148,8 @@ def check_workspace(root: Path, errors: list[str]) -> None:
         errors.append(f"Cargo metadata did not emit valid JSON: {error}")
         return
 
+    # Cargo metadata resolves inherited package fields, so compare its values
+    # with the workspace pin instead of inspecting member manifests directly.
     expected_msrv = workspace.get("package", {}).get("rust-version")
     member_ids = set(metadata.get("workspace_members", []))
     packages = [package for package in metadata.get("packages", []) if package.get("id") in member_ids]
@@ -155,6 +164,7 @@ def check_workspace(root: Path, errors: list[str]) -> None:
 
 
 def check_editor_and_git(root: Path, errors: list[str]) -> None:
+    """Check repository-wide editor defaults and Git line-ending attributes."""
     editorconfig = root / ".editorconfig"
     if editorconfig.is_file():
         global_values: dict[str, str] = {}
@@ -185,6 +195,7 @@ def check_editor_and_git(root: Path, errors: list[str]) -> None:
 
 
 def check_toolchain_pins(root: Path, errors: list[str]) -> None:
+    """Ensure container toolchain pins are valid and referenced by consumers."""
     env_path = root / ".devcontainer" / ".env"
     if not env_path.is_file():
         return
@@ -215,6 +226,8 @@ def check_toolchain_pins(root: Path, errors: list[str]) -> None:
         if stable and not image_pin.startswith(stable):
             errors.append(f"container Rust pin {image_pin!r} disagrees with rust-toolchain channel {stable!r}")
 
+    # Limit the reference scan to configuration and tooling that can consume
+    # these pins; the env file itself cannot count as its own consumer.
     consumers = [
         path
         for directory in (root / ".devcontainer", root / ".github", root / "scripts")
@@ -230,6 +243,7 @@ def check_toolchain_pins(root: Path, errors: list[str]) -> None:
 
 
 def check_fixture_exceptions(root: Path, errors: list[str]) -> None:
+    """Validate declared line-ending fixtures and their formatter exclusions."""
     policy_path = root / ".config" / "config-drift.toml"
     policy = read_toml(policy_path) if policy_path.is_file() else {}
     exceptions = {item.get("path"): item for item in policy.get("fixture_exceptions", [])}
@@ -245,6 +259,8 @@ def check_fixture_exceptions(root: Path, errors: list[str]) -> None:
             if not any(char in pattern for char in "*?[]"):
                 explicit_paths.add(pattern.replace("\\", "/"))
 
+    # Check both sides of the policy: every Git exception needs documentation,
+    # and every documented exception must still name an existing fixture.
     for path in sorted(explicit_paths | set(exceptions)):
         entry = exceptions.get(path)
         if entry is None or not str(entry.get("reason", "")).strip():
@@ -280,6 +296,7 @@ def check_fixture_exceptions(root: Path, errors: list[str]) -> None:
 
 
 def main() -> int:
+    """Run configuration drift checks for the supplied or current repository."""
     root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
     if not root.is_dir():
         print(f"repository root does not exist: {root}", file=sys.stderr)
