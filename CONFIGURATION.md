@@ -70,17 +70,17 @@ and environment/command-line overrides take precedence over config values.
 
 | Profile                                | Workspace code                                           | Dependencies and build tools                                                                                                                 |
 | -------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dev` / `test`                         | `opt-level = 0`, line tables, LTO off, 256 codegen units | `opt-level = "s"`, no debug info, 16 units; selected hashing, collections, math, regex, parallelism, allocator and macro crates use level 3. |
-| `debugging`                            | Level 0 and full symbols                                 | Level 0 and full symbols, including build scripts/procedural macros; intentionally uses a separate cache variant.                            |
+| `dev` / `test` | Level 0, no symbols, incremental disabled | Level 1 by default, selected compute-heavy dependencies at level 3, no symbols. |
+| `debug` | Level 2 symbols for workspace crates | Same optimized dependency settings as `dev`, with dependency symbols disabled. |
 | `ci`                                   | Inherits `dev`, incremental disabled                     | Same flags as `dev` for dependency cache reuse. Use release jobs for performance validation.                                                 |
-| `tools`                                | Level 2 for repeatedly executed repository tools         | Same dependency flags as `dev`; build overrides request level 3 with no debug info; named package overrides take precedence.                 |
+| `tools` | Level 2 for repository tools | Same dependency settings as `dev`. |
 | `release` / other specialized profiles | Preserve existing shipping/profiling choices             | Preserve existing shipping/profiling choices.                                                                                                |
 
 `test` inherits `dev`. Package overrides take precedence over build overrides; macro parsing
 crates are tuned explicitly. Optimization can increase cold compile time, and size optimization
 is not guaranteed to make every crate smaller. Matching profile flags improves cache eligibility;
 compiler versions, target/features, source paths, native tools, and rustflags also affect hits.
-The `debugging` profile intentionally rebuilds dependencies to make them debuggable.
+The built-in `debug` profile keeps full symbols on workspace crates while the shared dependency override keeps third-party dependencies symbol-free.
 
 Run `just build-setup` once per checkout. It creates ignored `target`, `build`, and `.sccache`
 links and refuses to replace existing files, directories, or links to another slot. PowerShell 7
@@ -101,7 +101,7 @@ Keep the shared 45 GiB cache and stable per-slot directories. Inspect running Ca
 processes before restarting sccache. Clean only demonstrated stale/corrupt content, never by
 recursively deleting a checkout link or another active slot.
 
-Select profiles with `just cargo build --profile debugging` or `--profile tools`; ordinary
+Select profiles with `just cargo build --profile debug` or `--profile tools`; ordinary
 build/test uses `dev`/`test`. Select a Cargo profile in nextest with `--cargo-profile ci`, independently
 of nextest's test-runner `--profile ci`.
 
@@ -123,14 +123,14 @@ Windows x86_64-pc-windows-msvc, develop base `a639fc4` plus `37d6ef2` (2026-11-0
 
 - `cargo check --workspace --all-targets --locked` and all-features Clippy passed with direct Cargo
   after `37d6ef2`. The direct debugging-profile check passed using the host's absolute build fallback.
-- CI, tools, and debugging profile checks passed with verbose flags inspected and the runner's
+- CI, tools, and debug profile checks passed with verbose flags inspected and the runner's
   absolute per-slot environment. `cargo test --workspace --locked --no-run` passed in 1m10s with
   that environment; `rust-lld.exe` linked the Windows test executables. The warm dev check completed
   in 0.64s. `sccache` reported 61.69% hits during the test-profile build (256 C/C++ hits; zero
   Rust hits for that new profile).
 - `rustc` invocations confirmed dependencies use `opt-level=s`, no debug symbols, and `strip=debuginfo`
   in regular profiles; named hash/collection/regex crates use `opt-level=3`; build scripts use
-  `opt-level=3`. The debugging profile used full symbols. Rust-bundled `rust-lld.exe` linked the
+  `opt-level=3`. The debug profile used full symbols. Rust-bundled `rust-lld.exe` linked the
   Windows test executables successfully.
 - Historical validation created checkout links at `D:/target/book_tooling/f`, `D:/code_build/book_tooling/f`, and `D:/sccache`. D: is ReFS. An earlier Rust version failed through the ReFS junction; Rust 1.100.0 or newer fixes that upstream issue. The D: ReFS path change has not yet been revalidated by a build on this checkout. Use the Just runner or absolute Cargo environment paths for builds. An isolated setup probe passed root overrides, repeatability, existing-directory
   refusal, and mismatched-link refusal.
