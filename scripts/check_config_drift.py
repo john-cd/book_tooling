@@ -1,5 +1,17 @@
 #!/usr/bin/env python3
-"""Check repository configuration paths and cross-file pins for drift."""
+"""Check repository configuration for cross-file drift.
+
+This read-only check compares settings that must stay aligned across repository
+files. It validates Dependabot paths, Cargo workspace members and Rust version
+pins, editor and Git line-ending defaults, container toolchain pins, and
+documented exceptions for intentional line-ending fixtures.
+
+These checks catch stale or conflicting configuration early, such as a
+Dependabot path that no longer exists or a container Rust version that differs
+from the repository toolchain. Errors are printed and produce a nonzero exit
+status; the script does not modify files. Run it from the repository root with
+``just config-drift`` or pass a repository root as the first argument.
+"""
 
 from __future__ import annotations
 
