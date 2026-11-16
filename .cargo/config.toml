@@ -12,17 +12,15 @@
 # Cargo configuration or CARGO_TARGET_<TRIPLE>_LINKER for the selected toolchain.
 
 [build]
-
 # The justfile/Makefile.toml reads CODE_*_ROOT overrides (with Windows and XDG defaults) and exports per-checkout Cargo output paths; use its cargo command for these roots.
 # The repository task runner or CI can enable sccache after provisioning it.
+rustc-wrapper = "sccache"
 incremental = false
 target-dir = "target"
 build-dir = "build"
 
 [env]
 SCCACHE_BASEDIRS = { value = ".", relative = true }
-
-
 
 [profile.dev]
 lto = "off"
@@ -32,16 +30,6 @@ incremental = false
 [profile.dev.package."*"]
 opt-level = 1
 debug = 0
-
-[profile.debug]
-debug = 2
-
-[profile.debug.package."*"]
-opt-level = 1
-debug = 0
-
-[profile.ci]
-inherits = "dev"
 
 [profile.dev.package]
 hashbrown = {opt-level = 3}
@@ -59,6 +47,13 @@ regex-syntax = {opt-level = 3}
 rustls = {opt-level = 3}
 smallvec = {opt-level = 3}
 syn = {opt-level = 3}
+
+[profile.debug]
+debug = 2
+
+[profile.debug.package."*"]
+opt-level = 1
+debug = 0
 
 [profile.debug.package]
 hashbrown = {opt-level = 3, debug = 0}
@@ -81,6 +76,8 @@ syn = {opt-level = 3, debug = 0}
 inherits = "dev"
 opt-level = 2
 
+[profile.ci]
+inherits = "dev"
 
 # Cargo defaults reference (Cargo 1.100.0). Comments only.
 #
