@@ -29,7 +29,7 @@ windows_cache_home := env("LOCALAPPDATA", join(home_directory(), ".cache"))
 unix_cache_home := env("XDG_CACHE_HOME", join(home_directory(), ".cache"))
 cache_home := if os() == "windows" { windows_cache_home } else { unix_cache_home }
 code_repos_root := env("CODE_REPOS_ROOT", if os_family() == "windows" { "D:/code" } else { join(home_directory(), "code") })
-code_temp_root := env("CODE_TEMP_ROOT", if os_family() == "windows" { if path_exists("D:/temp") == "true" { "D:/temp" } else { "C:/temp" } } else { env("TMPDIR", "/tmp") })
+code_temp_root := env("CODE_TEMP_ROOT", if os_family() == "windows" { "C:/temp" } else { env("TMPDIR", "/tmp") })
 code_packages_root := env("CODE_PACKAGES_ROOT", if os_family() == "windows" { "D:/packages" } else { join(home_directory(), ".local/share") })
 code_tools_root := env("CODE_TOOLS_ROOT", if os_family() == "windows" { "C:/tools" } else { join(home_directory(), ".local/tools") })
 code_target_root := env("CODE_TARGET_ROOT", if os_family() == "windows" { "D:/target" } else { join(cache_home, "cargo-target") })

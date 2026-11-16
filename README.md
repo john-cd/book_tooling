@@ -20,13 +20,13 @@ indexes, dependency reference definitions, badges, and read-only link reports. U
 for authoring-time operations such as rewriting inline links in place, checking external HTTP links,
 auditing unused reference definitions, searching Markdown, and extracting comments.
 
-| Task | Tool |
-| --- | --- |
-| Build sitemaps, resolve `book.toml` paths, or manage mdBook includes and examples | `mdbook-utils` |
-| Generate crate/category indexes, dependency references, or badges | `mdbook-utils` |
-| Report links or duplicate/unresolved references without editing Markdown | `mdbook-utils links` |
-| Rewrite inline links or audit reference definitions in place | `book_tool` |
-| Check external HTTP links, search content, or extract comments | `book_tool` |
+| Task                                                                              | Tool                 |
+| --------------------------------------------------------------------------------- | -------------------- |
+| Build sitemaps, resolve `book.toml` paths, or manage mdBook includes and examples | `mdbook-utils`       |
+| Generate crate/category indexes, dependency references, or badges                 | `mdbook-utils`       |
+| Report links or duplicate/unresolved references without editing Markdown          | `mdbook-utils links` |
+| Rewrite inline links or audit reference definitions in place                      | `book_tool`          |
+| Check external HTTP links, search content, or extract comments                    | `book_tool`          |
 
 The command-line tools are separate. `mdbook-utils` uses pulldown-cmark for its read-only scans;
 `book_tooling` uses `parse_lib` for source-preserving Markdown edits and analysis. The two repositories
@@ -272,12 +272,12 @@ Use `.worktrees/a` through `.worktrees/j` for auxiliary checkouts.
 Preserve active or dirty checkouts when reusing slots. The primary checkout's
 output slot is `main`, regardless of its branch name.
 
-| Variable | Windows default | Linux/macOS default |
-| --- | --- | --- |
-| `CODE_TARGET_ROOT` | `D:/target` | `$XDG_CACHE_HOME/cargo-target` or `~/.cache/cargo-target` |
-| `CODE_BUILD_ROOT` | `D:/code_build` | `$XDG_CACHE_HOME/cargo-build` or `~/.cache/cargo-build` |
-| `CODE_SCCACHE_ROOT` | `D:/sccache` | `$XDG_CACHE_HOME/sccache` or `~/.cache/sccache` |
-| `CODE_TEMP_ROOT` | `D:/temp` | Existing native `TMPDIR` or `/tmp` |
+| Variable            | Windows default | Linux/macOS default                                       |
+| ------------------- | --------------- | --------------------------------------------------------- |
+| `CODE_TARGET_ROOT`  | `D:/target`     | `$XDG_CACHE_HOME/cargo-target` or `~/.cache/cargo-target` |
+| `CODE_BUILD_ROOT`   | `D:/code_build` | `$XDG_CACHE_HOME/cargo-build` or `~/.cache/cargo-build`   |
+| `CODE_SCCACHE_ROOT` | `D:/sccache`    | `$XDG_CACHE_HOME/sccache` or `~/.cache/sccache`           |
+| `CODE_TEMP_ROOT`    | `C:/temp`       | Existing native `TMPDIR` or `/tmp`                        |
 
 Set roots to absolute paths and create the directories before building. Keep
 Windows intermediate builds on NTFS. Targets use
@@ -302,7 +302,7 @@ The primary checkout uses `develop`; `main` is an independent empty branch.
 Auxiliary worktrees belong under `.worktrees/`, with names one lowercase letter from a through j only.
 Storage roots are configurable through `CODE_REPOS_ROOT`, `CODE_TEMP_ROOT`,
 `CODE_PACKAGES_ROOT`, and `CODE_TOOLS_ROOT`. Windows defaults are `D:/code`,
-`D:/temp` (`C:/temp` fallback), `D:/packages`, and `C:/tools` respectively.
+`C:/temp` (`C:/temp` fallback), `D:/packages`, and `C:/tools` respectively.
 Unix uses native home/cache/temp paths. A root override changes destinations;
 it does not move existing installations. Tool-specific overrides such as
 `CARGO_HOME`, `npm_config_cache`, and `NUGET_PACKAGES` remain independent.

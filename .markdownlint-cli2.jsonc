@@ -4,7 +4,13 @@
   "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint-cli2/main/schema/markdownlint-cli2-config-schema.json",
   "config": { "MD060": { "style": "compact" }, "MD013": false },
   "globs": ["**/*.md"],
-  "ignores": ["**/.worktrees/**", "**/node_modules/**", "**/target/**", "**/build/**", "test_fixtures/markdown/crlf.md"],
+  "ignores": [
+    "**/.worktrees/**",
+    "**/node_modules/**",
+    "**/target/**",
+    "**/build/**",
+    "test_fixtures/markdown/crlf.md"
+  ],
   "gitignore": true,
   "noProgress": true
 }
