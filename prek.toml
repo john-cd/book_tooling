@@ -24,16 +24,16 @@ hooks = [
 repo = "local"
 hooks = [
   {
-    id = "dprint-check",
-    name = "dprint check",
-    entry = "dprint check",
+    id = "dprint-format",
+    name = "dprint fmt",
+    entry = "dprint fmt --allow-no-files",
     language = "system",
     pass_filenames = false,
   },
   {
     id = "cargo-fmt",
-    name = "cargo fmt --check",
-    entry = "just fmtcheck",
+    name = "cargo fmt",
+    entry = "just format-all",
     language = "system",
     pass_filenames = false,
     types = ["rust"],
