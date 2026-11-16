@@ -32,7 +32,9 @@ def read_toml(path: Path) -> dict:
 def read_env(path: Path) -> dict[str, str]:
     """Read simple KEY=VALUE entries, ignoring blank lines and comments."""
     values: dict[str, str] = {}
-    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    for line_number, line in enumerate(
+        path.read_text(encoding="utf-8").splitlines(), 1
+    ):
         line = line.strip()
         if not line or line.startswith("#"):
             continue
@@ -97,7 +99,9 @@ def check_dependabot_paths(root: Path, errors: list[str]) -> None:
 
     for ecosystem, configured in entries:
         if not configured.startswith("/") or ".." in Path(configured).parts:
-            errors.append(f"Dependabot {ecosystem} path must be absolute and repository-relative: {configured}")
+            errors.append(
+                f"Dependabot {ecosystem} path must be absolute and repository-relative: {configured}"
+            )
             continue
         directory = root.joinpath(*[part for part in configured.split("/") if part])
         if not directory.is_dir():
@@ -106,25 +110,37 @@ def check_dependabot_paths(root: Path, errors: list[str]) -> None:
 
         required = {
             "cargo": lambda: (directory / "Cargo.toml").is_file(),
-            "docker": lambda: any(item.name.startswith("Dockerfile") for item in directory.iterdir()),
+            "docker": lambda: any(
+                item.name.startswith("Dockerfile") for item in directory.iterdir()
+            ),
             "docker-compose": lambda: any(
                 item.is_file()
-                and (item.name.startswith("compose") or item.name.startswith("docker-compose"))
+                and (
+                    item.name.startswith("compose")
+                    or item.name.startswith("docker-compose")
+                )
                 and item.suffix in {".yaml", ".yml"}
                 for item in directory.iterdir()
             ),
             "devcontainers": lambda: any(
                 candidate.is_file()
-                for candidate in (directory / ".devcontainer.json", directory / ".devcontainer" / "devcontainer.json")
+                for candidate in (
+                    directory / ".devcontainer.json",
+                    directory / ".devcontainer" / "devcontainer.json",
+                )
             ),
-            "github-actions": lambda: (directory / ".github").is_dir()
-            or (directory / "action.yml").is_file()
-            or (directory / "action.yaml").is_file(),
+            "github-actions": lambda: (
+                (directory / ".github").is_dir()
+                or (directory / "action.yml").is_file()
+                or (directory / "action.yaml").is_file()
+            ),
             "rust-toolchain": lambda: (directory / "rust-toolchain.toml").is_file(),
             "npm": lambda: (directory / "package.json").is_file(),
         }.get(ecosystem)
         if required is not None and not required():
-            errors.append(f"Dependabot {ecosystem} path has no matching manifest or config: {configured}")
+            errors.append(
+                f"Dependabot {ecosystem} path has no matching manifest or config: {configured}"
+            )
 
 
 def check_workspace(root: Path, errors: list[str]) -> None:
@@ -145,10 +161,14 @@ def check_workspace(root: Path, errors: list[str]) -> None:
             errors.append(f"Cargo workspace member pattern matches no paths: {member}")
         for match in matches:
             if match.is_dir() and not (match / "Cargo.toml").is_file():
-                errors.append(f"Cargo workspace member has no Cargo.toml: {match.relative_to(root)}")
+                errors.append(
+                    f"Cargo workspace member has no Cargo.toml: {match.relative_to(root)}"
+                )
 
     command = ["cargo", "metadata", "--no-deps", "--format-version", "1", "--locked"]
-    result = subprocess.run(command, cwd=root, capture_output=True, text=True, check=False)
+    result = subprocess.run(
+        command, cwd=root, capture_output=True, text=True, check=False
+    )
     if result.returncode:
         detail = result.stderr.strip() or result.stdout.strip()
         errors.append(f"Cargo metadata rejected the workspace: {detail}")
@@ -164,7 +184,11 @@ def check_workspace(root: Path, errors: list[str]) -> None:
     # with the workspace pin instead of inspecting member manifests directly.
     expected_msrv = workspace.get("package", {}).get("rust-version")
     member_ids = set(metadata.get("workspace_members", []))
-    packages = [package for package in metadata.get("packages", []) if package.get("id") in member_ids]
+    packages = [
+        package
+        for package in metadata.get("packages", [])
+        if package.get("id") in member_ids
+    ]
     if expected_msrv and not packages:
         errors.append("Cargo metadata returned no packages for the root workspace")
     for package in packages:
@@ -201,7 +225,9 @@ def check_editor_and_git(root: Path, errors: list[str]) -> None:
 
     attributes = root / ".gitattributes"
     if attributes.is_file():
-        rules = [line.strip() for line in attributes.read_text(encoding="utf-8").splitlines()]
+        rules = [
+            line.strip() for line in attributes.read_text(encoding="utf-8").splitlines()
+        ]
         if "* text=auto eol=lf" not in rules:
             errors.append(".gitattributes must set '* text=auto eol=lf'")
 
@@ -225,7 +251,9 @@ def check_toolchain_pins(root: Path, errors: list[str]) -> None:
             errors.append(f"rustfmt-toolchain.toml is invalid: {error}")
             rustfmt = None
         if rustfmt and values["RUSTFMT_TOOLCHAIN"] != rustfmt:
-            errors.append("RUSTFMT_TOOLCHAIN in .devcontainer/.env disagrees with rustfmt-toolchain.toml")
+            errors.append(
+                "RUSTFMT_TOOLCHAIN in .devcontainer/.env disagrees with rustfmt-toolchain.toml"
+            )
 
     rust_path = root / "rust-toolchain.toml"
     image_pin = values.get("RUST_VERSION") or values.get("RUST_IMAGE_LABEL")
@@ -235,37 +263,71 @@ def check_toolchain_pins(root: Path, errors: list[str]) -> None:
         except (OSError, tomllib.TOMLDecodeError) as error:
             errors.append(f"rust-toolchain.toml is invalid: {error}")
             stable = None
-        if stable and not image_pin.startswith(stable):
-            errors.append(f"container Rust pin {image_pin!r} disagrees with rust-toolchain channel {stable!r}")
+        if stable and image_pin != stable and not image_pin.startswith(f"{stable}-"):
+            errors.append(
+                f"container Rust pin {image_pin!r} disagrees with rust-toolchain channel {stable!r}"
+            )
 
     # Limit the reference scan to configuration and tooling that can consume
     # these pins; the env file itself cannot count as its own consumer.
     consumers = [
         path
-        for directory in (root / ".devcontainer", root / ".github", root / "scripts")
+        for directory in (
+            root / ".devcontainer",
+            root / ".github",
+            root / "scripts",
+            root / "templates",
+        )
         if directory.is_dir()
         for path in directory.rglob("*")
-        if path.is_file() and path != env_path and path.suffix.lower() in {".yml", ".yaml", ".toml", ".sh", ".ps1", ".json", ".jsonc", ".md", ".rs"}
+        if path.is_file()
+        and (
+            path.name == "Dockerfile"
+            or path.name.startswith("Dockerfile.")
+            or path.suffix.lower()
+            in {
+                ".yml",
+                ".yaml",
+                ".toml",
+                ".sh",
+                ".ps1",
+                ".json",
+                ".jsonc",
+                ".md",
+                ".rs",
+            }
+        )
     ]
-    consumer_text = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in consumers)
+    consumer_text = "\n".join(
+        path.read_text(encoding="utf-8", errors="replace") for path in consumers
+    )
     for key in values:
-        if key.endswith(("_VERSION", "_TOOLCHAIN")) or key in {"RUST_VERSION", "RUST_IMAGE_LABEL"}:
+        if key.endswith(("_VERSION", "_TOOLCHAIN")) or key in {
+            "RUST_VERSION",
+            "RUST_IMAGE_LABEL",
+        }:
             if not re.search(rf"\b{re.escape(key)}\b", consumer_text):
-                errors.append(f".devcontainer/.env pin {key} is not referenced by configuration or tooling")
+                errors.append(
+                    f".devcontainer/.env pin {key} is not referenced by configuration or tooling"
+                )
 
 
 def check_fixture_exceptions(root: Path, errors: list[str]) -> None:
     """Validate declared line-ending fixtures and their formatter exclusions."""
     policy_path = root / ".config" / "config-drift.toml"
     policy = read_toml(policy_path) if policy_path.is_file() else {}
-    exceptions = {item.get("path"): item for item in policy.get("fixture_exceptions", [])}
+    exceptions = {
+        item.get("path"): item for item in policy.get("fixture_exceptions", [])
+    }
 
     attributes = root / ".gitattributes"
     explicit_paths: set[str] = set()
     if attributes.is_file():
         for line in attributes.read_text(encoding="utf-8").splitlines():
             fields = line.split()
-            if len(fields) < 2 or not any(field in {"-text", "-eol"} for field in fields[1:]):
+            if len(fields) < 2 or not any(
+                field in {"-text", "-eol"} for field in fields[1:]
+            ):
                 continue
             pattern = fields[0]
             if not any(char in pattern for char in "*?[]"):
@@ -276,7 +338,9 @@ def check_fixture_exceptions(root: Path, errors: list[str]) -> None:
     for path in sorted(explicit_paths | set(exceptions)):
         entry = exceptions.get(path)
         if entry is None or not str(entry.get("reason", "")).strip():
-            errors.append(f"intentional fixture exception needs a reason in {policy_path.relative_to(root)}: {path}")
+            errors.append(
+                f"intentional fixture exception needs a reason in {policy_path.relative_to(root)}: {path}"
+            )
             continue
         fixture = root / path
         if not fixture.is_file():
@@ -286,7 +350,9 @@ def check_fixture_exceptions(root: Path, errors: list[str]) -> None:
         if newline == "crlf":
             data = fixture.read_bytes()
             if b"\n" not in data or data.replace(b"\r\n", b"").find(b"\n") >= 0:
-                errors.append(f"fixture declared CRLF does not contain only CRLF line endings: {path}")
+                errors.append(
+                    f"fixture declared CRLF does not contain only CRLF line endings: {path}"
+                )
 
         prek_path = root / "prek.toml"
         if prek_path.is_file():
@@ -301,15 +367,23 @@ def check_fixture_exceptions(root: Path, errors: list[str]) -> None:
                     try:
                         excluded = bool(re.search(pattern, path)) if pattern else False
                     except re.error as error:
-                        errors.append(f"prek hook {hook.get('id')} has an invalid exclude regex: {error}")
+                        errors.append(
+                            f"prek hook {hook.get('id')} has an invalid exclude regex: {error}"
+                        )
                         continue
                     if not excluded:
-                        errors.append(f"prek hook {hook.get('id')} must exclude intentional fixture {path}")
+                        errors.append(
+                            f"prek hook {hook.get('id')} must exclude intentional fixture {path}"
+                        )
 
 
 def main() -> int:
     """Run configuration drift checks for the supplied or current repository."""
-    root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
+    root = (
+        Path(sys.argv[1]).resolve()
+        if len(sys.argv) > 1
+        else Path(__file__).resolve().parents[1]
+    )
     if not root.is_dir():
         print(f"repository root does not exist: {root}", file=sys.stderr)
         return 2
