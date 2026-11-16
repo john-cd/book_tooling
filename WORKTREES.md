@@ -53,12 +53,12 @@ GitHub's all-state pull-request listing had no open PRs. PRs #63 and #64 were cl
 merge; their `claude/project-thread-sf1c32` head is no longer a local or remote branch. No PR
 branch was eligible for cleanup.
 
-| Checkout        | Branch or revision       | Status and disposition                                                                                                           |
+| Checkout | Branch or revision       | Status and disposition |
 | --- | --- | --- |
-| Repository root | `develop`                | Clean; fast-forward integrated and synchronized with `origin/develop`.                                                           |
-| `.worktrees/a`  | detached / `29c339d`     | Clean snapshot at the independent `main` root; retain the checkout and `main` cache identity.                                    |
-| `.worktrees/b`  | detached / `develop` tip | Clean after integrating the #2145 badge feature; retain the slot and warm cache.                                                 |
-| `.worktrees/c`  | detached / `3be445c`     | Clean snapshot; its mirrored `backup/tooling-20261031/worktree-c` ref has seven commits not in `develop`. Retain snapshot/cache. |
+| Repository root | `develop` | Clean; fast-forward integrated and synchronized with `origin/develop`.                                                           |
+| `.worktrees/a` | detached / `29c339d`     | Clean snapshot at the independent `main` root; retain the checkout and `main` cache identity. |
+| `.worktrees/b` | detached / `develop` tip | Clean after integrating the #2145 badge feature; retain the slot and warm cache. |
+| `.worktrees/c` | detached / `3be445c`     | Clean snapshot; its mirrored `backup/tooling-20261031/worktree-c` ref has seven commits not in `develop`. Retain snapshot/cache. |
 
 The local topic refs `codex/cargo-update`, `codex/issues-77-79-maintenance`, and
 `codex/issue-2145-badges-no-index` were removed after confirming their commits are ancestors of
