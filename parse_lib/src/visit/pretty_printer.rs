@@ -222,6 +222,7 @@ impl<'a, W: fmt::Write + 'a> Visitor<'a> for PrettyPrinter<W> {
 }
 
 impl fmt::Display for Element<'_> {
+    /// Renders the structural debug view of one element and its descendants.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut pp = PrettyPrinter::new(f);
         self.accept(&mut pp);
@@ -230,6 +231,7 @@ impl fmt::Display for Element<'_> {
 }
 
 impl fmt::Display for Document<'_> {
+    /// Renders the structural debug view of the entire parsed document.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut pp = PrettyPrinter::new(f);
         self.accept(&mut pp);

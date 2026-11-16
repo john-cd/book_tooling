@@ -170,6 +170,7 @@ fn service_unavailable_response_with_headers(headers: &[&str]) -> String {
 }
 
 impl Drop for TestHttpServer {
+    /// Signals shutdown, wakes the listener, and waits for the fixture thread to exit.
     fn drop(&mut self) {
         self.shutdown.store(true, Ordering::Relaxed);
         drop(TcpStream::connect(self.address));

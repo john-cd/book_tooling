@@ -19,6 +19,7 @@ pub enum IndexAnchorKind {
 }
 
 impl Display for IndexAnchorKind {
+    /// Writes the prefix that selects the anchor's index formatting.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Regular => write!(f, "i:"),

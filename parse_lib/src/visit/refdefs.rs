@@ -7,7 +7,10 @@ use crate::ast::Documents;
 use crate::ast::ReferenceDefinitionData;
 
 /// A visitor that collects reference definitions.
-struct RefDefVisitor<'v>(RefDefManager<'v>);
+struct RefDefVisitor<'v>(
+    /// Definition store populated while visiting reference definitions.
+    RefDefManager<'v>,
+);
 
 impl RefDefVisitor<'_> {
     /// Creates a visitor with an empty collection.

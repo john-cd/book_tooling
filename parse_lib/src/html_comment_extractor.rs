@@ -21,6 +21,7 @@ impl HtmlCommentExtractor {
 }
 
 impl<'a> Visitor<'a> for HtmlCommentExtractor {
+    /// Stores one comment as a string while preserving its line breaks.
     fn visit_html_comment(&mut self, data: &HtmlCommentData<'a>) {
         self.comments.push(data.lines.join("\n"));
     }

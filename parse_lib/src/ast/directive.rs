@@ -143,6 +143,7 @@ pub enum DestinationKind {
 }
 
 impl Display for DestinationKind {
+    /// Writes the destination keyword used in Markdown directives.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Category => write!(f, "cat"),

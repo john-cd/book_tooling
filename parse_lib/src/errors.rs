@@ -40,6 +40,7 @@ pub struct ParsingError {
 impl std::error::Error for ParsingError {}
 
 impl std::fmt::Display for ParsingError {
+    /// Renders the failure message together with the annotated source snippet.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let message =
             &[

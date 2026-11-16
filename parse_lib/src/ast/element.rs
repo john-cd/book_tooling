@@ -227,83 +227,152 @@ pub enum Element<'a> {
     /// optionally between < and > (i.e., an autolink).
     /// By design, more permissive than the `CommonMark` spec:
     /// See <https://spec.commonmark.org/0.31.2/#autolinks>.
-    Autolink(AutolinkData<'a>),
+    Autolink(
+        /// The destination URL extracted from the source.
+        AutolinkData<'a>,
+    ),
 
     /// A Markdown-style inline link: `[text](url)`.
     /// See <https://spec.commonmark.org/0.31.2/#inline-link>.
-    InlineLink(InlineLinkData<'a>),
+    InlineLink(
+        /// The parsed link text, destination, and optional title.
+        InlineLinkData<'a>,
+    ),
 
     /// Reference-style link: `[...][...]`.
     /// See <https://spec.commonmark.org/0.31.2/#reference-link>.
-    ReferenceStyleLink(ReferenceStyleLinkData<'a>),
+    ReferenceStyleLink(
+        /// The visible text and reference label used for resolution.
+        ReferenceStyleLinkData<'a>,
+    ),
 
     /// Images: `![foo](/url "title")`.
     /// See <https://spec.commonmark.org/0.31.2/#images>.
-    InlineImage(InlineImageData<'a>),
+    InlineImage(
+        /// The image description, destination, and optional title.
+        InlineImageData<'a>,
+    ),
 
     /// Reference-style image: `![foo][bar]`.
-    ReferenceStyleImage(ReferenceStyleImageData<'a>),
+    ReferenceStyleImage(
+        /// The image description and label used to resolve its source.
+        ReferenceStyleImageData<'a>,
+    ),
 
     /// Reference definition: `[...]: http://... "title"`.
     /// See <https://spec.commonmark.org/0.31.2/#link-reference-definitions>.
-    ReferenceDefinition(ReferenceDefinitionData<'a>),
+    ReferenceDefinition(
+        /// The label and destination metadata available to reference links and images.
+        ReferenceDefinitionData<'a>,
+    ),
 
     /// Wikilink: `[[target_page]]` or `[[target_page | display]]`, with or without spaces.
     /// See <https://en.wikipedia.org/wiki/Help:Link#Wikilinks_(internal_links)>.
-    WikiLink(WikiLinkData<'a>),
+    WikiLink(
+        /// The internal target, optional display text, and any immediately following text.
+        WikiLinkData<'a>,
+    ),
 
     /// A code span enclosed between single backticks.
     /// See <https://spec.commonmark.org/0.31.2/#code-spans>.
-    CodeSpan(CodeSpanData<'a>),
+    CodeSpan(
+        /// The code between the backtick delimiters.
+        CodeSpanData<'a>,
+    ),
 
     /// A fenced code block enclosed in, for example, triple backticks.
     /// See <https://spec.commonmark.org/0.31.2/#fenced-code-blocks>.
-    FencedCodeBlock(FencedCodeBlockData<'a>),
+    FencedCodeBlock(
+        /// The optional language identifier and the lines inside the fence.
+        FencedCodeBlockData<'a>,
+    ),
 
     /// An HTML div block, storing its raw content between `<div class="hidden"> </div>`.
     /// See <https://rust-lang.github.io/mdBook/format/mdbook.html#html-classes-provided-by-mdbook>.
-    HiddenHtmlDiv(HiddenHtmlDivData<'a>),
+    HiddenHtmlDiv(
+        /// The raw content inside the hidden block.
+        HiddenHtmlDivData<'a>,
+    ),
 
     /// An HTML comment: `<!-- ... -->`.
-    HtmlComment(HtmlCommentData<'a>),
+    HtmlComment(
+        /// The lines between the comment delimiters.
+        HtmlCommentData<'a>,
+    ),
 
     /// A Markdown ATX heading: `# Some Text {#an-anchor}`.
     /// <https://spec.commonmark.org/0.31.2/#atx-headings>
     /// See <https://rust-lang.github.io/mdBook/format/markdown.html#heading-attributes>.
-    Heading(HeadingData<'a>),
+    Heading(
+        /// The heading level, optional text, and optional explicit anchor.
+        HeadingData<'a>,
+    ),
 
     /// Plain text that doesn't match other elements.
-    Text(TextData<'a>),
+    Text(
+        /// The slice of input that remained plain text.
+        TextData<'a>,
+    ),
 
     /// A standard paragraph acting as a container for consecutive lines of text.
-    Paragraph(ParagraphData<'a>),
+    Paragraph(
+        /// The inline elements that belong to the paragraph.
+        ParagraphData<'a>,
+    ),
 
     /// A blockquote containing recursively parsed elements.
-    Blockquote(BlockquoteData<'a>),
+    Blockquote(
+        /// The nested elements inside the quote.
+        BlockquoteData<'a>,
+    ),
 
     /// A standard Markdown list (ordered or unordered).
-    List(ListData<'a>),
+    List(
+        /// The list kind and parsed contents.
+        ListData<'a>,
+    ),
 
     /// An item inside a Markdown list.
-    ListItem(ListItemData<'a>),
+    ListItem(
+        /// The nested elements of one list entry.
+        ListItemData<'a>,
+    ),
 
     /// Strong text (bold), usually enclosed in ** or __.
-    Strong(StrongData<'a>),
+    Strong(
+        /// The inline elements inside the bold span.
+        StrongData<'a>,
+    ),
 
     /// Emphasized text (italic), usually enclosed in * or _.
-    Emphasis(EmphasisData<'a>),
+    Emphasis(
+        /// The inline elements inside the italic span.
+        EmphasisData<'a>,
+    ),
 
     /// Strikethrough text, usually enclosed in ~~.
-    Strikethrough(StrikethroughData<'a>),
+    Strikethrough(
+        /// The inline elements inside the deleted span.
+        StrikethroughData<'a>,
+    ),
 
     /// Custom directive, e.g., `{{#crate my_crate}}`.
-    CustomDirective(DirectiveData<'a>),
+    CustomDirective(
+        /// The directive kind and parsed arguments.
+        DirectiveData<'a>,
+    ),
 
     /// GFM Task List Item: `- [ ] content` or `- [x] content`.
-    TaskItem(TaskItemData<'a>),
+    TaskItem(
+        /// The checkbox state and content of the task.
+        TaskItemData<'a>,
+    ),
 
     /// GFM Table.
-    Table(TableData<'a>),
+    Table(
+        /// The header and rows as raw cells and parsed inline elements.
+        TableData<'a>,
+    ),
 
     /// Horizontal Rule.
     HorizontalRule,
