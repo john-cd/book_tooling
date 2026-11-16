@@ -22,16 +22,16 @@ prek, and dprint validate the relevant manifests and structured files; CI also r
 
 ## File ownership
 
-| Files                                       | Convention                                                                                                                                                                   |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.editorconfig`, `.gitattributes`           | UTF-8 and LF, four-space Rust/Python, two-space configuration; preserve Markdown hard breaks and binary attributes.                                                          |
-| `.gitignore`, `.dockerignore`, `.aiexclude` | Exclude outputs, compiler caches, environments, and worktrees; keep maintained configuration and lockfiles reviewable. Ignore files are not a security boundary.             |
-| `AGENTS.md`, `CONTRIBUTING.md`, `README.md` | Keep repository-specific commands, ownership, and examples; link this reference.                                                                                             |
-| `Cargo.toml`, `clippy.toml`, `rustfmt.toml` | Workspace lint inheritance and a common baseline; preserve explicit exceptions and package compatibility requirements.                                                       |
-| Python project files                        | No Python project is currently tracked. If one is added, use Ruff with 100 columns and LF plus a committed `uv.lock` and `.python-version`.                                  |
-| `prek.toml`                                 | Keep the existing repository hook set and pinned hook revisions. Run the configured formatter and linter rather than duplicating policy in hooks.                            |
-| `deny.toml`, `nextest.toml`                 | Keep dependency-license exceptions, test filters, and resource/time limits local. Nextest normally discovers `.config/nextest.toml`; a Cargo profile is selected separately. |
-| `.github/`, `.devcontainer/`, `Dockerfile*` | Preserve deployment/platform behavior; align package coverage and cache inputs. Keep compiler/Python pins compatible with manifests and lockfiles.                           |
+| Files | Convention |
+| --- | --- |
+| `.editorconfig`, `.gitattributes` | UTF-8 and LF, four-space Rust/Python, two-space configuration; preserve Markdown hard breaks and binary attributes. |
+| `.gitignore`, `.dockerignore`, `.aiexclude` | Exclude outputs, compiler caches, environments, and worktrees; keep maintained configuration and lockfiles reviewable. Ignore files are not a security boundary. |
+| `AGENTS.md`, `CONTRIBUTING.md`, `README.md` | Keep repository-specific commands, ownership, and examples; link this reference. |
+| `Cargo.toml`, `clippy.toml`, `rustfmt.toml` | Workspace lint inheritance and a common baseline; preserve explicit exceptions and package compatibility requirements. |
+| Python project files | No Python project is currently tracked. If one is added, use Ruff with 100 columns and LF plus a committed `uv.lock` and `.python-version`. |
+| `prek.toml` | Keep the existing repository hook set and pinned hook revisions. Run the configured formatter and linter rather than duplicating policy in hooks. |
+| `deny.toml`, `nextest.toml` | Keep dependency-license exceptions, test filters, and resource/time limits local. Nextest normally discovers `.config/nextest.toml`; a Cargo profile is selected separately. |
+| `.github/`, `.devcontainer/`, `Dockerfile*` | Preserve deployment/platform behavior; align package coverage and cache inputs. Keep compiler/Python pins compatible with manifests and lockfiles. |
 
 ## Dependency updates
 
@@ -41,14 +41,14 @@ test-book, and malformed-manifest fixtures are excluded intentionally. Revisit t
 `.github/dependabot.yml` whenever a manifest, Dockerfile, chart, or local action is added.
 There is no tracked Python project or uv workspace, so no Python dependency-update root is configured. If one is added, list its lockfile root here and in Dependabot.
 
-| Ecosystem        | Roots                              |
-| ---------------- | ---------------------------------- |
-| `cargo`          | `/`, `/parse_lib/fuzz`             |
-| `docker`         | `/.devcontainer`                   |
-| `docker-compose` | `/.devcontainer`                   |
-| `devcontainers`  | `/`                                |
+| Ecosystem | Roots |
+| --- | --- |
+| `cargo` | `/`, `/parse_lib/fuzz` |
+| `docker` | `/.devcontainer` |
+| `docker-compose` | `/.devcontainer` |
+| `devcontainers` | `/` |
 | `github-actions` | `/`, `/.github/actions/setup-rust` |
-| `rust-toolchain` | `/`                                |
+| `rust-toolchain` | `/` |
 
 GitHub Actions uses `/` for workflows and explicit directories for nested composite actions.
 Dependabot can update supported toolchain files, container images/features, charts, and packages;
@@ -76,13 +76,13 @@ config discovery starts at the command's working directory; run from the owning 
 especially when that workspace has a child config. Config values override manifest profiles,
 and environment/command-line overrides take precedence over config values.
 
-| Profile                                | Workspace code                               | Dependencies and build tools                                                                 |
-| -------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `dev` / `test`                         | Level 0, no symbols, incremental disabled    | Level 1 by default, selected compute-heavy dependencies at level 3, no symbols.              |
-| `debug`                                | Level 2 symbols for workspace crates         | Same optimized dependency settings as `dev`, with dependency symbols disabled.               |
-| `ci`                                   | Inherits `dev`, incremental disabled         | Same flags as `dev` for dependency cache reuse. Use release jobs for performance validation. |
-| `tools`                                | Level 2 for repository tools                 | Same dependency settings as `dev`.                                                           |
-| `release` / other specialized profiles | Preserve existing shipping/profiling choices | Preserve existing shipping/profiling choices.                                                |
+| Profile | Workspace code | Dependencies and build tools |
+| --- | --- | --- |
+| `dev` / `test` | Level 0, no symbols, incremental disabled | Level 1 by default, selected compute-heavy dependencies at level 3, no symbols. |
+| `debug` | Level 2 symbols for workspace crates | Same optimized dependency settings as `dev`, with dependency symbols disabled. |
+| `ci` | Inherits `dev`, incremental disabled | Same flags as `dev` for dependency cache reuse. Use release jobs for performance validation. |
+| `tools` | Level 2 for repository tools | Same dependency settings as `dev`. |
+| `release` / other specialized profiles | Preserve existing shipping/profiling choices | Preserve existing shipping/profiling choices. |
 
 `test` inherits `dev`. Package overrides take precedence over build overrides; macro parsing
 crates are tuned explicitly. Optimization can increase cold compile time, and size optimization
@@ -115,12 +115,12 @@ of nextest's test-runner `--profile ci`.
 
 ## Linkers
 
-| Platform         | Policy                                                                                                                                                                                                          |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Windows MSVC     | Rust-bundled `rust-lld.exe` in the maintained repos; preserve stack flags. Rust How-To retains its measured default-linker exception. MSVC libraries/SDK are still required.                                    |
+| Platform | Policy |
+| --- | --- |
+| Windows MSVC | Rust-bundled `rust-lld.exe` in the maintained repos; preserve stack flags. Rust How-To retains its measured default-linker exception. MSVC libraries/SDK are still required. |
 | x86-64 GNU/Linux | Rust 1.90+ already defaults to LLD. mold 3.0 is a Rust rewrite and remains an optional, measured Linux choice. For AArch64/other triples, explicitly install/configure the appropriate linker before switching. |
-| macOS            | Use the modern Apple linker shipped with Xcode 15+. The sold repository is archived and recommends Apple's linker.                                                                                              |
-| Experiments      | Compare mold and Wild on representative native Linux binaries. Wild supports Linux architectures and WebAssembly, with Mach-O/Windows support still on its roadmap; do not assume universal drop-in support.    |
+| macOS | Use the modern Apple linker shipped with Xcode 15+. The sold repository is archived and recommends Apple's linker. |
+| Experiments | Compare mold and Wild on representative native Linux binaries. Wild supports Linux architectures and WebAssembly, with Mach-O/Windows support still on its roadmap; do not assume universal drop-in support. |
 
 Changing linker flags invalidates compiler cache keys. Benchmark cold and warm links with native
 dependencies, debug symbols, and release/LTO settings before adopting a new default.
@@ -160,11 +160,11 @@ Windows x86_64-pc-windows-msvc, develop base `a639fc4` plus `37d6ef2` (2026-11-0
   means a rebuild after `touch parse_lib/src/lib.rs` with dependencies already built. Each OS used
   its default linker; no alternative linker was compared.
 
-  | Runner                                   | `ci` cold | `ci` warm | `ci` target | `release` cold | `release` warm | Both profiles' target |
-  | ---------------------------------------- | --------- | --------- | ----------- | -------------- | -------------- | --------------------- |
-  | ubuntu-latest (x86_64-unknown-linux-gnu) | 148 s     | 8 s       | 623,888 KiB | 160 s          | 30 s           | 1,122,052 KiB         |
-  | macos-latest (aarch64-apple-darwin)      | 47 s      | 3 s       | 592,576 KiB | 49 s           | 10 s           | 1,090,780 KiB         |
-  | windows-latest (x86_64-pc-windows-msvc)  | 460 s     | 20 s      | 675,506 KiB | 446 s          | 81 s           | 1,264,112 KiB         |
+  | Runner | `ci` cold | `ci` warm | `ci` target | `release` cold | `release` warm | Both profiles' target |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | ubuntu-latest (x86_64-unknown-linux-gnu) | 148 s | 8 s | 623,888 KiB | 160 s | 30 s | 1,122,052 KiB |
+  | macos-latest (aarch64-apple-darwin) | 47 s | 3 s | 592,576 KiB | 49 s | 10 s | 1,090,780 KiB |
+  | windows-latest (x86_64-pc-windows-msvc) | 460 s | 20 s | 675,506 KiB | 446 s | 81 s | 1,264,112 KiB |
 
   Both release builds and all `ci` builds linked successfully on all three platforms, and a
   repeated `ci` build was a Cargo no-op (0 s). Runner hardware varies between runs, so treat the

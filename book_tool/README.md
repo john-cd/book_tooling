@@ -7,14 +7,14 @@ reference-definition audits, inline-link conversion, search, and comment extract
 
 ## Subcommands
 
-| Command            | Purpose                                                                                 |
-| ------------------ | --------------------------------------------------------------------------------------- |
-| `directives`       | Process custom directives such as `{{cat rust}}` in Markdown files                      |
-| `link-check`       | Check for broken links; optionally report unused reference definitions                  |
-| `refdefs-audit`    | Audit reference-definition provenance and uses; optionally delete proven-unused entries |
-| `inline-links`     | Convert inline links to reference-style links                                           |
-| `search`           | Search text across Markdown files, ignoring formatting                                  |
-| `extract-comments` | Extract HTML comments into a single file for auditing                                   |
+| Command | Purpose |
+| --- | --- |
+| `directives` | Process custom directives such as `{{cat rust}}` in Markdown files |
+| `link-check` | Check for broken links; optionally report unused reference definitions |
+| `refdefs-audit` | Audit reference-definition provenance and uses; optionally delete proven-unused entries |
+| `inline-links` | Convert inline links to reference-style links |
+| `search` | Search text across Markdown files, ignoring formatting |
+| `extract-comments` | Extract HTML comments into a single file for auditing |
 
 Run `cargo run -p book_tool -- --help` and `cargo run -p book_tool -- <command> --help` for
 all options. Shared options select the file extensions and names to process.

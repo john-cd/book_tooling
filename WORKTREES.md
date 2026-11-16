@@ -54,7 +54,7 @@ merge; their `claude/project-thread-sf1c32` head is no longer a local or remote 
 branch was eligible for cleanup.
 
 | Checkout        | Branch or revision       | Status and disposition                                                                                                           |
-| --------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| --- | --- |
 | Repository root | `develop`                | Clean; fast-forward integrated and synchronized with `origin/develop`.                                                           |
 | `.worktrees/a`  | detached / `29c339d`     | Clean snapshot at the independent `main` root; retain the checkout and `main` cache identity.                                    |
 | `.worktrees/b`  | detached / `develop` tip | Clean after integrating the #2145 badge feature; retain the slot and warm cache.                                                 |
