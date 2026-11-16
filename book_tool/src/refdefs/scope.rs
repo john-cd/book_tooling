@@ -322,8 +322,10 @@ where
         }
     }
 
-    let mut analysis = ScopedRefDefAnalysis::default();
-    analysis.roots = roots;
+    let mut analysis = ScopedRefDefAnalysis {
+        roots,
+        ..ScopedRefDefAnalysis::default()
+    };
     for (key, file) in &files {
         analysis
             .sources
