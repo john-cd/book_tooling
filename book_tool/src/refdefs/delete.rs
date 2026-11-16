@@ -17,29 +17,47 @@ use parse_lib::visit::Visitor;
 
 use super::normalize_reference_label;
 use super::report::ScopedRefDefAnalysis;
+use super::scope::find_unused_refdefs_in_scopes;
 use crate::common::replace_text_file_atomically;
 
 /// Remove definitions identified as unused by a complete include-scope analysis.
 ///
 /// # Errors
 ///
-/// Returns an error if a file cannot be read, parsed or rewritten.
+/// Rejects changed analysis inputs before writing. On a write failure, earlier atomic
+/// replacements remain and the error reports their count. Re-run the audit before retrying.
 pub fn remove_proven_unused_refdefs(analysis: &ScopedRefDefAnalysis) -> Result<usize> {
+    if analysis.unused_by_file.is_empty() {
+        return Ok(0);
+    }
+    let current = find_unused_refdefs_in_scopes(&analysis.roots)?;
+    if current.sources != analysis.sources {
+        bail!("Markdown inputs changed after analysis. Re-run the reference-definition audit.");
+    }
     let mut replacements = Vec::new();
     for (path, unused_labels) in &analysis.unused_by_file {
-        let source = std::fs::read_to_string(path)
-            .with_context(|| format!("Failed to read {}", path.display()))?;
-        let document = parse_document("file", Some(path), &source)
+        let source = analysis
+            .sources
+            .get(path)
+            .with_context(|| format!("Missing analyzed source for {}", path.display()))?;
+        let document = parse_document("file", Some(path), source)
             .with_context(|| format!("Failed to parse {}", path.display()))?;
         let replacement = delete_unused_refdefs(&document, unused_labels)?;
-        if replacement != source {
-            replacements.push((path.clone(), replacement));
+        if replacement != *source {
+            replacements.push((path, source, replacement));
         }
     }
-    replacements.sort_by(|left, right| left.0.cmp(&right.0));
     let changed_files = replacements.len();
-    for (path, replacement) in replacements {
-        replace_text_file_atomically(&path, &replacement)?;
+    for (written, (path, source, replacement)) in replacements.into_iter().enumerate() {
+        (|| {
+            if std::fs::read_to_string(path)? != *source {
+                bail!("Markdown file changed after analysis");
+            }
+            replace_text_file_atomically(path, &replacement)
+        })().with_context(|| format!(
+            "Failed to update {} after replacing {written} file(s). Re-run the audit before retrying.",
+            path.display()
+        ))?;
     }
     Ok(changed_files)
 }
@@ -158,6 +176,23 @@ pub fn delete_unused_refdefs<S: BuildHasher>(
 mod tests {
     use super::super::find_unused_refdefs;
     use super::*;
+
+    /// Rejects a reference added to another chapter after the deletion plan was built.
+    #[test]
+    fn stale_including_chapter_prevents_deletion() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let definitions = dir.path().join("defs.md");
+        let chapter = dir.path().join("chapter.md");
+        let original = "[unused]: https://example.com\n";
+        std::fs::write(&definitions, original)?;
+        std::fs::write(&chapter, "{{#include defs.md}}\n")?;
+        let analysis = find_unused_refdefs_in_scopes([dir.path()])?;
+        std::fs::write(&chapter, "{{#include defs.md}}\n\n[unused]\n")?;
+        let error = remove_proven_unused_refdefs(&analysis).expect_err("reject stale plan");
+        assert!(error.to_string().contains("changed after analysis"));
+        assert_eq!(std::fs::read_to_string(definitions)?, original);
+        Ok(())
+    }
 
     /// Removes definitions identified as unused from the parsed document.
     #[test]

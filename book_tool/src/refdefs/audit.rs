@@ -31,7 +31,7 @@ pub fn audit(
 ) -> Result<()> {
     let analysis = find_unused_refdefs_in_scopes(directories)?;
     let mut analysis = analysis;
-    let additional_uses = collect_uses_outside_scoped_roots(additional_use_directories)?;
+    let additional_uses = collect_uses_outside_scoped_roots(&additional_use_directories)?;
     let additional_labels = additional_uses.keys().cloned().collect::<HashSet<_>>();
     let protected_definition_files = protected_definition_files
         .into_iter()
@@ -91,6 +91,10 @@ pub fn audit(
     );
 
     if delete_unused {
+        anyhow::ensure!(
+            collect_uses_outside_scoped_roots(&additional_use_directories)? == additional_uses,
+            "Supplementary references changed after analysis. Re-run the audit."
+        );
         let changed_files = remove_proven_unused_refdefs(&analysis)?;
         println!("Removed proven-unused definitions from {changed_files} file(s).");
     }

@@ -24,6 +24,8 @@ use super::report::ScopedRefDefAnalysis;
 struct MarkdownFile {
     /// Path of the file.
     path: PathBuf,
+    /// Markdown bytes used when analyzing this file.
+    source: String,
     /// The reference definitions and uses in the file.
     occurrences: ReferenceOccurrences,
     /// Identities of the files this file includes.
@@ -222,6 +224,7 @@ where
                 key,
                 MarkdownFile {
                     path,
+                    source,
                     occurrences,
                     includes,
                 },
@@ -320,7 +323,11 @@ where
     }
 
     let mut analysis = ScopedRefDefAnalysis::default();
+    analysis.roots = roots;
     for (key, file) in &files {
+        analysis
+            .sources
+            .insert(file.path.clone(), file.source.clone());
         let unused = file
             .occurrences
             .definitions

@@ -68,6 +68,10 @@ pub struct ReferenceDefinitionAudit {
 /// Unused definitions proven unused within every chapter/include scope in the scanned roots.
 #[derive(Debug, Default)]
 pub struct ScopedRefDefAnalysis {
+    /// Canonical roots used to discover the Markdown inputs.
+    pub(super) roots: Vec<PathBuf>,
+    /// Contents read by the scope analysis, including chapters without definitions.
+    pub(super) sources: BTreeMap<PathBuf, String>,
     /// Labels of unused definitions, grouped by the file that defines them.
     pub unused_by_file: BTreeMap<PathBuf, HashSet<String>>,
     /// Audit entries for every definition in the analyzed scopes.
@@ -154,8 +158,8 @@ mod tests {
         let mut second = definition();
         second.label = "Zed".to_owned();
         let analysis = ScopedRefDefAnalysis {
-            unused_by_file: BTreeMap::new(),
             definitions: vec![definition(), second],
+            ..ScopedRefDefAnalysis::default()
         };
         write_audit_report(&path, &analysis).expect("writes");
 
