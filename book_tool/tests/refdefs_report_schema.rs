@@ -79,7 +79,7 @@ fn assert_valid_definition(record: &Value, index: usize) {
         .expect("normalized_label is a string");
     assert_eq!(
         normalized,
-        caseless::default_case_fold_str(&label.split_whitespace().collect::<Vec<_>>().join(" ")),
+        book_tool::refdefs::normalize_reference_label(label),
         "{context}.normalized_label must be the folded label"
     );
     let included_by = record["included_by"].as_array().expect("array field");
