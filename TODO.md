@@ -2,15 +2,8 @@
 
 # Task tracking
 
-Reviewed November 17, 2026. Recheck [live issues](https://github.com/john-cd/book_tooling/issues)
+Reviewed November 18, 2026. Recheck [live issues](https://github.com/john-cd/book_tooling/issues)
 before starting work.
-
-## Ready
-
-- **P1 — [#89](https://github.com/john-cd/book_tooling/issues/89):** Unicode case folding is
-  required before cleanup can classify reference definitions as unused. The audit deletes
-  `[Straße]` even when `[STRASSE]` resolves to it in mdBook. The issue has a CLI reproduction
-  and regression acceptance criteria.
 
 ## Hosted validation
 
@@ -20,6 +13,7 @@ before starting work.
 
 ## Review evidence
 
-At `9d4e477`, `just cargo test --workspace --locked --offline` passed 422 tests, including
-doctests. `just cargo clippy --workspace --all-targets --locked --offline -- -D warnings`
-also passed. These checks did not detect #89. Human review markers remain pending.
+At `9a7b290`, `just cargo test --workspace --locked --offline` passed 428 tests, including the
+Unicode CLI regression and doctests. `just cargo clippy --workspace --all-targets --locked
+--offline -- -D warnings`, `just format-check`, and `dprint check` also passed. Human review
+markers remain pending.
