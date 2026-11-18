@@ -67,6 +67,8 @@ tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 url = "2.5.8"
 # Recursively walk a directory.
 walkdir = "2.5.0"
+# Full Unicode case folding for CommonMark reference labels.
+icu_casemap = "2.4.0"
 # A byte-oriented, zero-copy, parser combinators library
 winnow = "1.0.5"
 

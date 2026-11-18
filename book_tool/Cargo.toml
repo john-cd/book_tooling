@@ -27,6 +27,7 @@ cli = [
     "dep:tokio",
     "dep:tracing-subscriber",
     "dep:url",
+    "dep:icu_casemap",
 ]
 
 [dependencies]
@@ -60,6 +61,8 @@ tracing-subscriber = { workspace = true, features = ["env-filter"], optional = t
 url = { workspace = true, optional = true }
 # Recursively walk a directory.
 walkdir = { workspace = true }
+# Full Unicode case folding for CommonMark reference labels.
+icu_casemap = { workspace = true, optional = true }
 
 [dev-dependencies]
 # Provides statistical microbenchmarking, output formatting, and benchmark comparison tools.

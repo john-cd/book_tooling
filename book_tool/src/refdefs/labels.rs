@@ -95,10 +95,43 @@ mod tests {
         assert!(find_unused_refdefs(&doc).is_empty());
     }
 
+    /// Uses the full Unicode case-fold mappings required for `CommonMark` labels.
+    #[test]
+    fn labels_match_commonmark_unicode_case_fold_expansions() {
+        for (left, right) in [
+            ("Stra\u{df}e", "STRASSE"),
+            ("\u{1e9e}", "SS"),
+            ("\u{3a3}", "\u{3c2}"),
+        ] {
+            assert_eq!(
+                normalize_reference_label(left),
+                normalize_reference_label(right),
+                "{left:?} and {right:?} should have the same CommonMark label key"
+            );
+        }
+    }
+
+    /// Collapses only `CommonMark`'s label whitespace and keeps Unicode spacing characters literal.
+    #[test]
+    fn label_whitespace_matches_commonmark_rules() {
+        assert_eq!(normalize_reference_label(" \tA\r\n B \t"), "a b");
+        assert_eq!(normalize_reference_label("A\u{00a0}B"), "a\u{00a0}b");
+    }
+
     /// Keeps duplicate definitions ambiguous instead of treating them as unused.
     #[test]
     fn duplicate_labels_are_preserved_as_ambiguous() {
         let content = "[Use][x]\n[x]: https://one.example\n[X]: https://two.example\n";
+        let doc = parse_document("test.md", None, content).expect("parse duplicate definitions");
+
+        assert!(find_unused_refdefs(&doc).is_empty());
+    }
+
+    /// Keeps definitions ambiguous when their labels differ only under full Unicode case folding.
+    #[test]
+    fn case_fold_equivalent_duplicate_labels_remain_ambiguous() {
+        let content =
+            "[Use][strasse]\n[Stra\u{df}e]: https://one.example\n[STRASSE]: https://two.example\n";
         let doc = parse_document("test.md", None, content).expect("parse duplicate definitions");
 
         assert!(find_unused_refdefs(&doc).is_empty());

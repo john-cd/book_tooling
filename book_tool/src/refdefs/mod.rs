@@ -9,6 +9,8 @@
 //!
 //! TODO Reviewed ??-??-2026.
 
+use icu_casemap::CaseMapper;
+
 /// Implements audit behavior for the refdefs component, keeping the related rules and data
 /// transformations at one boundary. The parent module calls these routines to provide normalize
 /// reference label behavior.
@@ -45,13 +47,27 @@ pub use report::ScopedRefDefAnalysis;
 pub use report::write_audit_report;
 pub use scope::find_unused_refdefs_in_scopes;
 
-/// Returns `label` lowercased, with leading and trailing whitespace removed and internal whitespace
-/// runs collapsed to one space.
+/// Returns the CommonMark-normalized reference-label key for `label`.
+///
+/// Unicode case folding runs before leading/trailing spaces, tabs, and line endings are removed
+/// and internal runs are collapsed to one ASCII space.
 #[must_use]
 pub fn normalize_reference_label(label: &str) -> String {
-    label
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
-        .to_lowercase()
+    let mut normalized = String::new();
+    let mut pending_space = false;
+    let case_folded = CaseMapper::new().fold_string(label);
+
+    for character in case_folded.chars() {
+        if matches!(character, ' ' | '\t' | '\r' | '\n') {
+            pending_space = !normalized.is_empty();
+        } else {
+            if pending_space {
+                normalized.push(' ');
+                pending_space = false;
+            }
+            normalized.push(character);
+        }
+    }
+
+    normalized
 }

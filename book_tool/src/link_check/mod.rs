@@ -257,6 +257,14 @@ mod tests {
         assert_eq!(active(source, None).len(), 2);
     }
 
+    /// Checks that unused filtering recognizes full Unicode case-fold equivalents.
+    #[test]
+    fn unused_case_fold_equivalent_definitions_are_skipped() {
+        let source = "[Stra\u{df}e]: https://drop.example/\n[Keep]: https://keep.example/\n";
+        let unused = HashSet::from(["STRASSE".to_owned()]);
+        assert_eq!(active(source, Some(&unused)), ["https://keep.example/"]);
+    }
+
     /// Removes or resets the without refdefs is rejected state owned by active link collector,
     /// preventing stale data from affecting later work.
     #[tokio::test]

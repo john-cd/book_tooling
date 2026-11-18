@@ -675,6 +675,87 @@ fn refdefs_audit_reports_uses_before_idempotent_cleanup() {
     );
 }
 
+/// Unicode case-folding in refdef cleanup matches mdBook and keeps ambiguous definitions.
+#[test]
+fn refdefs_audit_preserves_unicode_casefolded_links_and_renders_them() {
+    let temp = tempdir().expect("create book directory");
+    let book_root = temp.path();
+    let source_root = book_root.join("src");
+    fs::create_dir_all(&source_root).expect("create source directory");
+    fs::write(
+        book_root.join("book.toml"),
+        "[book]\ntitle = \"Unicode reference links\"\nauthors = [\"Test\"]\nlanguage = \"en\"\nsrc = \"src\"\n",
+    )
+    .expect("write mdBook configuration");
+    fs::write(
+        source_root.join("SUMMARY.md"),
+        "# Summary\n\n- [Chapter](chapter.md)\n",
+    )
+    .expect("write mdBook summary");
+    let chapter = write_markdown_file(
+        &source_root,
+        "chapter.md",
+        "[Click][STRASSE]\n[Other][ss]\n\n[Stra\u{df}e]: https://example.invalid/keep\n[\u{1e9e}]: https://example.invalid/first\n[SS]: https://example.invalid/second\n[Unused]: https://example.invalid/unused\n",
+    );
+    let report = book_root.join("reference-audit.json");
+
+    let output = book_tool_command()
+        .args([
+            "refdefs-audit",
+            source_root.to_str().expect("utf-8 source path"),
+            "--report",
+            report.to_str().expect("utf-8 report path"),
+            "--delete",
+        ])
+        .output()
+        .expect("run Unicode reference audit");
+    assert!(
+        output.status.success(),
+        "refdefs-audit stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let cleaned = fs::read_to_string(&chapter).expect("read cleaned chapter");
+    assert!(cleaned.contains("[Stra\u{df}e]: https://example.invalid/keep"));
+    assert!(cleaned.contains("[\u{1e9e}]: https://example.invalid/first"));
+    assert!(cleaned.contains("[SS]: https://example.invalid/second"));
+    assert!(!cleaned.contains("[Unused]:"));
+
+    let mdbook_version = Command::new("mdbook").arg("--version").output();
+    let Ok(mdbook_version) = mdbook_version else {
+        eprintln!("mdBook is not installed; its render assertion is skipped.");
+        return;
+    };
+    assert!(
+        mdbook_version.status.success(),
+        "mdbook --version stderr: {}",
+        String::from_utf8_lossy(&mdbook_version.stderr)
+    );
+    let destination = book_root.join("rendered");
+    let rendered = Command::new("mdbook")
+        .arg("build")
+        .arg(book_root)
+        .arg("--dest-dir")
+        .arg(&destination)
+        .output()
+        .expect("run mdBook build");
+    assert!(
+        rendered.status.success(),
+        "mdbook build stderr: {}",
+        String::from_utf8_lossy(&rendered.stderr)
+    );
+    let html =
+        fs::read_to_string(destination.join("chapter.html")).expect("read rendered chapter HTML");
+    assert!(
+        html.contains("href=\"https://example.invalid/keep\""),
+        "{html}"
+    );
+    assert!(
+        html.contains("href=\"https://example.invalid/first\""),
+        "{html}"
+    );
+}
+
 /// Refdefs audit preserves definitions used in additional sources.
 #[test]
 fn refdefs_audit_preserves_definitions_used_in_additional_sources() {
