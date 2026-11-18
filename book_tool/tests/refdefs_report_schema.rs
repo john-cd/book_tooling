@@ -79,11 +79,7 @@ fn assert_valid_definition(record: &Value, index: usize) {
         .expect("normalized_label is a string");
     assert_eq!(
         normalized,
-        label
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ")
-            .to_lowercase(),
+        caseless::default_case_fold_str(&label.split_whitespace().collect::<Vec<_>>().join(" ")),
         "{context}.normalized_label must be the folded label"
     );
     let included_by = record["included_by"].as_array().expect("array field");
@@ -224,4 +220,74 @@ fn refdefs_audit_report_for_a_book_without_definitions_is_an_empty_array() {
         .expect("run refdefs-audit");
     assert!(output.status.success());
     assert_eq!(fs::read_to_string(report).expect("read report"), "[]\n");
+}
+
+/// Unicode-equivalent reference labels protect a live definition from deletion.
+#[test]
+fn refdefs_audit_preserves_unicode_casefolded_references() {
+    const STRASSE: &str = "Stra\u{df}e";
+    const LIGATURE: &str = "\u{fb03}";
+    let temp = tempdir().expect("create temporary book directory");
+    fs::write(
+        temp.path().join("chapter.md"),
+        "{{#include refs.incl.md}}\n[link][STRASSE] [ligature][FFI] [duplicate][DUPLICATE STRASSE]\n",
+    )
+    .expect("write chapter");
+    let definitions = temp.path().join("refs.incl.md");
+    fs::write(
+        &definitions,
+        format!(
+            "[{STRASSE}]: https://example.com/strasse\n[{LIGATURE}]: https://example.com/ffi\n[Duplicate {STRASSE}]: https://example.com/duplicate-one\n[DUPLICATE STRASSE]: https://example.com/duplicate-two\n[unused]: https://example.com/unused\n"
+        ),
+    )
+    .expect("write definitions");
+    let report = temp.path().join("report.json");
+
+    let output = Command::new(env!("CARGO_BIN_EXE_book_tool"))
+        .args(["refdefs-audit"])
+        .arg(temp.path())
+        .arg("--report")
+        .arg(&report)
+        .arg("--delete")
+        .output()
+        .expect("run refdefs-audit");
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let value: Value = serde_json::from_str(&fs::read_to_string(report).expect("read report"))
+        .expect("report is valid JSON");
+    for label in [STRASSE, LIGATURE] {
+        let record = value
+            .as_array()
+            .expect("report is an array")
+            .iter()
+            .find(|record| record["label"] == label)
+            .expect("report retains the definition");
+        assert_eq!(record["proven_unused"], Value::Bool(false), "{label}");
+        assert_eq!(record["uses"].as_array().map(Vec::len), Some(1), "{label}");
+    }
+    let duplicates: Vec<_> = value
+        .as_array()
+        .expect("report is an array")
+        .iter()
+        .filter(|record| {
+            record["label"] == format!("Duplicate {STRASSE}")
+                || record["label"] == "DUPLICATE STRASSE"
+        })
+        .collect();
+    assert_eq!(duplicates.len(), 2);
+    assert!(
+        duplicates
+            .iter()
+            .all(|record| record["ambiguous"] == Value::Bool(true))
+    );
+    let updated = fs::read_to_string(definitions).expect("read updated definitions");
+    assert!(updated.contains(&format!("[{STRASSE}]:")));
+    assert!(updated.contains(&format!("[{LIGATURE}]:")));
+    assert!(updated.contains(&format!("[Duplicate {STRASSE}]:")));
+    assert!(updated.contains("[DUPLICATE STRASSE]:"));
+    assert!(!updated.contains("[unused]:"));
 }
