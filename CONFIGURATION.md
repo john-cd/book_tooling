@@ -140,7 +140,7 @@ Windows x86_64-pc-windows-msvc, develop base `a639fc4` plus `37d6ef2` (2026-11-0
   in regular profiles; named hash/collection/regex crates use `opt-level=3`; build scripts use
   `opt-level=3`. The debug profile used full symbols. Rust-bundled `rust-lld.exe` linked the
   Windows test executables successfully.
-- Historical validation created checkout links at `D:/target/book_tooling/f`, `D:/code_build/book_tooling/f`, and `D:/sccache`. D: is ReFS. An earlier Rust version failed through the ReFS junction; Rust 1.100.0 or newer fixes that upstream issue. The D: ReFS path change has not yet been revalidated by a build on this checkout. Use the Just runner or absolute Cargo environment paths for builds. An isolated setup probe passed root overrides, repeatability, existing-directory
+- Historical validation created checkout links at `D:/target/book_tooling/f`, `D:/code_build/book_tooling/f`, and `D:/cache/sccache`. D: is ReFS. An earlier Rust version failed through the ReFS junction; Rust 1.100.0 or newer fixes that upstream issue. The D: ReFS path change has not yet been revalidated by a build on this checkout. Use the Just runner or absolute Cargo environment paths for builds. An isolated setup probe passed root overrides, repeatability, existing-directory
   refusal, and mismatched-link refusal.
 - The `just` wrapper could not start Git Bash in the managed shell, so setup and builds used the
   equivalent PowerShell setup script and explicit runner environment. Linux/macOS CI, an isolated

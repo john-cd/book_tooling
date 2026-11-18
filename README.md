@@ -272,12 +272,12 @@ Use `.worktrees/a` through `.worktrees/j` for auxiliary checkouts.
 Preserve active or dirty checkouts when reusing slots. The primary checkout's
 output slot is `main`, regardless of its branch name.
 
-| Variable            | Windows default | Linux/macOS default                                       |
-| ------------------- | --------------- | --------------------------------------------------------- |
-| `CODE_TARGET_ROOT`  | `D:/target`     | `$XDG_CACHE_HOME/cargo-target` or `~/.cache/cargo-target` |
-| `CODE_BUILD_ROOT`   | `D:/code_build` | `$XDG_CACHE_HOME/cargo-build` or `~/.cache/cargo-build`   |
-| `CODE_SCCACHE_ROOT` | `D:/sccache`    | `$XDG_CACHE_HOME/sccache` or `~/.cache/sccache`           |
-| `CODE_TEMP_ROOT`    | `C:/temp`       | Existing native `TMPDIR` or `/tmp`                        |
+| Variable            | Windows default    | Linux/macOS default                                       |
+| ------------------- | ------------------ | --------------------------------------------------------- |
+| `CODE_TARGET_ROOT`  | `D:/target`        | `$XDG_CACHE_HOME/cargo-target` or `~/.cache/cargo-target` |
+| `CODE_BUILD_ROOT`   | `D:/code_build`    | `$XDG_CACHE_HOME/cargo-build` or `~/.cache/cargo-build`   |
+| `CODE_SCCACHE_ROOT` | `D:/cache/sccache` | `$XDG_CACHE_HOME/sccache` or `~/.cache/sccache`           |
+| `CODE_TEMP_ROOT`    | `C:/temp`          | Existing native `TMPDIR` or `/tmp`                        |
 
 Set roots to absolute paths and create the directories before building. Keep
 Windows intermediate builds on NTFS. Targets use
@@ -308,7 +308,7 @@ it does not move existing installations. Tool-specific overrides such as
 `CARGO_HOME`, `npm_config_cache`, and `NUGET_PACKAGES` remain independent.
 Rust builds also read `CODE_BUILD_ROOT`, `CODE_TARGET_ROOT`, and
 `CODE_SCCACHE_ROOT`. Their Windows defaults are `D:/code_build`, `D:/target`,
-and `D:/sccache`. The runner rejects non-NTFS intermediate build roots.
+and `D:/cache/sccache`. The runner rejects non-NTFS intermediate build roots.
 Run `just configure-cargo-host` once per host (PowerShell 7 is required), and rerun it after changing roots. It preserves other Cargo settings, keeps the shared sccache and incremental defaults in `CARGO_HOME/config.toml`, and removes global output-directory overrides. Each checkout's Cargo config routes `target` and `build` through checkout-local links to `D:/target/<repo>/<slot>` and `D:/code_build/<repo>/<slot>`. Run the build-setup recipe once per checkout before using plain Cargo or rust-analyzer; task-runner Cargo commands supply the same per-slot paths and repository sccache settings.
 
 ## Repository configuration
