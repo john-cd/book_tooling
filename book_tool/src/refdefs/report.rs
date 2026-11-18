@@ -67,6 +67,10 @@ pub struct ReferenceDefinitionAudit {
 
 /// Unused definitions proven unused within every chapter/include scope in the scanned roots.
 #[derive(Debug, Default)]
+#[expect(
+    clippy::partial_pub_fields,
+    reason = "report fields are public, while the source snapshot and roots are internal revalidation inputs"
+)]
 pub struct ScopedRefDefAnalysis {
     /// Canonical roots used to discover the Markdown inputs.
     pub(super) roots: Vec<PathBuf>,

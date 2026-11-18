@@ -18,6 +18,9 @@ use super::scope::path_identity;
 
 /// Analyze reference definitions, save the report, and optionally remove proven-unused entries.
 ///
+/// Supplementary directories contribute usages that can prevent deletion.
+/// Protected definition files also remain in the report but are exempt from cleanup.
+///
 /// # Errors
 ///
 /// Returns an error if the roots cannot be analyzed, the report cannot be written, or cleanup
@@ -29,6 +32,7 @@ pub fn audit(
     additional_use_directories: Vec<PathBuf>,
     protected_definition_files: Vec<PathBuf>,
 ) -> Result<()> {
+    let additional_use_directories = additional_use_directories.into_boxed_slice();
     let analysis = find_unused_refdefs_in_scopes(directories)?;
     let mut analysis = analysis;
     let additional_uses = collect_uses_outside_scoped_roots(&additional_use_directories)?;
