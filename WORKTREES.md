@@ -88,3 +88,13 @@ untracked, temporary, or generated file was confirmed safe to remove.
 
 Use `git worktree list --porcelain` plus `git status --short --untracked-files=all` to refresh
 this snapshot before further cleanup.
+
+## Notification review 2026-11-17
+
+Slot b: Codex, issue #86, branch fix/issue-86-ci-workflow-reference. Previous detached commit preserved on backup/notification-review-20261117-b. Other checkouts preserved.
+
+Notification review result: slot b clean at 45ff80f; fix published in https://github.com/john-cd/book_tooling/pull/87 (open, unmerged). Existing primary-checkout changes preserved.
+
+## PR integration 2026-11-17
+
+PR #87 is squash-merged at 9d4e477. Primary checkout remains on develop, synchronized exactly with origin/develop (0 ahead, 0 behind). Topic branches and their additional local commits are preserved; existing working-tree edits are preserved. No worktrees, branches, or build caches were removed.
