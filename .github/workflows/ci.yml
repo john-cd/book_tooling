@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   rust:
-    uses: $/.github/workflows/rust-ci.yml
+    uses: ./.github/workflows/rust-ci.yml
     with:
       ## Private repo: Linux only on push/PR; all OSes on manual runs.
       runners: ${{ inputs.runners || '["ubuntu-latest"]' }}
