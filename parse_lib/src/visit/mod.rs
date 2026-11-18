@@ -99,22 +99,31 @@ pub trait Visitor<'a> {
     // --- Leaf Nodes (No children) ---
     /// Visits a text node; the default implementation does nothing.
     fn visit_text(&mut self, _data: &'a TextData<'a>) {}
+
     /// Visits a horizontal rule node; the default implementation does nothing.
     fn visit_horizontal_rule(&mut self) {}
+
     /// Visits a fenced code block node; the default implementation does nothing.
     fn visit_fenced_code_block(&mut self, _data: &'a FencedCodeBlockData<'a>) {}
+
     /// Visits a code span node; the default implementation does nothing.
     fn visit_code_span(&mut self, _data: &'a CodeSpanData<'a>) {}
+
     /// Visits an inline link node; the default implementation does nothing.
     fn visit_inline_link(&mut self, _data: &'a InlineLinkData<'a>) {}
+
     /// Visits a reference style link node; the default implementation does nothing.
     fn visit_reference_style_link(&mut self, _data: &'a ReferenceStyleLinkData<'a>) {}
+
     /// Visits a wikilink node; the default implementation does nothing.
     fn visit_wikilink(&mut self, _data: &'a WikiLinkData<'a>) {}
+
     /// Visits a heading node; the default implementation does nothing.
     fn visit_heading(&mut self, _data: &'a HeadingData<'a>) {}
+
     /// Visits a task item node; the default implementation does nothing.
     fn visit_task_item(&mut self, _data: &'a TaskItemData<'a>) {}
+
     /// Visits a table node by visiting the inline elements in its cells.
     fn visit_table(&mut self, data: &'a TableData<'a>) {
         self.visit_table_cells(data);
@@ -138,16 +147,22 @@ pub trait Visitor<'a> {
 
     /// Visits an autolink node; the default implementation does nothing.
     fn visit_autolink(&mut self, _data: &'a AutolinkData<'a>) {}
+
     /// Visits an inline image node; the default implementation does nothing.
     fn visit_inline_image(&mut self, _data: &'a InlineImageData<'a>) {}
+
     /// Visits a reference style image node; the default implementation does nothing.
     fn visit_reference_style_image(&mut self, _data: &'a ReferenceStyleImageData<'a>) {}
+
     /// Visits a reference definition node; the default implementation does nothing.
     fn visit_reference_definition(&mut self, _data: &'a ReferenceDefinitionData<'a>) {}
+
     /// Visits a hidden html div node; the default implementation does nothing.
     fn visit_hidden_html_div(&mut self, _data: &'a HiddenHtmlDivData<'a>) {}
+
     /// Visits a html comment node; the default implementation does nothing.
     fn visit_html_comment(&mut self, _data: &'a HtmlCommentData<'a>) {}
+
     /// Visits a custom directive node; the default implementation does nothing.
     fn visit_custom_directive(&mut self, _data: &'a DirectiveData<'a>) {}
 
