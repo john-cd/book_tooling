@@ -1,0 +1,24 @@
+Book Tooling Proprietary License
+
+Copyright (c) 2024-2026 S John CD. All rights reserved.
+
+This license applies to the first-party software, documentation, and other
+materials in this repository (the "Materials"). Third-party materials remain
+governed by their respective licenses.
+
+Except as permitted by applicable law, no permission is granted to use, copy,
+modify, distribute, sublicense, or sell the Materials without the copyright
+holder's prior written permission.
+
+Using any part of the Materials to pretrain, train, or fine-tune any artificial
+intelligence or machine learning model, including a large language model (LLM),
+is prohibited. This prohibition includes collecting, copying, or incorporating
+the Materials into datasets for those purposes and providing the Materials to
+others for those purposes.
+
+THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN
+CONNECTION WITH THE MATERIALS OR THEIR USE OR OTHER DEALINGS IN THE MATERIALS.

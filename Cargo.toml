@@ -13,7 +13,7 @@ categories = ["command-line-utilities", "development-tools", "text-processing"]
 documentation = "https://docs.rs/book_tooling/"
 edition = "2024"
 keywords = ["markdown", "book", "tooling", "cli", "rust"]
-license = "MIT OR Apache-2.0"
+license-file = "LICENSE"
 publish = false
 repository = "https://github.com/john-cd/book_tooling"
 rust-version = "1.98.1"
@@ -24,20 +24,22 @@ description = "A collection of Rust-based tools for processing Markdown files, p
 annotate-snippets = "0.12.17"
 # Flexible concrete Error type built on std::error::Error
 anyhow = "1.0.104"
-# Provides statistical microbenchmarking, output formatting, and benchmark comparison tools.
-divan = "0.1.21"
+# Markdown badge and link templates shared by book_tool and rust_rate.
+book_templates = { path = "./book_templates" }
 # A simple to use, efficient, and full-featured Command Line Argument Parser
 clap = { version = "4.6.7", features = ["derive"] }
+# Provides statistical microbenchmarking, output formatting, and benchmark comparison tools.
+divan = "0.1.21"
 # A bridge between std::io::Write and std::fmt::Write.
 fmt2io = "1.0.0"
 # An implementation of futures and streams featuring zero allocations, composability, and iterator-like interfaces.
 futures = "0.3.34"
 # HTTP date parsing and formatting
 httpdate = "1.0.3"
+# Full Unicode case folding for CommonMark reference labels.
+icu_casemap = "2.4.0"
 # Stores multiple values for each key in a map-like collection.
 multimap = "0.10.1"
-# Markdown badge and link templates shared by book_tool and rust_rate.
-book_templates = { path = "./book_templates" }
 # A collection of Rust-based tools for processing Markdown files, particularly for books and documentation projects.
 parse_lib = { path = "./parse_lib" }
 # Hypothesis-like property-based testing and shrinking.
@@ -53,10 +55,10 @@ serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 # A library for managing temporary files and directories.
 tempfile = "3.27.0"
-# An event-driven, non-blocking I/O platform for writing asynchronous I/O backed applications.
-tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros"] }
 # Derives standard Error implementations for custom Rust error types.
 thiserror = "2.0.21"
+# An event-driven, non-blocking I/O platform for writing asynchronous I/O backed applications.
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros"] }
 # A native Rust encoder and decoder of TOML-formatted files and streams. Provides implementations of the standard Serialize/Deserialize traits for...
 toml = "1.2.1"
 # Workspace code uses tracing events and does not need the optional attribute macros.
@@ -67,8 +69,6 @@ tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 url = "2.5.8"
 # Recursively walk a directory.
 walkdir = "2.5.0"
-# Full Unicode case folding for CommonMark reference labels.
-icu_casemap = "2.4.0"
 # A byte-oriented, zero-copy, parser combinators library
 winnow = "1.0.5"
 

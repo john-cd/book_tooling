@@ -5,7 +5,7 @@ name = "book_tool"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 publish = false
 rust-version.workspace = true
 description = "A unified CLI for book tooling"
@@ -33,12 +33,14 @@ cli = [
 [dependencies]
 # Flexible concrete Error type built on std::error::Error
 anyhow = { workspace = true }
+# Markdown badge and link templates shared by book_tool and rust_rate.
+book_templates = { workspace = true }
 # A simple to use, efficient, and full-featured Command Line Argument Parser
 clap = { workspace = true, features = ["derive"], optional = true }
 # HTTP date parsing and formatting
 httpdate = { workspace = true, optional = true }
-# Markdown badge and link templates shared by book_tool and rust_rate.
-book_templates = { workspace = true }
+# Full Unicode case folding for CommonMark reference labels.
+icu_casemap = { workspace = true, optional = true }
 # A collection of Rust-based tools for processing Markdown files, particularly for books and documentation projects.
 parse_lib = { workspace = true }
 # higher level HTTP client library
@@ -61,8 +63,6 @@ tracing-subscriber = { workspace = true, features = ["env-filter"], optional = t
 url = { workspace = true, optional = true }
 # Recursively walk a directory.
 walkdir = { workspace = true }
-# Full Unicode case folding for CommonMark reference labels.
-icu_casemap = { workspace = true, optional = true }
 
 [dev-dependencies]
 # Provides statistical microbenchmarking, output formatting, and benchmark comparison tools.

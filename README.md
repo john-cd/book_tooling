@@ -243,7 +243,7 @@ The binaries will be available in `target/release/book_tool` and `target/release
 
 ## License
 
-This project is licensed under either the [Apache License, Version 2.0](LICENSE-APACHE) or the [MIT license](LICENSE-MIT) at your option.
+This project is proprietary. See the [LICENSE](LICENSE) for terms, including restrictions on AI model training.
 
 ## Rust tooling
 
