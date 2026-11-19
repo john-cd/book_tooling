@@ -58,8 +58,8 @@ jobs:
           cache-key: ci-profile-ci-default-features
           cache-workspaces: . -> .ci/target/book_tooling/main
       - name: Install workspace tools (cargo-nextest, prek, dprint, cargo-deny, just)
-        # taiki-e/install-action v2.88.0
-        uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
+        # taiki-e/install-action v2.90.4
+        uses: taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21
         with:
           tool: |
             cargo-nextest@0.9.151
@@ -124,8 +124,8 @@ jobs:
 
           cache-workspaces: . -> .ci/target/book_tooling/main
       - name: Install cargo-llvm-cov
-        # taiki-e/install-action v2.88.0
-        uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
+        # taiki-e/install-action v2.90.4
+        uses: taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21
         with:
           tool: cargo-llvm-cov
 
