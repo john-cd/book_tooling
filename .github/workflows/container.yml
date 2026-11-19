@@ -19,14 +19,21 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Build image
         shell: bash
         run: |
           set -euo pipefail
-          docker compose --env-file .devcontainer/.env -f .devcontainer/compose.yaml build
+          docker compose --env-file .devcontainer/.env \
+            -f .devcontainer/compose.yaml \
+            -f .devcontainer/compose.ci.yaml build
       - name: Check pinned tools
         shell: bash
         run: |
           set -euo pipefail
-          docker compose --env-file .devcontainer/.env -f .devcontainer/compose.yaml run --rm --no-deps book-tooling \
+          docker compose --env-file .devcontainer/.env \
+            -f .devcontainer/compose.yaml \
+            -f .devcontainer/compose.ci.yaml \
+            run --rm --no-deps book-tooling \
             bash -c 'rustc --version && cargo --version && cargo nextest --version && sccache --version && just --version && dprint --version && prek --version && cargo deny --version'

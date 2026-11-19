@@ -1,0 +1,11 @@
+# CI-only BuildKit cache settings for the Book Tooling image.
+# Pass this file after compose.yaml when building in GitHub Actions.
+# TODO Reviewed ??-??-2026.
+
+services:
+  book-tooling:
+    build:
+      cache_from:
+        - type=gha,scope=book-tooling
+      cache_to:
+        - type=gha,mode=max,scope=book-tooling,ignore-error=true
