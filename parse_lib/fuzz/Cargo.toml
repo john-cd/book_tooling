@@ -5,7 +5,7 @@ rust-version.workspace = true
 name = "parse_lib-fuzz"
 version = "0.0.0"
 edition = "2024"
-license-file = "../../LICENSE"
+license-file.workspace = true
 publish = false
 
 [package.metadata]
@@ -15,6 +15,7 @@ cargo-fuzz = true
 [workspace]
 
 [workspace.package]
+license-file = "../../LICENSE"
 rust-version = "1.98.1"
 
 [workspace.lints.clippy]
