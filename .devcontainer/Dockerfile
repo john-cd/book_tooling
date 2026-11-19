@@ -25,13 +25,19 @@ ENV RUSTFMT_TOOLCHAIN=${RUSTFMT_TOOLCHAIN}
 
 ARG CARGO_NEXTEST_VERSION
 ARG CARGO_BINSTALL_VERSION
+ARG CARGO_BINSTALL_SHA256
 ARG PREK_VERSION
 ARG DPRINT_VERSION
 ARG CARGO_DENY_VERSION
 ARG JUST_VERSION
 ARG SCCACHE_VERSION
 
-RUN cargo install --locked --version "${CARGO_BINSTALL_VERSION}" cargo-binstall \
+RUN curl --fail --location --silent --show-error \
+        "https://github.com/cargo-bins/cargo-binstall/releases/download/v${CARGO_BINSTALL_VERSION}/cargo-binstall-x86_64-unknown-linux-musl.tgz" \
+        --output /tmp/cargo-binstall.tgz \
+    && echo "${CARGO_BINSTALL_SHA256}  /tmp/cargo-binstall.tgz" | sha256sum --check --status \
+    && tar -xzf /tmp/cargo-binstall.tgz -C /usr/local/cargo/bin cargo-binstall \
+    && rm /tmp/cargo-binstall.tgz \
     && cargo binstall --no-confirm --secure --version "${CARGO_NEXTEST_VERSION}" cargo-nextest \
     && cargo binstall --no-confirm --secure --version "${PREK_VERSION}" prek \
     && cargo binstall --no-confirm --secure --version "${DPRINT_VERSION}" dprint \
