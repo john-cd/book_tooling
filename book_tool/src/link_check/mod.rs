@@ -5,7 +5,6 @@
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-use anyhow::Context as _;
 use anyhow::Result;
 use parse_lib::ast::AutolinkData;
 use parse_lib::ast::InlineImageData;
@@ -15,12 +14,13 @@ use parse_lib::visit::Visitor;
 use url::Url;
 
 use crate::common::Scope;
-use crate::common::replace_text_file_atomically;
+use crate::common::walk_directories_and_process_files;
 use crate::common::walk_parsed_markdown_files;
 use crate::common::warn_and_continue_on_parse_failure;
 use crate::links::AsyncLinkChecker;
 use crate::refdefs::find_unused_refdefs_in_scopes;
 use crate::refdefs::normalize_reference_label;
+use crate::refdefs::remove_proven_unused_refdefs;
 
 /// Collects the external http(s) URLs of `doc`, skipping links that use unused reference
 /// definitions.
@@ -114,8 +114,20 @@ pub async fn execute(
     let checker = AsyncLinkChecker::new()?;
     let mut all_links = HashSet::new();
 
+    // Reference checks include the shared definitions by default. An explicit
+    // exclusion remains after removing the default entry.
+    let mut scope = scope.clone();
+    if check_refdefs
+        && let Some(default_exclusion) = scope
+            .excluded_filenames
+            .iter()
+            .position(|filename| filename == "refs.incl.md")
+    {
+        scope.excluded_filenames.remove(default_exclusion);
+    }
+
     let refdef_analysis = if check_refdefs {
-        let analysis = find_unused_refdefs_in_scopes(&directories)?;
+        let mut analysis = find_unused_refdefs_in_scopes(&directories)?;
         if analysis.unused_by_file.is_empty() {
             println!("No unused reference definitions found.");
         } else {
@@ -133,33 +145,22 @@ pub async fn execute(
         }
 
         if delete_unused {
-            let mut replacements = Vec::new();
-            for (path, unused_labels) in &analysis.unused_by_file {
-                let source = std::fs::read_to_string(path)
-                    .with_context(|| format!("Failed to read {}", path.display()))?;
-                let document = parse_lib::parse_document("file", Some(path), &source)
-                    .with_context(|| format!("Failed to parse {}", path.display()))?;
-                let replacement = crate::refdefs::delete_unused_refdefs(&document, unused_labels)?;
-                if replacement != source {
-                    replacements.push((path.clone(), replacement));
-                }
-            }
-            replacements.sort_by(|left, right| left.0.cmp(&right.0));
-            for (path, replacement) in replacements {
-                replace_text_file_atomically(&path, &replacement)?;
-            }
+            let mut eligible = HashSet::new();
+            walk_directories_and_process_files(&directories, &scope, |path| {
+                eligible.insert(path.canonicalize()?);
+                Ok(())
+            })?;
+            let unused = analysis.unused_by_file.clone();
+            analysis
+                .unused_by_file
+                .retain(|path, _| eligible.contains(path));
+            remove_proven_unused_refdefs(&analysis)?;
+            analysis.unused_by_file = unused;
         }
         Some(analysis)
     } else {
         None
     };
-
-    let mut scope = scope.clone();
-    if check_refdefs {
-        scope
-            .excluded_filenames
-            .retain(|filename| filename.to_string_lossy() != "refs.incl.md");
-    }
 
     walk_parsed_markdown_files(
         &directories,

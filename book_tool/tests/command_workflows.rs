@@ -957,3 +957,44 @@ fn link_check_cli_returns_failure_for_broken_urls_and_keeps_the_chapter_unchange
         source
     );
 }
+
+/// Cleanup writes only eligible files and retains excluded reference-use evidence.
+#[test]
+fn link_check_cleanup_honors_file_scope() -> anyhow::Result<()> {
+    let temp = tempdir()?;
+    let root = temp.path();
+    let excluded = root.join("excluded.md");
+    let eligible = root.join("chapter.md");
+    let excluded_source = "{{#include chapter.md}}\n[Keep][keep]\n\n[spare]: /unused\n";
+    let eligible_source = "[remove]: /unused\n[keep]: /live\n";
+    fs::write(&excluded, excluded_source)?;
+    fs::write(&eligible, eligible_source)?;
+
+    let output = book_tool_command()
+        .arg("link-check")
+        .arg(root)
+        .args(["--refdefs", "--delete", "--extension", "txt"])
+        .output()?;
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(fs::read_to_string(&eligible)?, eligible_source);
+
+    let exclusion_output = book_tool_command()
+        .arg("link-check")
+        .arg(root)
+        .args(["--refdefs", "--delete", "--exclude", "excluded.md"])
+        .output()?;
+    assert!(
+        exclusion_output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&exclusion_output.stderr)
+    );
+    assert_eq!(fs::read_to_string(&excluded)?, excluded_source);
+    let cleaned = fs::read_to_string(eligible)?;
+    assert!(!cleaned.contains("[remove]:"));
+    assert!(cleaned.contains("[keep]: /live"));
+    Ok(())
+}
