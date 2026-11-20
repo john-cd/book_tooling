@@ -45,6 +45,8 @@ icu_casemap = { workspace = true, optional = true }
 parse_lib = { workspace = true }
 # higher level HTTP client library
 reqwest = { workspace = true, optional = true }
+# Compare source and report file identities across platforms.
+same-file = { workspace = true }
 # A generic serialization/deserialization framework
 serde = { workspace = true, features = ["derive"] }
 # A JSON serialization file format

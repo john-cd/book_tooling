@@ -29,6 +29,43 @@ pub fn warn_and_continue_on_parse_failure(path: &Path, error: &anyhow::Error) {
     );
 }
 
+/// Rejects a report destination that has the same filesystem identity as a source.
+///
+/// # Errors
+///
+/// Returns an error if the source cannot be identified or aliases the report destination.
+pub fn ensure_distinct_report(
+    output: &Path,
+    destination: Option<&same_file::Handle>,
+    source: &Path,
+) -> Result<()> {
+    if let Some(destination) = destination {
+        let identity = same_file::Handle::from_path(source)
+            .with_context(|| format!("Failed to identify source {}", source.display()))?;
+        anyhow::ensure!(
+            *destination != identity,
+            "Report destination {} aliases scanned source {}",
+            output.display(),
+            source.display()
+        );
+    }
+    Ok(())
+}
+
+/// Opens the identity of an existing report destination, if present.
+///
+/// # Errors
+///
+/// Returns an error if an existing destination cannot be identified.
+pub fn report_identity(output: &Path) -> Result<Option<same_file::Handle>> {
+    match same_file::Handle::from_path(output) {
+        Ok(identity) => Ok(Some(identity)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error)
+            .with_context(|| format!("Failed to identify report destination {}", output.display())),
+    }
+}
+
 /// Replaces a regular text file only after the full replacement has been staged beside it.
 ///
 /// Symbolic links and non-file destinations are rejected. A unique temporary file is removed

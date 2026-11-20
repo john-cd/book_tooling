@@ -161,6 +161,7 @@ dependencies = [
  "icu_casemap",
  "parse_lib",
  "reqwest",
+ "same-file",
  "serde",
  "serde_json",
  "tempfile",

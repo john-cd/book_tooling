@@ -10,7 +10,9 @@ use anyhow::Result;
 use parse_lib::visit::Visitor as _;
 
 use crate::common::Scope;
+use crate::common::ensure_distinct_report;
 use crate::common::replace_text_file_atomically;
+use crate::common::report_identity;
 use crate::common::walk_parsed_markdown_files;
 use crate::common::warn_and_continue_on_parse_failure;
 
@@ -32,10 +34,12 @@ pub fn execute(directories: &[PathBuf], output: &Path, scope: &Scope) -> Result<
     let mut extracted_comments = 0_usize;
     let mut files_with_comments = 0_usize;
 
+    let destination = report_identity(output)?;
     walk_parsed_markdown_files(
         directories,
         scope,
         |path, doc| {
+            ensure_distinct_report(output, destination.as_ref(), path)?;
             let mut extractor = parse_lib::html_comment_extractor::HtmlCommentExtractor::new();
             extractor.visit_document(doc);
             let comment_count = extractor.comments.len();
@@ -66,6 +70,7 @@ pub fn execute(directories: &[PathBuf], output: &Path, scope: &Scope) -> Result<
         warn_and_continue_on_parse_failure,
     )?;
 
+    drop(destination);
     replace_text_file_atomically(output, &all_comments_output)?;
     tracing::info!(
         output = %output.display(),

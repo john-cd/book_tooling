@@ -54,6 +54,7 @@ serde = { version = "1.0.229", features = ["derive"] }
 # A JSON serialization file format
 serde_json = "1.0.154"
 # A library for managing temporary files and directories.
+same-file = "1.0.6"
 tempfile = "3.27.0"
 # Derives standard Error implementations for custom Rust error types.
 thiserror = "2.0.21"

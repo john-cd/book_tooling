@@ -168,3 +168,50 @@ fn help_lists_all_subcommands() {
         assert!(help.contains(command), "help is missing {command}: {help}");
     }
 }
+
+/// Reports reject a chapter and its hard-link aliases, including supplementary chapters.
+#[test]
+fn report_commands_preserve_aliased_sources() -> anyhow::Result<()> {
+    use std::fs;
+
+    let temp = tempfile::tempdir()?;
+    let root = temp.path().join("book");
+    let supplementary = temp.path().join("supplementary");
+    fs::create_dir_all(&root)?;
+    fs::create_dir_all(&supplementary)?;
+    let chapter = root.join("chapter.md");
+    let extra = supplementary.join("extra.md");
+    let alias = temp.path().join("report.txt");
+    let bytes = b"<!-- keep -->\n";
+    fs::write(&chapter, bytes)?;
+    fs::write(&extra, bytes)?;
+    fs::hard_link(&chapter, &alias)?;
+
+    for (command, option, destination) in [
+        ("extract-comments", "--output", root.join("./chapter.md")),
+        ("extract-comments", "--output", alias),
+        ("refdefs-audit", "--report", chapter.clone()),
+    ] {
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_book_tool"))
+            .arg(command)
+            .arg(&root)
+            .arg(option)
+            .arg(destination)
+            .output()?;
+        assert!(!output.status.success());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("aliases scanned source"));
+        assert_eq!(fs::read(&chapter)?, bytes);
+    }
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_book_tool"))
+        .arg("refdefs-audit")
+        .arg(&root)
+        .arg("--report")
+        .arg(&extra)
+        .arg("--also-scan-uses-in")
+        .arg(&supplementary)
+        .output()?;
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("aliases scanned source"));
+    assert_eq!(fs::read(extra)?, bytes);
+    Ok(())
+}

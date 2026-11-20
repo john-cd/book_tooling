@@ -415,6 +415,7 @@ pub(super) fn collect_reference_occurrences(
 /// Collects reference uses found in supplementary Markdown roots, grouped by normalized label.
 pub(super) fn collect_uses_outside_scoped_roots<I, P>(
     directories: I,
+    mut inspect_source: impl FnMut(&Path) -> Result<()>,
 ) -> Result<HashMap<String, HashSet<ReferenceUseAudit>>>
 where
     I: IntoIterator<Item = P>,
@@ -444,6 +445,7 @@ where
             })?;
             let source = std::fs::read_to_string(&path)
                 .with_context(|| format!("Failed to read Markdown file {}", path.display()))?;
+            inspect_source(&path)?;
             let occurrences = collect_reference_occurrences(&path, &source)?;
             for usage in occurrences.uses {
                 uses_by_label
@@ -554,7 +556,7 @@ mod tests {
         let dir = tempfile::tempdir().expect("temp dir");
         std::fs::write(dir.path().join("one.md"), "[Foo  Bar]\n").expect("write");
         std::fs::write(dir.path().join("skip.txt"), "[foo bar]\n").expect("write");
-        let uses = collect_uses_outside_scoped_roots([dir.path()]).expect("collects");
+        let uses = collect_uses_outside_scoped_roots([dir.path()], |_| Ok(())).expect("collects");
         assert_eq!(uses.len(), 1);
         assert_eq!(uses.get("foo bar").expect("label grouped").len(), 1);
     }
@@ -563,8 +565,8 @@ mod tests {
     #[test]
     fn missing_additional_root_is_an_error() {
         let dir = tempfile::tempdir().expect("temp dir");
-        let err =
-            collect_uses_outside_scoped_roots([dir.path().join("nope")]).expect_err("missing root");
+        let err = collect_uses_outside_scoped_roots([dir.path().join("nope")], |_| Ok(()))
+            .expect_err("missing root");
         assert!(
             format!("{err:#}").contains("additional Markdown root"),
             "{err:#}"

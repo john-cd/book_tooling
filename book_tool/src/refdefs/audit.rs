@@ -15,6 +15,8 @@ use super::occurrences::collect_uses_outside_scoped_roots;
 use super::report::write_audit_report;
 use super::scope::find_unused_refdefs_in_scopes;
 use super::scope::path_identity;
+use crate::common::ensure_distinct_report;
+use crate::common::report_identity;
 
 /// Analyze reference definitions, save the report, and optionally remove proven-unused entries.
 ///
@@ -35,7 +37,15 @@ pub fn audit(
     let additional_use_directories = additional_use_directories.into_boxed_slice();
     let analysis = find_unused_refdefs_in_scopes(directories)?;
     let mut analysis = analysis;
-    let additional_uses = collect_uses_outside_scoped_roots(&additional_use_directories)?;
+    let destination = report_identity(report_path)?;
+    for source in analysis.sources.keys() {
+        ensure_distinct_report(report_path, destination.as_ref(), source)?;
+    }
+    let additional_uses =
+        collect_uses_outside_scoped_roots(&additional_use_directories, |source| {
+            ensure_distinct_report(report_path, destination.as_ref(), source)
+        })?;
+    drop(destination);
     let additional_labels = additional_uses.keys().cloned().collect::<HashSet<_>>();
     let protected_definition_files = protected_definition_files
         .into_iter()
@@ -96,7 +106,8 @@ pub fn audit(
 
     if delete_unused {
         anyhow::ensure!(
-            collect_uses_outside_scoped_roots(&additional_use_directories)? == additional_uses,
+            collect_uses_outside_scoped_roots(&additional_use_directories, |_| Ok(()))?
+                == additional_uses,
             "Supplementary references changed after analysis. Re-run the audit."
         );
         let changed_files = remove_proven_unused_refdefs(&analysis)?;
