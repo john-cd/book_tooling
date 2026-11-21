@@ -1,3 +1,4 @@
+# TODO Reviewed ??-??-2026.
 # Intentional fixture exceptions for scripts/check_config_drift.py.
 
 [[fixture_exceptions]]

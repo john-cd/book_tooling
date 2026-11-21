@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# TODO Reviewed ??-??-2026.
 """Check repository configuration for cross-file drift.
 
 This read-only check compares settings that must stay aligned across repository
