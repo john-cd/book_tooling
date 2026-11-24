@@ -52,7 +52,7 @@ jobs:
 
       - name: Set up Rust (pinned stable + pinned nightly rustfmt)
         id: setup-rust
-        uses: $/.github/actions/setup-rust
+        uses: ./.github/actions/setup-rust
 
         with:
           cache-key: ci-profile-ci-default-features
@@ -117,7 +117,7 @@ jobs:
 
       - name: Set up Rust (pinned stable + llvm-tools)
         id: setup-rust
-        uses: $/.github/actions/setup-rust
+        uses: ./.github/actions/setup-rust
         with:
           components: "clippy llvm-tools-preview"
           cache-key: coverage-profile-dev-default-features
