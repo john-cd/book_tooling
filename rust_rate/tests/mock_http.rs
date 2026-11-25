@@ -97,7 +97,7 @@ fn run_stats_cli(
     run_stats_cli_with_limit(api_base, request_timeout_ms, max_search_response_bytes, "1")
 }
 
-/// Runs the stats CLI with an explicit manifest sample limit.
+/// Runs the stats CLI with an explicit sample limit and deterministic warning output.
 fn run_stats_cli_with_limit(
     api_base: &str,
     request_timeout_ms: u64,
@@ -124,6 +124,8 @@ fn run_stats_cli_with_limit(
             "64",
         ])
         .env_remove("RUST_RATE_TEST_TOKEN_NOT_SET")
+        .env("RUST_LOG", "warn")
+        .env("NO_COLOR", "1")
         .output()
 }
 /// Builds a complete HTTP/1.1 response with a JSON or plain body.
@@ -485,7 +487,10 @@ fn stats_reports_manifest_analysis_coverage() {
         if !success {
             assert!(String::from_utf8_lossy(&output.stderr).contains("Could not analyze any of 2"));
         } else if fixtures.len() == 2 {
-            assert!(String::from_utf8_lossy(&output.stdout).contains("Analyzed 1 of 2"));
+            assert!(
+                String::from_utf8_lossy(&output.stdout).contains("Analyzed 1 of 2"),
+                "{output:?}"
+            );
         }
     }
 }
