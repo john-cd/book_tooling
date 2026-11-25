@@ -1,3 +1,16 @@
+# Workflow contract documentation (maintained with the implementation).
+# Workflow contract: book_tooling / Container.
+# Purpose: Compile, lint or test the Rust source for the scope selected by the commands below.
+# Execution: workflow_dispatch. Trigger branches/paths below are the authoritative input boundary.
+# Manual operation: use the Actions tab or gh workflow run; input defaults below apply unless
+# explicitly overridden.
+# Run policy: newer runs replace obsolete validation in the same group.
+# Access: workflow token permissions are {"contents": "read"}; job-level overrides below own any
+# elevated access.
+# Maintenance: keep full-SHA action references/tool pins coordinated with Dependabot and the
+# repository configuration. See README.md in this directory for the job map and local validation.
+# End workflow contract documentation.
+
 # TODO Reviewed ??-??-2026.
 
 ## Manual check that the development container image builds and contains the pinned tools.
@@ -9,7 +22,15 @@ on:
 permissions:
   contents: read
 
+# Serialize side effects; superseded validation may stop before spending more runner time.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # Job build: Compile, lint or test the Rust source for the scope selected by the commands below.
+  # Keep compiler/profile/feature selections aligned so adjacent commands reuse outputs; retain real
+  # binary generation, doctests and distinct minimum-version checks.
   build:
     name: Development image (Linux)
     runs-on: ubuntu-latest
@@ -28,6 +49,8 @@ jobs:
           docker compose --env-file .devcontainer/.env \
             -f .devcontainer/compose.yaml \
             -f .devcontainer/compose.ci.yaml build
+      # Run compiled test binaries with the configured Nextest profile. Nextest does not run Rust
+      # doctests; retain the separate cargo test --doc step where present.
       - name: Check pinned tools
         shell: bash
         run: |

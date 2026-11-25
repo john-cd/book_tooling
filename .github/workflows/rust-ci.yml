@@ -1,8 +1,23 @@
+# Workflow contract documentation (maintained with the implementation).
+# Workflow contract: book_tooling / Rust CI (reusable).
+# Purpose: Compile, lint or test the Rust source for the scope selected by the commands below;
+# Measure executed-code coverage with instrumented binaries; Check the declared minimum Rust
+# compiler, independently of the current development compiler.
+# Execution: workflow_call. Trigger branches/paths below are the authoritative input boundary.
+# Reuse: callers pass declared inputs/secrets; a called workflow cannot elevate the caller token
+# permissions.
+# Access: workflow token permissions are {"contents": "read"}; job-level overrides below own any
+# elevated access.
+# Maintenance: keep full-SHA action references/tool pins coordinated with Dependabot and the
+# repository configuration. See README.md in this directory for the job map and local validation.
+# End workflow contract documentation.
+
 # TODO Reviewed ??-??-2026.
 
 ## Reusable workflow: format, build, lint and test the Cargo workspace on every OS.
 ##
-## Called by `ci.yml`. Shape and step names match `mdbook-utils/.github/workflows/rust-ci.yml`.
+## Called by `ci.yml`. Compare the companion mdbook-utils `.github/workflows/ci.yml`
+## when changing shared compiler/cache conventions; each repository owns its own job graph.
 ## See `.github/workflows/README.md` for the full picture.
 name: Rust CI (reusable)
 
@@ -35,6 +50,12 @@ env:
   CODE_BUILD_ROOT: ${{ github.workspace }}/.ci/build
   CARGO_BUILD_TARGET_DIR: ${{ github.workspace }}/.ci/target/book_tooling/main
 jobs:
+  # Job validate: Compile, lint or test the Rust source for the scope selected by the commands
+  # below.
+  # Keep compiler/profile/feature selections aligned so adjacent commands reuse outputs; retain real
+  # binary generation, doctests and distinct minimum-version checks.
+  # Matrix entries are independent runners. Keep OS/toolchain/feature-specific tests; consolidate
+  # only checks whose inputs are identical.
   validate:
     name: Validate (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -50,6 +71,8 @@ jobs:
         with:
           persist-credentials: false
 
+      # Install the compiler/components required by this lane. Keep the stable, minimum-version and
+      # formatter toolchains distinct where their contracts differ.
       - name: Set up Rust (pinned stable + pinned nightly rustfmt)
         id: setup-rust
         uses: ./.github/actions/setup-rust
@@ -57,6 +80,8 @@ jobs:
         with:
           cache-key: ci-profile-ci-default-features
           cache-workspaces: . -> .ci/target/book_tooling/main
+      # Install the tool versions consumed by the following checks. Prefer the existing prebuilt
+      # installer path to recompiling development tools on every fresh runner.
       - name: Install workspace tools (cargo-nextest, prek, dprint, cargo-deny, just)
         # taiki-e/install-action v2.90.4
         uses: taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21
@@ -89,19 +114,30 @@ jobs:
         if: runner.os == 'Linux'
         run: docker compose --env-file .devcontainer/.env -f .devcontainer/compose.yaml config --quiet
 
+      # Retain real code generation/linking for the requested build scope; a typecheck alone cannot
+      # prove linked binaries/examples can be produced.
       - name: Build
         run: cargo build --workspace --all-targets --locked --profile ci
 
+      # Clippy performs compiler checking for these targets/features as well as linting. Keep a
+      # separate cargo check only when it covers a different compiler, target or feature set.
       - name: Clippy
         run: cargo clippy --workspace --all-targets --locked --profile ci -- --deny warnings
 
+      # Run compiled test binaries with the configured Nextest profile. Nextest does not run Rust
+      # doctests; retain the separate cargo test --doc step where present.
       - name: Run tests
         run: cargo nextest run --workspace --all-targets --locked --profile ci --cargo-profile ci --hide-progress-bar
 
+      # Execute documentation examples separately: passing unit/integration tests or Nextest does
+      # not establish doctest correctness.
       - name: Run doctests
         run: cargo test --workspace --doc --locked --profile ci -- --show-output
 
   ## Informational: reports line coverage in the job summary. Never fails the workflow; no gate yet.
+  # Job coverage: Measure executed-code coverage with instrumented binaries.
+  # Instrumentation can change build outputs; this job is separate from ordinary validation so
+  # coverage does not reuse incompatible binaries.
   coverage:
     name: Coverage (informational)
     runs-on: ubuntu-latest
@@ -114,6 +150,8 @@ jobs:
         with:
           persist-credentials: false
 
+      # Install the compiler/components required by this lane. Keep the stable, minimum-version and
+      # formatter toolchains distinct where their contracts differ.
       - name: Set up Rust (pinned stable + llvm-tools)
         id: setup-rust
         uses: ./.github/actions/setup-rust
@@ -122,6 +160,8 @@ jobs:
           cache-key: coverage-profile-dev-default-features
 
           cache-workspaces: . -> .ci/target/book_tooling/main
+      # Install the tool versions consumed by the following checks. Prefer the existing prebuilt
+      # installer path to recompiling development tools on every fresh runner.
       - name: Install cargo-llvm-cov
         # taiki-e/install-action v2.90.4
         uses: taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21
@@ -138,6 +178,9 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+  # Job msrv: Check the declared minimum Rust compiler, independently of the current development
+  # compiler.
+  # A passing current-toolchain build does not prove the advertised minimum version still compiles.
   msrv:
     name: Minimum supported Rust
     runs-on: ubuntu-latest
@@ -149,6 +192,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      # Install the compiler/components required by this lane. Keep the stable, minimum-version and
+      # formatter toolchains distinct where their contracts differ.
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # 1.98.1
         with:
           toolchain: 1.98.1

@@ -1,3 +1,16 @@
+# Workflow contract documentation (maintained with the implementation).
+# Workflow contract: book_tooling / Measure.
+# Purpose: Measure the selected build/runtime scenario and retain its diagnostic output.
+# Execution: workflow_dispatch. Trigger branches/paths below are the authoritative input boundary.
+# Manual operation: use the Actions tab or gh workflow run; input defaults below apply unless
+# explicitly overridden.
+# Run policy: newer runs replace obsolete validation in the same group.
+# Access: workflow token permissions are {"contents": "read"}; job-level overrides below own any
+# elevated access.
+# Maintenance: keep full-SHA action references/tool pins coordinated with Dependabot and the
+# repository configuration. See README.md in this directory for the job map and local validation.
+# End workflow contract documentation.
+
 # TODO Reviewed ??-??-2026.
 
 ## Manual measurement of cold/warm rebuild time, output sizes and release linking per OS.
@@ -10,7 +23,17 @@ on:
 permissions:
   contents: read
 
+# Serialize side effects; superseded validation may stop before spending more runner time.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # Job measure: Measure the selected build/runtime scenario and retain its diagnostic output.
+  # Compare equivalent toolchains, profiles and cache states; timing data from different
+  # configurations is not a speedup measurement.
+  # Matrix entries are independent runners. Keep OS/toolchain/feature-specific tests; consolidate
+  # only checks whose inputs are identical.
   measure:
     name: Build profiles (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -28,11 +51,15 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      # Install the compiler/components required by this lane. Keep the stable, minimum-version and
+      # formatter toolchains distinct where their contracts differ.
       - name: Set up Rust
         uses: ./.github/actions/setup-rust
         with:
           cache: "false"
           nightly: skip
+      # Retain real code generation/linking for the requested build scope; a typecheck alone cannot
+      # prove linked binaries/examples can be produced.
       - name: Measure
         shell: bash
         run: |

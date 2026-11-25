@@ -1,3 +1,17 @@
+# Workflow contract documentation (maintained with the implementation).
+# Workflow contract: book_tooling / Fuzz.
+# Purpose: Exercise parser or input-handling invariants with generated inputs.
+# Execution: workflow_dispatch. Trigger branches/paths below are the authoritative input boundary.
+# Manual operation: use the Actions tab or gh workflow run; input defaults below apply unless
+# explicitly overridden.
+# Manual controls: seconds: Fuzzing time budget in seconds..
+# Run policy: newer runs replace obsolete validation in the same group.
+# Access: workflow token permissions are {"contents": "read"}; job-level overrides below own any
+# elevated access.
+# Maintenance: keep full-SHA action references/tool pins coordinated with Dependabot and the
+# repository configuration. See README.md in this directory for the job map and local validation.
+# End workflow contract documentation.
+
 # TODO Reviewed ??-??-2026.
 
 ## Manual libFuzzer run of the parse_lib `round_trip` target on a hosted Linux runner.
@@ -15,7 +29,15 @@ on:
 permissions:
   contents: read
 
+# Serialize side effects; superseded validation may stop before spending more runner time.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # Job fuzz: Exercise parser or input-handling invariants with generated inputs.
+  # Fuzzing is a bounded deeper check; ordinary deterministic tests remain the fast regression
+  # signal.
   fuzz:
     name: round_trip (Linux)
     runs-on: ubuntu-latest
@@ -30,11 +52,15 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      # Install the compiler/components required by this lane. Keep the stable, minimum-version and
+      # formatter toolchains distinct where their contracts differ.
       - name: Set up Rust
         id: rust
         uses: ./.github/actions/setup-rust
         with:
           cache: "false"
+      # Install the tool versions consumed by the following checks. Prefer the existing prebuilt
+      # installer path to recompiling development tools on every fresh runner.
       - name: Install cargo-fuzz
         uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
         with:
@@ -56,6 +82,8 @@ jobs:
             tail -n 25 "$RUNNER_TEMP/fuzz.log"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+      # Transfer this job output to the next consumer or retain diagnostics. Uploading an artifact
+      # alone does not execute the deployment job.
       - name: Upload crashes
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2

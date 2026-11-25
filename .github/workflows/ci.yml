@@ -1,3 +1,20 @@
+# Workflow contract documentation (maintained with the implementation).
+# Workflow contract: book_tooling / CI.
+# Purpose: Classify changed inputs and export decisions to downstream jobs; Delegate validation to
+# ./.github/workflows/rust-ci.yml; Build or validate the maintained documentation and generated
+# output.
+# Execution: push, pull_request, workflow_dispatch. Trigger branches/paths below are the
+# authoritative input boundary.
+# Manual operation: use the Actions tab or gh workflow run; input defaults below apply unless
+# explicitly overridden.
+# Manual controls: runners: JSON array of runner labels (push/PR runs use Linux only).
+# Run policy: newer runs replace obsolete validation in the same group.
+# Access: workflow token permissions are {"contents": "read"}; job-level overrides below own any
+# elevated access.
+# Maintenance: keep full-SHA action references/tool pins coordinated with Dependabot and the
+# repository configuration. See README.md in this directory for the job map and local validation.
+# End workflow contract documentation.
+
 # TODO Reviewed ??-??-2026.
 
 ## Continuous integration: runs the reusable Rust CI on Linux (push/PR) or any OS set (manual run).
@@ -24,6 +41,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Job changes: Classify changed inputs and export decisions to downstream jobs.
+  # Skip only the scopes named by these filters; fixtures, manifests and workflow changes must still
+  # select their owning validation.
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -53,6 +73,13 @@ jobs:
               - '!.github/workflows/README.md'
             container:
               - '{.devcontainer/**,.dockerignore,.github/workflows/**}'
+  # Job rust: Delegate validation to ./.github/workflows/rust-ci.yml.
+  # The called workflow owns runner setup and checks; pass declared inputs explicitly instead of
+  # duplicating its implementation here.
+  # Dependency boundary: "changes"; downstream work must not consume an unchecked or missing
+  # upstream result.
+  # Guard: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true' }}.
+  # Keep this condition when refactoring triggers or job dependencies.
   rust:
     needs: changes
     if: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true' }}
@@ -61,6 +88,13 @@ jobs:
       ## Linux on push/PR; manual runs can select the cross-platform matrix.
       runners: ${{ inputs.runners || '["ubuntu-latest"]' }}
 
+  # Job documentation: Build or validate the maintained documentation and generated output.
+  # Rendering catches broken configuration, includes and generated links that a source formatter
+  # cannot detect.
+  # Dependency boundary: "changes"; downstream work must not consume an unchecked or missing
+  # upstream result.
+  # Guard: needs.changes.outputs.code != 'true'. Keep this condition when refactoring triggers or
+  # job dependencies.
   documentation:
     needs: changes
     if: needs.changes.outputs.code != 'true'
