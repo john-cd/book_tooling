@@ -431,8 +431,12 @@ async fn crates_io_failures_are_reported() {
 #[tokio::test]
 async fn limited_search_stops_after_filling_sample() {
     for (limit, expected_pages) in [(0, 0), (5, 1), (101, 2)] {
-        let server = MockServer::spawn((0..expected_pages).map(|_| search_page(100)).collect())
-            .expect("start mock server");
+        let server = MockServer::spawn(
+            std::iter::repeat_with(|| search_page(100))
+                .take(expected_pages)
+                .collect(),
+        )
+        .expect("start mock server");
         let crawler = GithubCrawler::new(None)
             .expect("build crawler")
             .with_api_base(&server.url);
