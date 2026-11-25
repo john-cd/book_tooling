@@ -92,7 +92,10 @@ struct ExistingRefDefCollector<'a> {
 impl<'ast> Visitor<'ast> for ExistingRefDefCollector<'_> {
     /// Records an existing reference definition so conversion can reuse its label.
     fn visit_reference_definition(&mut self, data: &'ast ReferenceDefinitionData<'ast>) {
-        if self.existing_labels.insert(normalize_reference_label(data.label)) {
+        if self
+            .existing_labels
+            .insert(normalize_reference_label(data.label))
+        {
             self.existing_url_to_label
                 .entry(data.url.to_owned())
                 .or_insert_with(|| data.label.to_owned());
