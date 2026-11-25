@@ -15,6 +15,8 @@ use parse_lib::ast::ReferenceDefinitionData;
 use parse_lib::markdown_renderer::MarkdownRenderer;
 use parse_lib::visit::Visitor;
 
+use crate::refdefs::normalize_reference_label;
+
 /// URL fragment that marks links to Rust How-To issues, which stay inline.
 const ISSUE_LINK_PASSTHROUGH: &str = "github.com/john-cd/rust_howto/issues";
 
@@ -90,9 +92,11 @@ struct ExistingRefDefCollector<'a> {
 impl<'ast> Visitor<'ast> for ExistingRefDefCollector<'_> {
     /// Records an existing reference definition so conversion can reuse its label.
     fn visit_reference_definition(&mut self, data: &'ast ReferenceDefinitionData<'ast>) {
-        self.existing_url_to_label
-            .insert(data.url.to_owned(), data.label.to_owned());
-        self.existing_labels.insert(data.label.to_owned());
+        if self.existing_labels.insert(normalize_reference_label(data.label)) {
+            self.existing_url_to_label
+                .entry(data.url.to_owned())
+                .or_insert_with(|| data.label.to_owned());
+        }
     }
 }
 

@@ -94,3 +94,28 @@ fn inline_links_cli_preserves_titles_images_native_helpers_and_issue_links() {
         expected
     );
 }
+
+/// Keeps an inline destination when a later equivalent label is shadowed.
+#[test]
+fn preserves_destination_of_shadowed_reference() {
+    let temp = tempdir().expect("create book directory");
+    let chapter = temp.path().join("page.md");
+    fs::write(&chapter, "[web]: https://example.org/first\n[WEB]: https://example.org/second\n\n[Read](https://example.org/second)\n")
+        .expect("write chapter");
+    let convert = || {
+        assert!(
+            Command::new(env!("CARGO_BIN_EXE_book_tool"))
+                .arg("inline-links")
+                .arg(temp.path())
+                .output()
+                .expect("run CLI")
+                .status
+                .success()
+        );
+        fs::read_to_string(&chapter).expect("read chapter")
+    };
+    let converted = convert();
+    assert!(converted.contains("[Read][1]"));
+    assert!(converted.contains("[1]: https://example.org/second"));
+    assert_eq!(convert(), converted);
+}
