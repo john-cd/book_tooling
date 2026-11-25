@@ -24,11 +24,54 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+      container: ${{ steps.filter.outputs.container }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3
+        id: filter
+        with:
+          predicate-quantifier: every
+          filters: |
+            code:
+              - '**'
+              - '!README.md'
+              - '!TODO.md'
+              - '!AGENTS.md'
+              - '!CONTRIBUTING.md'
+              - '!CHANGELOG.md'
+              - '!RELEASES.md'
+              - '!.github/workflows/README.md'
+            container:
+              - '{.devcontainer/**,.dockerignore,.github/workflows/**}'
   rust:
+    needs: changes
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true' }}
     uses: ./.github/workflows/rust-ci.yml
     with:
-      ## Private repo: Linux only on push/PR; all OSes on manual runs.
+      ## Linux on push/PR; manual runs can select the cross-platform matrix.
       runners: ${{ inputs.runners || '["ubuntu-latest"]' }}
+
+  documentation:
+    needs: changes
+    if: needs.changes.outputs.code != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dprint/check@371a959e3c77f34a76a03d2c50df2e3f2302d016 # v2
+
 env:
   CODE_TARGET_ROOT: ${{ github.workspace }}/.ci/target
   CODE_BUILD_ROOT: ${{ github.workspace }}/.ci/build

@@ -40,3 +40,16 @@ zizmor --offline --strict-collection --collect all -- .github
 The pinned actionlint release predates GitHub's `$/` self-repository syntax. `.github/actionlint.yaml`
 ignores only its two unsupported-format diagnostics; all other workflow errors remain visible. Install
 the standalone `actionlint` binary and `zizmor` using the versions managed by your development environment.
+
+## CI cost and local checks
+
+Recognized root documentation edits run dprint without recompiling the workspace. Unknown paths,
+test fixtures, Rust files, manifests and workflow changes retain the full CI lane. Compilation,
+Clippy, Nextest and doctests stay in one job so they share build outputs. Cross-platform manual
+runs execute repository hooks and configuration checks only on Linux; build/tests run on each OS.
+
+[Trusted Windows checks](https://github.com/john-cd/local_runners/actions/workflows/rust-repositories.yml)
+use the existing J-RAZER runner, manually dispatched by the owner, and always resolve current
+`develop`. Static mode checks formatting/workflows. Full mode runs Clippy, tests and doctests,
+requires 15 GiB free on D:, uses two Cargo workers and isolated persistent runner output roots.
+Public PR checks remain hosted; this local lane neither publishes nor receives deployment secrets.
