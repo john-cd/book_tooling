@@ -8,8 +8,9 @@ books and documentation projects.
 ## Local Rust checks
 
 Install the toolchain from `rust-toolchain.toml` with `rustup show` in the
-checkout. From the repository root, run `just check`, `just config-drift`, and
-`just test-all`. For formatting, use the nightly pin in
+checkout. From the repository root, run `just check`, `just config-drift`,
+`just orphansources`, and `just test-all`. The configuration and orphan-source
+audits are subcommands of `book_tool`. For formatting, use the nightly pin in
 `rustfmt-toolchain.toml`.
 
 ## Overview

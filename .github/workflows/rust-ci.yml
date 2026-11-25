@@ -103,8 +103,8 @@ jobs:
       - name: Check configuration paths and cross-file pins
         if: runner.os == 'Linux'
         run: |
-          python -B -m unittest discover -s scripts -p test_check_config_drift.py
           just config-drift
+          just orphansources
 
       - name: Validate GitHub Actions workflows
         if: runner.os == 'Linux'

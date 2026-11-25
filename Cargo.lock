@@ -160,6 +160,7 @@ dependencies = [
  "httpdate",
  "icu_casemap",
  "parse_lib",
+ "regex",
  "reqwest",
  "same-file",
  "serde",

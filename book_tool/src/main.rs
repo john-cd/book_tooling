@@ -3,6 +3,7 @@
 //! TODO Reviewed ??-??-2026.
 
 use std::path::PathBuf;
+use std::process::ExitCode;
 
 use anyhow::Result;
 use book_tool::common::Scope;
@@ -118,17 +119,39 @@ enum Commands {
         #[command(flatten)]
         scope: ScopeArgs,
     },
+    /// Check repository configuration for cross-file drift.
+    ConfigDrift {
+        /// Repository root (defaults to the current directory).
+        #[arg(long)]
+        root: Option<PathBuf>,
+    },
+    /// Check workspace Rust sources for unresolved and orphan modules.
+    OrphanSources {
+        /// Workspace root (defaults to the current directory).
+        #[arg(long)]
+        root: Option<PathBuf>,
+    },
 }
 
 /// Parses the command line, initializes tracing, and runs the selected workflow.
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> ExitCode {
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
 
     let cli = Cli::parse();
+    match run(cli).await {
+        Ok(code) => code,
+        Err(error) => {
+            eprintln!("Error: {error:#}");
+            ExitCode::FAILURE
+        }
+    }
+}
 
+/// Runs the selected command and returns its requested process status.
+async fn run(cli: Cli) -> Result<ExitCode> {
     match &cli.command {
         Commands::Directives {
             directories,
@@ -182,7 +205,15 @@ async fn main() -> Result<()> {
         } => {
             book_tool::extract_comments::execute(directories, output, &scope.to_scope())?;
         }
+        Commands::ConfigDrift { root } => {
+            let root = root.clone().unwrap_or(std::env::current_dir()?);
+            return book_tool::config_drift::execute(&root);
+        }
+        Commands::OrphanSources { root } => {
+            let root = root.clone().unwrap_or(std::env::current_dir()?);
+            return book_tool::orphan_sources::execute(&root);
+        }
     }
 
-    Ok(())
+    Ok(ExitCode::SUCCESS)
 }

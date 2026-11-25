@@ -17,6 +17,10 @@
 #[cfg(any(feature = "cli", feature = "directives"))]
 pub mod common;
 
+/// Repository configuration consistency checks.
+#[cfg(feature = "cli")]
+pub mod config_drift;
+
 /// Directive and wikilink expansion workflows.
 #[cfg(feature = "directives")]
 pub mod directives;
@@ -36,6 +40,10 @@ pub mod link_check;
 /// Link conversion, extraction, and validation utilities.
 #[cfg(feature = "cli")]
 pub mod links;
+
+/// Rust workspace source reachability checks.
+#[cfg(feature = "cli")]
+pub mod orphan_sources;
 
 /// Reference-definition analysis and cleanup helpers.
 #[cfg(feature = "cli")]

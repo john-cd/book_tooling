@@ -1,5 +1,5 @@
 # TODO Reviewed ??-??-2026.
-# Intentional fixture exceptions for scripts/check_config_drift.py.
+# Intentional fixture exceptions for `book_tool config-drift`.
 
 [[fixture_exceptions]]
 path = "test_fixtures/markdown/crlf.md"

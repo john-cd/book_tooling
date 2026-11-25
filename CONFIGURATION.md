@@ -14,8 +14,10 @@ Keep this file, README, contributor guidance, and configuration comments synchro
 5. Validate format/lint and representative builds; measure cold/warm time and output size before
    promoting further optimization changes. Keep platform and integration blockers visible in TODO.
 
-`just config-drift` checks Cargo workspace/member and Dependabot paths, the shared LF editor/Git
-defaults, container/toolchain pin agreement, and documented fixture exceptions. Cargo metadata,
+`just config-drift` runs the `book_tool config-drift` Rust command to check Cargo workspace/member
+and Dependabot paths, the shared LF editor/Git defaults, container/toolchain pin agreement, and
+documented fixture exceptions. `just orphansources` runs `book_tool orphan-sources` to verify
+reachable Rust modules and report orphaned workspace sources. Cargo metadata,
 prek, and dprint validate the relevant manifests and structured files; CI also runs actionlint and
 `docker compose config` for their respective schemas. Keep exceptions in
 `.config/config-drift.toml` with a reason and matching hook exclusions.

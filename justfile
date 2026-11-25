@@ -100,12 +100,12 @@ _default:
 # Check that every Rust source file under src/ belongs to a compiled module tree.
 @orphansources:
     echo "Check for orphan Rust source files in $(pwd)"
-    python3 scripts/check_orphan_sources.py || python scripts/check_orphan_sources.py
+    cargo run --locked -p book_tool -- orphan-sources
 
 # Check workspace, Dependabot, editing, toolchain and fixture configuration alignment.
 @config-drift:
     echo "Check repository configuration consistency in $(pwd)"
-    python3 scripts/check_config_drift.py || python scripts/check_config_drift.py
+    cargo run --locked -p book_tool -- config-drift
 
 # Build all packages (all features)
 @build:
