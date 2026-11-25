@@ -81,7 +81,7 @@ async fn run_stats(
     let mut stats = CrateStats::new();
 
     let manifests = crawler
-        .search_cargo_tomls(crate_name)
+        .search_cargo_tomls_up_to(crate_name, limit)
         .await
         .context("GitHub search failed (rate limit or missing token?)")?;
     info!("Found {} manifests; analyzing {limit}", manifests.len());
@@ -93,7 +93,7 @@ async fn run_stats(
     }
 
     let sources = crawler
-        .search_rust_sources(crate_name)
+        .search_rust_sources_up_to(crate_name, limit)
         .await
         .context("GitHub source search failed (rate limit or missing token?)")?;
     info!("Found {} source files; analyzing {limit}", sources.len());

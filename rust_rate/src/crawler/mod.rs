@@ -267,7 +267,7 @@ impl GithubCrawler {
     /// Returns an error if a request fails, the API returns an error status (rate limiting is
     /// reported explicitly), or a response cannot be decoded.
     pub async fn search_cargo_tomls(&self, query: &str) -> Result<Vec<GithubItem>> {
-        self.search_code(query, "filename:Cargo.toml").await
+        self.search_cargo_tomls_up_to(query, usize::MAX).await
     }
 
     /// Searches GitHub code results for Rust source files that import the crate `crate_name`.
@@ -276,14 +276,46 @@ impl GithubCrawler {
     ///
     /// Returns an error under the same conditions as [`Self::search_cargo_tomls`].
     pub async fn search_rust_sources(&self, crate_name: &str) -> Result<Vec<GithubItem>> {
-        self.search_code(&format!("\"use {crate_name}::\""), "extension:rs")
+        self.search_rust_sources_up_to(crate_name, usize::MAX).await
+    }
+
+    /// Returns at most `limit` matching Cargo manifests.
+    ///
+    /// # Errors
+    /// Returns the same request and decoding errors as [`Self::search_cargo_tomls`].
+    pub async fn search_cargo_tomls_up_to(
+        &self,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<GithubItem>> {
+        self.search_code(query, "filename:Cargo.toml", limit).await
+    }
+
+    /// Returns at most `limit` Rust source files importing the crate.
+    ///
+    /// # Errors
+    /// Returns the same request and decoding errors as [`Self::search_rust_sources`].
+    pub async fn search_rust_sources_up_to(
+        &self,
+        crate_name: &str,
+        limit: usize,
+    ) -> Result<Vec<GithubItem>> {
+        self.search_code(&format!("\"use {crate_name}::\""), "extension:rs", limit)
             .await
     }
 
     /// Runs a GitHub code search for `query` restricted by `qualifier`, following pagination.
-    async fn search_code(&self, query: &str, qualifier: &str) -> Result<Vec<GithubItem>> {
+    async fn search_code(
+        &self,
+        query: &str,
+        qualifier: &str,
+        limit: usize,
+    ) -> Result<Vec<GithubItem>> {
         let mut items = Vec::new();
         for page in 1..=MAX_SEARCH_PAGES {
+            if items.len() == limit {
+                break;
+            }
             let url = Self::build_search_url(&self.api_base, query, qualifier, page);
             info!("Searching GitHub: {}", url);
 
@@ -303,7 +335,7 @@ impl GithubCrawler {
                 serde_json::from_slice(&body).context("Failed to parse GitHub search response")?;
 
             let fetched = search_response.items.len();
-            items.extend(search_response.items);
+            items.extend(search_response.items.into_iter().take(limit - items.len()));
             if fetched < SEARCH_PAGE_SIZE {
                 break;
             }

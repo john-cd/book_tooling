@@ -99,7 +99,7 @@ fn run_stats_cli(
             "stats",
             "anyhow",
             "--limit",
-            "0",
+            "1",
             "--api-base",
             api_base,
             "--token-env",
@@ -415,4 +415,22 @@ async fn crates_io_failures_are_reported() {
         "{invalid}"
     );
     assert_eq!(server.requests().len(), 2);
+}
+
+/// Requests only the pages needed to fill the sample.
+#[tokio::test]
+async fn limited_search_stops_after_filling_sample() {
+    for (limit, expected_pages) in [(0, 0), (5, 1), (101, 2)] {
+        let server = MockServer::spawn((0..expected_pages).map(|_| search_page(100)).collect())
+            .expect("start mock server");
+        let crawler = GithubCrawler::new(None)
+            .expect("build crawler")
+            .with_api_base(&server.url);
+        let items = crawler
+            .search_cargo_tomls_up_to("anyhow", limit)
+            .await
+            .expect("search");
+        assert_eq!(items.len(), limit);
+        assert_eq!(server.requests().len(), expected_pages);
+    }
 }
