@@ -84,12 +84,27 @@ async fn run_stats(
         .search_cargo_tomls_up_to(crate_name, limit)
         .await
         .context("GitHub search failed (rate limit or missing token?)")?;
-    info!("Found {} manifests; analyzing {limit}", manifests.len());
+    let attempted = manifests.len();
+    let mut analyzed = 0;
     for result in download_all(&crawler, &manifests, limit).await {
         match result {
-            Ok(content) => stats.process_cargo_toml(&content),
+            Ok(content) => analyzed += usize::from(stats.try_process_cargo_toml(&content)),
             Err(error) => warn!("Skipping a manifest: {error:#}"),
         }
+    }
+    info!(
+        requested = limit,
+        found = manifests.len(),
+        attempted,
+        analyzed,
+        "Manifest sample"
+    );
+    anyhow::ensure!(
+        attempted == 0 || analyzed > 0,
+        "Could not analyze any of {attempted} sampled manifests"
+    );
+    if analyzed < attempted {
+        warn!("Analyzed {analyzed} of {attempted} sampled manifests");
     }
 
     let sources = crawler

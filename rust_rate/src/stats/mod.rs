@@ -49,11 +49,16 @@ impl CrateStats {
     /// (`package = "..."`) count under their real crate name. A manifest that does not parse is
     /// logged and skipped.
     pub fn process_cargo_toml(&mut self, content: &str) {
+        self.try_process_cargo_toml(content);
+    }
+
+    /// Adds statistics from a manifest and returns whether it parsed successfully.
+    pub fn try_process_cargo_toml(&mut self, content: &str) -> bool {
         let manifest: Value = match toml::from_str(content) {
             Ok(manifest) => manifest,
             Err(e) => {
                 warn!("Failed to parse Cargo.toml: {}", e);
-                return;
+                return false;
             }
         };
 
@@ -85,6 +90,7 @@ impl CrateStats {
         for category in categories.into_iter().flatten().filter_map(Value::as_str) {
             *self.category_stats.entry(category.to_owned()).or_insert(0) += 1;
         }
+        true
     }
 
     /// Returns dependency names with their counts, ordered by descending count and then ascending

@@ -94,12 +94,22 @@ fn run_stats_cli(
     request_timeout_ms: u64,
     max_search_response_bytes: usize,
 ) -> std::io::Result<Output> {
+    run_stats_cli_with_limit(api_base, request_timeout_ms, max_search_response_bytes, "1")
+}
+
+/// Runs the stats CLI with an explicit manifest sample limit.
+fn run_stats_cli_with_limit(
+    api_base: &str,
+    request_timeout_ms: u64,
+    max_search_response_bytes: usize,
+    limit: &str,
+) -> std::io::Result<Output> {
     Command::new(env!("CARGO_BIN_EXE_rust_rate"))
         .args([
             "stats",
             "anyhow",
             "--limit",
-            "1",
+            limit,
             "--api-base",
             api_base,
             "--token-env",
@@ -432,5 +442,46 @@ async fn limited_search_stops_after_filling_sample() {
             .expect("search");
         assert_eq!(items.len(), limit);
         assert_eq!(server.requests().len(), expected_pages);
+    }
+}
+
+/// Distinguishes absent manifests, partial samples, and total analysis failure.
+#[test]
+fn stats_reports_manifest_analysis_coverage() {
+    let cases: &[(&[(&str, &str)], bool)] = &[
+        (&[], true),
+        (&[("200 OK", "[package]\nname = 'demo'")], true),
+        (&[("404 Not Found", ""), ("200 OK", "broken = [")], false),
+        (
+            &[
+                ("200 OK", "[package]\nname = 'demo'"),
+                ("404 Not Found", ""),
+            ],
+            true,
+        ),
+    ];
+    for &(fixtures, success) in cases {
+        let server = MockServer::spawn_with_handler(move |listener, recorded| {
+            let address = listener.local_addr().expect("read address");
+            let items = (0..fixtures.len()).map(|i| {
+                format!(r#"{{"repository":{{"full_name":"o/r{i}"}},"path":"Cargo.toml","url":"http://{address}/{i}"}}"#)
+            }).collect::<Vec<_>>().join(",");
+            let search = response("200 OK", "", &format!(r#"{{"items":[{items}]}}"#));
+            for reply in std::iter::once(search)
+                .chain(fixtures.iter().map(|(status, body)| response(status, "", body)))
+                .chain(std::iter::once(search_page(0)))
+            {
+                let (mut stream, _) = listener.accept().expect("accept connection");
+                MockServer::record_request(&mut stream, &recorded);
+                stream.write_all(reply.as_bytes()).expect("write response");
+            }
+        }).expect("start server");
+        let output = run_stats_cli_with_limit(&server.url, 2000, 4096, "2").expect("run CLI");
+        assert_eq!(output.status.success(), success, "{output:?}");
+        if !success {
+            assert!(String::from_utf8_lossy(&output.stderr).contains("Could not analyze any of 2"));
+        } else if fixtures.len() == 2 {
+            assert!(String::from_utf8_lossy(&output.stdout).contains("Analyzed 1 of 2"));
+        }
     }
 }
