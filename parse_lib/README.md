@@ -84,7 +84,7 @@ for element in &doc.elements {
 ```bash
 cargo install cargo-fuzz
 cd parse_lib
-cargo +nightly fuzz run round_trip
+cargo +nightly-2026-11-16 fuzz run round_trip
 ```
 
-Seed it with `test_fixtures/markdown/` (`cargo +nightly fuzz run round_trip ../test_fixtures/markdown`). Add any crash it finds as a fixture or a regression test in `tests/round_trip.rs`.
+Seed it with `test_fixtures/markdown/` (`cargo +nightly-2026-11-16 fuzz run round_trip ../test_fixtures/markdown`). Add any crash it finds as a fixture or a regression test in `tests/round_trip.rs`.
